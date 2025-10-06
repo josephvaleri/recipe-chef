@@ -1,103 +1,319 @@
-import Image from "next/image";
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { ChefOuiOui } from '@/components/chef-ouioui'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { supabase } from '@/lib/supabase'
+import { TrialBanner } from '@/components/trial-banner'
+import { RouteGuard } from '@/components/route-guard'
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isListening, setIsListening] = useState(false)
+  const [aiQuery, setAiQuery] = useState('')
+  const [user, setUser] = useState<any>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const router = useRouter()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error('Error checking auth:', error)
+      } finally {
+        setIsAuthLoading(false)
+      }
+    }
+
+    checkAuth()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleVoiceSearch = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      const recognition = new SpeechRecognition()
+
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = 'en-US'
+
+      recognition.onstart = () => setIsListening(true)
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript
+        setSearchQuery(transcript)
+        setIsListening(false)
+      }
+      recognition.onerror = () => setIsListening(false)
+      recognition.onend = () => setIsListening(false)
+
+      recognition.start()
+    }
+  }
+
+  const quickActions = [
+    {
+      title: 'My Cookbook',
+      description: 'View your personal recipe collection',
+      icon: BookOpen,
+      href: '/cookbook',
+      color: 'bg-blue-500'
+    },
+    {
+      title: 'Recipe Finder',
+      description: 'Find recipes by ingredients',
+      icon: Search,
+      href: '/finder',
+      color: 'bg-green-500'
+    },
+    {
+      title: 'Menu Calendar',
+      description: 'Plan your meals',
+      icon: Calendar,
+      href: '/calendar',
+      color: 'bg-purple-500'
+    },
+    {
+      title: 'Add Recipe',
+      description: 'Import or create new recipes',
+      icon: Plus,
+      href: '/add',
+      color: 'bg-orange-500'
+    }
+  ]
+
+  // Show loading state while checking authentication
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <ChefHat className="w-8 h-8 text-white" />
+            </div>
+            <p className="text-orange-700">Loading Recipe Chef...</p>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    )
+  }
+
+  // Non-authenticated users see Chef OuiOui on left, login on right
+  if (!user) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
+        <TrialBanner variant="compact" />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-orange-900 mb-2">
+                Recipe Chef
+              </h1>
+              <p className="text-orange-700 text-lg">
+                Your personal cooking assistant, ready to help with any recipe
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Left Column: Chef OuiOui */}
+              <div className="flex flex-col space-y-6">
+                <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
+                  <div className="text-center">
+                    <ChefOuiOui className="mx-auto" />
+                  </div>
+                </Card>
+              </div>
+
+              {/* Right Column: Login/Auth */}
+              <div className="flex flex-col">
+                <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 h-full">
+                  <div className="text-center mb-6">
+                    <h2 className="text-2xl font-bold text-orange-900 mb-2">
+                      Get Started with Recipe Chef
+                    </h2>
+                    <p className="text-orange-700">
+                      Sign up for your free trial and start organizing your recipes
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Button
+                      onClick={() => router.push('/auth/signup')}
+                      className="w-full bg-orange-600 hover:bg-orange-700 py-3"
+                      size="lg"
+                    >
+                      <UserPlus className="w-5 h-5 mr-2" />
+                      Start Free Trial
+                    </Button>
+
+                    <Button
+                      onClick={() => router.push('/auth/signin')}
+                      variant="outline"
+                      className="w-full border-orange-300 text-orange-700 hover:bg-orange-50 py-3"
+                      size="lg"
+                    >
+                      <LogIn className="w-5 h-5 mr-2" />
+                      Sign In
+                    </Button>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-orange-50 rounded-lg">
+                    <h3 className="font-semibold text-orange-900 mb-2">What you get:</h3>
+                    <ul className="text-sm text-orange-700 space-y-1">
+                      <li>• Unlimited recipe storage</li>
+                      <li>• AI-powered recipe search</li>
+                      <li>• Meal planning calendar</li>
+                      <li>• Shopping list generation</li>
+                    </ul>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Authenticated users see the full interface
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-orange-900 mb-2">
+              Recipe Chef
+            </h1>
+            <p className="text-orange-700 text-lg">
+              Your personal cooking assistant, ready to help with any recipe
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column: Chef OuiOui and Search */}
+            <div className="flex flex-col space-y-6">
+              {/* Chef OuiOui Avatar Card */}
+              <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
+                <div className="text-center">
+                  <ChefOuiOui className="mx-auto" />
+                </div>
+              </Card>
+
+              {/* Search Input Card */}
+              <RouteGuard requireAuth={true} requireAI={true}>
+                <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200">
+                  <div className="space-y-4">
+                    <Textarea
+                      placeholder="Ask Chef OuiOui anything about recipes... (e.g., 'What can I make with chicken?', 'Quick pasta recipes', 'How do I make bread?')"
+                      value={aiQuery}
+                      onChange={(e) => setAiQuery(e.target.value)}
+                      className="min-h-[120px] resize-none border-orange-300 focus:border-orange-500"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          // Handle AI query submission
+                        }
+                      }}
+                    />
+                    
+                    <div className="flex justify-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleVoiceSearch}
+                        className={isListening ? 'bg-red-100 text-red-600' : ''}
+                      >
+                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                      </Button>
+                      <Button
+                        disabled={!aiQuery.trim()}
+                        className="bg-orange-600 hover:bg-orange-700 px-8"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Ask Chef OuiOui!
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </RouteGuard>
+            </div>
+
+            {/* Right Column: Quick Actions */}
+            <div className="flex flex-col">
+              <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 h-full">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold text-orange-900 mb-4">Quick Actions</h2>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {quickActions.map((action) => {
+                      const Icon = action.icon
+                      return (
+                        <motion.div
+                          key={action.title}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Card 
+                            className="hover:shadow-md transition-shadow cursor-pointer border-orange-200"
+                            onClick={() => router.push(action.href)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start space-x-3">
+                                <div className={`w-10 h-10 ${action.color} rounded-lg flex items-center justify-center`}>
+                                  <Icon className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-orange-900">{action.title}</h3>
+                                  <p className="text-sm text-orange-600">{action.description}</p>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+
+                      {/* Trial Banner */}
+                      <RouteGuard requireAuth={true} requireAI={false} showTrialBanner={true}>
+                        <div className="mt-6 p-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
+                          <div className="text-center">
+                            <h3 className="font-bold text-lg mb-2">Upgrade to Premium</h3>
+                            <p className="text-orange-100 text-sm mb-3">
+                              Get AI-powered recipe search and advanced meal planning
+                            </p>
+                            <Button
+                              variant="secondary"
+                              className="bg-white text-orange-600 hover:bg-orange-50"
+                              onClick={() => router.push('/pricing')}
+                            >
+                              View Pricing
+                            </Button>
+                          </div>
+                        </div>
+                      </RouteGuard>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
