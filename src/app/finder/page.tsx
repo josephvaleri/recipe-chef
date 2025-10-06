@@ -71,6 +71,14 @@ export default function RecipeFinderPage() {
   const [mealTypes, setMealTypes] = useState<any[]>([])
   const [ingredients, setIngredients] = useState<any[]>([])
   const [profile, setProfile] = useState<any>(null)
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
+    proteins: true,
+    vegetables: true,
+    fruits: true,
+    grains: true,
+    dairy: true,
+    spices: true
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -78,8 +86,21 @@ export default function RecipeFinderPage() {
   }, [])
 
   useEffect(() => {
-    if (Object.keys(filters).length > 0) {
+    // Only search if at least one ingredient is selected
+    const hasSelectedIngredients = [
+      ...filters.proteins,
+      ...filters.vegetables,
+      ...filters.fruits,
+      ...filters.grains,
+      ...filters.dairy,
+      ...filters.spices
+    ].length > 0
+
+    if (hasSelectedIngredients) {
       searchRecipes()
+    } else {
+      // Clear recipes when no ingredients are selected
+      setRecipes([])
     }
   }, [filters])
 
@@ -106,21 +127,43 @@ export default function RecipeFinderPage() {
         .select('*')
         .order('name')
 
-      // Load ingredients by category
-      const { data: ingredientsData } = await supabase
-        .from('ingredients')
-        .select(`
-          *,
-          category:ingredient_categories(name)
-        `)
-        .order('name')
+      // Load ingredients by category - use pagination to get all ingredients
+      let allIngredients: any[] = []
+      let from = 0
+      const batchSize = 1000
+      let hasMore = true
+
+      while (hasMore) {
+        const { data: batchData, error } = await supabase
+          .from('ingredients')
+          .select(`
+            *,
+            category:ingredient_categories(name)
+          `)
+          .order('name')
+          .range(from, from + batchSize - 1)
+
+        if (error) {
+          console.error('Error loading ingredients batch:', error)
+          break
+        }
+
+        if (batchData && batchData.length > 0) {
+          allIngredients = [...allIngredients, ...batchData]
+          from += batchSize
+          hasMore = batchData.length === batchSize
+        } else {
+          hasMore = false
+        }
+      }
+
+      console.log(`Loaded ${allIngredients.length} ingredients total`)
 
       setCuisines(cuisinesData || [])
       setMealTypes(mealTypesData || [])
-      setIngredients(ingredientsData || [])
+      setIngredients(allIngredients)
 
-      // Load initial popular recipes
-      loadPopularRecipes()
+      // Don't load any recipes initially - wait for user to select ingredients
     } catch (error) {
       console.error('Error loading initial data:', error)
     }
@@ -155,11 +198,131 @@ export default function RecipeFinderPage() {
     }
   }
 
+  const parseSearchQuery = (query: string) => {
+    if (!query.trim()) return
+
+    // Extract ingredient names from natural language
+    const ingredientNames = query
+      .toLowerCase()
+      .replace(/find a recipe that uses?/gi, '')
+      .replace(/recipe that uses?/gi, '')
+      .replace(/uses?/gi, '')
+      .replace(/with/gi, '')
+      .replace(/and/gi, ',')
+      .replace(/or/gi, ',')
+      .split(',')
+      .map(name => name.trim())
+      .filter(name => name.length > 0)
+
+    console.log('Parsed ingredient names:', ingredientNames)
+
+    // Find matching ingredients in the database (optimized)
+    const matchedIngredients: { [key: string]: number[] } = {
+      proteins: [],
+      vegetables: [],
+      fruits: [],
+      grains: [],
+      dairy: [],
+      spices: []
+    }
+
+    // Use a more efficient matching approach
+    ingredientNames.forEach(searchName => {
+      const foundIngredients = ingredients.filter(ingredient => {
+        const ingredientName = ingredient.name.toLowerCase()
+        return ingredientName.includes(searchName) || searchName.includes(ingredientName)
+      })
+
+      foundIngredients.forEach(ingredient => {
+        const categoryKey = getCategoryKey(ingredient.category_id)
+        if (categoryKey && !matchedIngredients[categoryKey].includes(ingredient.ingredient_id)) {
+          matchedIngredients[categoryKey].push(ingredient.ingredient_id)
+        }
+      })
+    })
+
+    console.log('Matched ingredients:', matchedIngredients)
+
+    // Update filters with matched ingredients (batch update)
+    setFilters(prev => {
+      const newFilters = { ...prev }
+      Object.keys(matchedIngredients).forEach(category => {
+        const categoryKey = category as keyof typeof matchedIngredients
+        newFilters[categoryKey] = [...prev[categoryKey], ...matchedIngredients[categoryKey]]
+      })
+      return newFilters
+    })
+
+    return matchedIngredients
+  }
+
+  const getCategoryKey = (categoryId: number) => {
+    const categoryMap: { [key: number]: string } = {
+      1: 'proteins',
+      2: 'vegetables', 
+      3: 'fruits',
+      4: 'grains',
+      7: 'dairy',
+      6: 'spices'
+    }
+    return categoryMap[categoryId]
+  }
+
   const searchRecipes = async () => {
     setLoading(true)
     try {
-      // Build the search query
-      let query = supabase
+      // Check if search query contains natural language ingredient search
+      if (searchQuery.trim() && searchQuery.toLowerCase().includes('recipe')) {
+        console.log('Detected natural language search:', searchQuery)
+        parseSearchQuery(searchQuery)
+        // Clear the search query after processing
+        setSearchQuery('')
+      }
+
+      // Get all selected ingredients
+      const allSelectedIngredients = [
+        ...filters.proteins,
+        ...filters.vegetables,
+        ...filters.fruits,
+        ...filters.grains,
+        ...filters.dairy,
+        ...filters.spices
+      ]
+
+      // If no ingredients selected, clear recipes
+      if (allSelectedIngredients.length === 0) {
+        setRecipes([])
+        return
+      }
+
+      await performIngredientSearch()
+    } catch (error) {
+      console.error('Error searching recipes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const performIngredientSearch = async () => {
+    try {
+      // Get all selected ingredients
+      const allSelectedIngredients = [
+        ...filters.proteins,
+        ...filters.vegetables,
+        ...filters.fruits,
+        ...filters.grains,
+        ...filters.dairy,
+        ...filters.spices
+      ]
+
+      // If no ingredients selected, clear recipes
+      if (allSelectedIngredients.length === 0) {
+        setRecipes([])
+        return
+      }
+
+      // Search global recipes
+      let globalQuery = supabase
         .from('global_recipes')
         .select(`
           *,
@@ -173,81 +336,150 @@ export default function RecipeFinderPage() {
         `)
         .eq('is_published', true)
 
-      // Apply filters
+      // Apply filters to global recipes
       if (filters.cuisine_id) {
-        query = query.eq('cuisine_id', filters.cuisine_id)
+        globalQuery = globalQuery.eq('cuisine_id', filters.cuisine_id)
       }
-
       if (filters.meal_type_id) {
-        query = query.eq('meal_type_id', filters.meal_type_id)
+        globalQuery = globalQuery.eq('meal_type_id', filters.meal_type_id)
       }
-
       if (filters.difficulty) {
-        query = query.eq('difficulty', filters.difficulty)
+        globalQuery = globalQuery.eq('difficulty', filters.difficulty)
+      }
+      if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
+        globalQuery = globalQuery.textSearch('title', searchQuery.trim())
       }
 
-      // Apply text search
-      if (searchQuery.trim()) {
-        query = query.textSearch('title', searchQuery.trim())
-      }
-
-      const { data, error } = await query.limit(50)
-
-      if (error) {
-        console.error('Error searching recipes:', error)
-        return
-      }
-
-      // Score and filter recipes based on ingredient matches
-      const scoredRecipes = (data || []).map(recipe => {
-        let score = 0
-        const maxScore = 10
-
-        // Must match cuisine and meal type
-        if (filters.cuisine_id && recipe.cuisine_id === filters.cuisine_id) {
-          score += 3
-        }
-        if (filters.meal_type_id && recipe.meal_type_id === filters.meal_type_id) {
-          score += 3
-        }
-
-        // Check for protein match (required)
-        if (filters.proteins.length > 0) {
-          const hasProtein = recipe.ingredients?.some(ing => 
-            filters.proteins.includes(ing.ingredient.category_id)
+      // Search user recipes
+      let userQuery = supabase
+        .from('user_recipes')
+        .select(`
+          *,
+          cuisine:cuisines(name),
+          meal_type:meal_types(name),
+          ingredients:user_recipe_ingredients_detail(
+            ingredient_id,
+            ingredient:ingredients(name, category_id),
+            original_text,
+            matched_term,
+            match_type
           )
-          if (hasProtein) {
-            score += 2
+        `)
+
+      // Apply filters to user recipes
+      if (filters.cuisine_id) {
+        userQuery = userQuery.eq('cuisine_id', filters.cuisine_id)
+      }
+      if (filters.meal_type_id) {
+        userQuery = userQuery.eq('meal_type_id', filters.meal_type_id)
+      }
+      if (filters.difficulty) {
+        userQuery = userQuery.eq('difficulty', filters.difficulty)
+      }
+      if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
+        userQuery = userQuery.textSearch('title', searchQuery.trim())
+      }
+
+      // Execute both queries
+      const [globalResult, userResult] = await Promise.all([
+        globalQuery.limit(50),
+        userQuery.limit(50)
+      ])
+
+      if (globalResult.error) {
+        console.error('Error searching global recipes:', globalResult.error)
+      }
+      if (userResult.error) {
+        console.error('Error searching user recipes:', userResult.error)
+      }
+
+      // Debug user recipes
+      console.log('User recipes found:', userResult.data?.length || 0)
+      console.log('User recipes data:', userResult.data)
+      const recipe1286 = userResult.data?.find(r => r.user_recipe_id === 1286)
+      if (recipe1286) {
+        console.log('Found recipe 1286 in user results:', recipe1286)
+      } else {
+        console.log('Recipe 1286 NOT found in user results')
+      }
+
+      // Combine results
+      const allRecipes = [
+        ...(globalResult.data || []).map(recipe => ({ ...recipe, source: 'global' })),
+        ...(userResult.data || []).map(recipe => ({ ...recipe, source: 'user' }))
+      ]
+
+      // Debug logging
+      console.log('All selected ingredients:', allSelectedIngredients)
+      console.log('Total recipes found:', allRecipes.length)
+      console.log('User recipes:', allRecipes.filter(r => r.source === 'user').length)
+      console.log('Global recipes:', allRecipes.filter(r => r.source === 'global').length)
+
+      // Score recipes based on ingredient matches
+      const scoredRecipes = allRecipes.map(recipe => {
+        let ingredientMatches = 0
+        let totalSelectedIngredients = allSelectedIngredients.length
+
+        // Debug specific recipe
+        if (recipe.user_recipe_id === 1286) {
+          console.log('Found recipe 1286:', recipe.title)
+          console.log('Recipe ingredients:', recipe.ingredients)
+          console.log('Recipe source:', recipe.source)
+        }
+
+        // Count matching ingredients - handle both global and user recipe structures
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+          if (recipe.source === 'user') {
+            // For user recipes, match by ingredient_id from user_recipe_ingredients_detail
+            const matchingIngredients = recipe.ingredients.filter(ing =>
+              allSelectedIngredients.includes(ing.ingredient_id)
+            )
+            ingredientMatches = matchingIngredients.length
+            
+            if (recipe.user_recipe_id === 1286) {
+              console.log('Recipe 1286 matching ingredients:', matchingIngredients)
+              console.log('Recipe 1286 ingredient IDs:', recipe.ingredients.map(ing => ing.ingredient_id))
+            }
           } else {
-            return { ...recipe, score: 0 } // Must have matching protein
+            // For global recipes, match by category_id from global_recipe_ingredients
+            ingredientMatches = recipe.ingredients.filter(ing =>
+              allSelectedIngredients.includes(ing.ingredient.category_id)
+            ).length
           }
         }
 
-        // Score ingredient matches
-        const allSelectedIngredients = [
-          ...filters.proteins,
-          ...filters.vegetables,
-          ...filters.fruits,
-          ...filters.grains,
-          ...filters.dairy,
-          ...filters.spices
-        ]
+        // Calculate match percentage
+        const matchPercentage = totalSelectedIngredients > 0 
+          ? (ingredientMatches / totalSelectedIngredients) * 100 
+          : 0
 
-        if (allSelectedIngredients.length > 0) {
-          const matchingIngredients = recipe.ingredients?.filter(ing =>
-            allSelectedIngredients.includes(ing.ingredient.category_id)
-          ).length || 0
-
-          score += Math.min(matchingIngredients, 2)
+        // Bonus points for exact matches
+        let bonusScore = 0
+        if (filters.cuisine_id && recipe.cuisine_id === filters.cuisine_id) {
+          bonusScore += 10
+        }
+        if (filters.meal_type_id && recipe.meal_type_id === filters.meal_type_id) {
+          bonusScore += 10
+        }
+        if (filters.difficulty && recipe.difficulty === filters.difficulty) {
+          bonusScore += 5
         }
 
-        return { ...recipe, score: score / maxScore }
-      }).filter(recipe => recipe.score >= 0.5) // Minimum threshold
+        return {
+          ...recipe,
+          ingredientMatches,
+          matchPercentage,
+          totalScore: matchPercentage + bonusScore
+        }
+      })
 
-      // Sort by score
-      scoredRecipes.sort((a, b) => b.score - a.score)
+      // Filter recipes with at least one matching ingredient
+      const filteredRecipes = scoredRecipes.filter(recipe => recipe.ingredientMatches > 0)
 
-      setRecipes(scoredRecipes)
+      // Sort by total score (ingredient matches + bonus points)
+      filteredRecipes.sort((a, b) => b.totalScore - a.totalScore)
+
+      setRecipes(filteredRecipes)
     } catch (error) {
       console.error('Error searching recipes:', error)
     } finally {
@@ -366,6 +598,13 @@ export default function RecipeFinderPage() {
     return ingredients.filter(ing => ing.category_id === categoryId)
   }
 
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }))
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
       {/* Header */}
@@ -382,146 +621,292 @@ export default function RecipeFinderPage() {
               </div>
               <h1 className="text-xl font-bold text-gray-900">Recipe Finder</h1>
             </div>
+            
+            {/* Search Criteria - Top Right */}
+            <div className="flex items-center space-x-4">
+              {/* Quick Search */}
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="Search recipes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64"
+                />
+                <Button onClick={searchRecipes} disabled={loading} size="sm">
+                  {loading ? 'Searching...' : 'Search'}
+                </Button>
+              </div>
+              
+              {/* Basic Filters */}
+              <div className="flex items-center space-x-2">
+                <select
+                  value={filters.cuisine_id || ''}
+                  onChange={(e) => handleFilterChange('cuisine_id', e.target.value ? parseInt(e.target.value) : undefined)}
+                  className="border rounded-md px-3 py-1 text-sm"
+                >
+                  <option value="">Any Cuisine</option>
+                  {cuisines.map(cuisine => (
+                    <option key={cuisine.cuisine_id} value={cuisine.cuisine_id}>
+                      {cuisine.name}
+                    </option>
+                  ))}
+                </select>
+                
+                <select
+                  value={filters.meal_type_id || ''}
+                  onChange={(e) => handleFilterChange('meal_type_id', e.target.value ? parseInt(e.target.value) : undefined)}
+                  className="border rounded-md px-3 py-1 text-sm"
+                >
+                  <option value="">Any Meal</option>
+                  {mealTypes.map(mealType => (
+                    <option key={mealType.meal_type_id} value={mealType.meal_type_id}>
+                      {mealType.name}
+                    </option>
+                  ))}
+                </select>
+                
+                <select
+                  value={filters.difficulty || ''}
+                  onChange={(e) => handleFilterChange('difficulty', e.target.value || undefined)}
+                  className="border rounded-md px-3 py-1 text-sm"
+                >
+                  <option value="">Any Difficulty</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Very Hard">Very Hard</option>
+                </select>
+                
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  Clear
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
+
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Chef OuiOui Sidebar */}
           <div className="lg:col-span-1">
-            <div className="sticky top-8 space-y-6">
-              {/* Chef OuiOui */}
+            <div className="sticky top-8">
               <ChefOuiOui />
+            </div>
+          </div>
 
-              {/* Search */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Search className="w-5 h-5 text-orange-500" />
-                    <span>Search</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Input
-                    placeholder="Search recipes..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <Button onClick={searchRecipes} className="w-full" disabled={loading}>
-                    {loading ? 'Searching...' : 'Search'}
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Filters */}
+          {/* Ingredient Selection */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-8">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center space-x-2">
-                      <Filter className="w-5 h-5 text-orange-500" />
-                      <span>Filters</span>
-                    </span>
-                    <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      Clear
+                    <span>Select Ingredients</span>
+                    <Button variant="outline" size="sm" onClick={clearFilters}>
+                      Clear All
                     </Button>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Cuisine */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Cuisine</label>
-                    <select
-                      value={filters.cuisine_id || ''}
-                      onChange={(e) => handleFilterChange('cuisine_id', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                    >
-                      <option value="">Any Cuisine</option>
-                      {cuisines.map(cuisine => (
-                        <option key={cuisine.cuisine_id} value={cuisine.cuisine_id}>
-                          {cuisine.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Meal Type */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Meal Type</label>
-                    <select
-                      value={filters.meal_type_id || ''}
-                      onChange={(e) => handleFilterChange('meal_type_id', e.target.value ? parseInt(e.target.value) : undefined)}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                    >
-                      <option value="">Any Meal</option>
-                      {mealTypes.map(mealType => (
-                        <option key={mealType.meal_type_id} value={mealType.meal_type_id}>
-                          {mealType.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Difficulty */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Difficulty</label>
-                    <select
-                      value={filters.difficulty || ''}
-                      onChange={(e) => handleFilterChange('difficulty', e.target.value || undefined)}
-                      className="w-full border rounded-md px-3 py-2 text-sm"
-                    >
-                      <option value="">Any Difficulty</option>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                      <option value="Very Hard">Very Hard</option>
-                    </select>
-                  </div>
-
-                  {/* Proteins */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Proteins</label>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {getIngredientsByCategory(1).map(ingredient => (
-                        <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={filters.proteins.includes(ingredient.ingredient_id)}
-                            onChange={(e) => {
-                              const newProteins = e.target.checked
-                                ? [...filters.proteins, ingredient.ingredient_id]
-                                : filters.proteins.filter(id => id !== ingredient.ingredient_id)
-                              handleFilterChange('proteins', newProteins)
-                            }}
-                            className="rounded"
-                          />
-                          <span>{ingredient.name}</span>
-                        </label>
-                      ))}
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Proteins */}
+                    <div>
+                      <button
+                        onClick={() => toggleCategory('proteins')}
+                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
+                      >
+                        <span>Proteins ({getIngredientsByCategory(1).length})</span>
+                        <span className="text-xs">
+                          {expandedCategories.proteins ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedCategories.proteins && (
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {getIngredientsByCategory(1).map(ingredient => (
+                            <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={filters.proteins.includes(ingredient.ingredient_id)}
+                                onChange={(e) => {
+                                  const newProteins = e.target.checked
+                                    ? [...filters.proteins, ingredient.ingredient_id]
+                                    : filters.proteins.filter(id => id !== ingredient.ingredient_id)
+                                  handleFilterChange('proteins', newProteins)
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-xs">{ingredient.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Vegetables */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Vegetables</label>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {getIngredientsByCategory(2).map(ingredient => (
-                        <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={filters.vegetables.includes(ingredient.ingredient_id)}
-                            onChange={(e) => {
-                              const newVegetables = e.target.checked
-                                ? [...filters.vegetables, ingredient.ingredient_id]
-                                : filters.vegetables.filter(id => id !== ingredient.ingredient_id)
-                              handleFilterChange('vegetables', newVegetables)
-                            }}
-                            className="rounded"
-                          />
-                          <span>{ingredient.name}</span>
-                        </label>
-                      ))}
+                    {/* Vegetables */}
+                    <div>
+                      <button
+                        onClick={() => toggleCategory('vegetables')}
+                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
+                      >
+                        <span>Vegetables ({getIngredientsByCategory(2).length})</span>
+                        <span className="text-xs">
+                          {expandedCategories.vegetables ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedCategories.vegetables && (
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {getIngredientsByCategory(2).map(ingredient => (
+                            <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={filters.vegetables.includes(ingredient.ingredient_id)}
+                                onChange={(e) => {
+                                  const newVegetables = e.target.checked
+                                    ? [...filters.vegetables, ingredient.ingredient_id]
+                                    : filters.vegetables.filter(id => id !== ingredient.ingredient_id)
+                                  handleFilterChange('vegetables', newVegetables)
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-xs">{ingredient.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fruits */}
+                    <div>
+                      <button
+                        onClick={() => toggleCategory('fruits')}
+                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
+                      >
+                        <span>Fruits ({getIngredientsByCategory(3).length})</span>
+                        <span className="text-xs">
+                          {expandedCategories.fruits ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedCategories.fruits && (
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {getIngredientsByCategory(3).map(ingredient => (
+                            <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={filters.fruits.includes(ingredient.ingredient_id)}
+                                onChange={(e) => {
+                                  const newFruits = e.target.checked
+                                    ? [...filters.fruits, ingredient.ingredient_id]
+                                    : filters.fruits.filter(id => id !== ingredient.ingredient_id)
+                                  handleFilterChange('fruits', newFruits)
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-xs">{ingredient.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Grains */}
+                    <div>
+                      <button
+                        onClick={() => toggleCategory('grains')}
+                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
+                      >
+                        <span>Grains ({getIngredientsByCategory(4).length})</span>
+                        <span className="text-xs">
+                          {expandedCategories.grains ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedCategories.grains && (
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {getIngredientsByCategory(4).map(ingredient => (
+                            <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={filters.grains.includes(ingredient.ingredient_id)}
+                                onChange={(e) => {
+                                  const newGrains = e.target.checked
+                                    ? [...filters.grains, ingredient.ingredient_id]
+                                    : filters.grains.filter(id => id !== ingredient.ingredient_id)
+                                  handleFilterChange('grains', newGrains)
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-xs">{ingredient.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dairy */}
+                    <div>
+                      <button
+                        onClick={() => toggleCategory('dairy')}
+                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
+                      >
+                        <span>Dairy ({getIngredientsByCategory(7).length})</span>
+                        <span className="text-xs">
+                          {expandedCategories.dairy ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedCategories.dairy && (
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {getIngredientsByCategory(7).map(ingredient => (
+                            <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={filters.dairy.includes(ingredient.ingredient_id)}
+                                onChange={(e) => {
+                                  const newDairy = e.target.checked
+                                    ? [...filters.dairy, ingredient.ingredient_id]
+                                    : filters.dairy.filter(id => id !== ingredient.ingredient_id)
+                                  handleFilterChange('dairy', newDairy)
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-xs">{ingredient.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Spices */}
+                    <div>
+                      <button
+                        onClick={() => toggleCategory('spices')}
+                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
+                      >
+                        <span>Spices ({getIngredientsByCategory(6).length})</span>
+                        <span className="text-xs">
+                          {expandedCategories.spices ? '▼' : '▶'}
+                        </span>
+                      </button>
+                      {expandedCategories.spices && (
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {getIngredientsByCategory(6).map(ingredient => (
+                            <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={filters.spices.includes(ingredient.ingredient_id)}
+                                onChange={(e) => {
+                                  const newSpices = e.target.checked
+                                    ? [...filters.spices, ingredient.ingredient_id]
+                                    : filters.spices.filter(id => id !== ingredient.ingredient_id)
+                                  handleFilterChange('spices', newSpices)
+                                }}
+                                className="rounded"
+                              />
+                              <span className="text-xs">{ingredient.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -530,7 +915,7 @@ export default function RecipeFinderPage() {
           </div>
 
           {/* Results */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {loading ? 'Searching...' : `${recipes.length} Recipes Found`}

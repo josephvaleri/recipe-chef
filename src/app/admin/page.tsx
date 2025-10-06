@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Shield, Users, Settings, Database, AlertTriangle, ChefHat, Package } from 'lucide-react'
+import { Shield, Users, Settings, Database, AlertTriangle, ChefHat, Package, Plus, Edit, Trash2, Upload, FileText } from 'lucide-react'
 import { getCurrentUser, getCurrentProfile, isAdmin } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
@@ -258,6 +258,63 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Global Cookbook Management */}
+          <Card className="bg-white/80 backdrop-blur-sm border-orange-200 mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <ChefHat className="w-5 h-5 text-orange-600" />
+                <span>Manage Global Cookbook</span>
+              </CardTitle>
+              <CardDescription>
+                Add, edit, delete, and bulk upload recipes to the global cookbook
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  onClick={() => router.push('/admin/global-recipes/add')}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Recipe
+                </Button>
+                
+                <Button
+                  onClick={() => router.push('/admin/global-recipes/edit')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Recipes
+                </Button>
+                
+                <Button
+                  onClick={() => router.push('/admin/global-recipes/bulk-upload')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Bulk Upload
+                </Button>
+              </div>
+              
+              <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <h4 className="font-semibold text-orange-900 mb-2">Supported Upload Formats</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-orange-600" />
+                    <span className="text-sm text-orange-700">.paprikarecipes files</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <FileText className="w-4 h-4 text-orange-600" />
+                    <span className="text-sm text-orange-700">CSV files</span>
+                  </div>
+                </div>
+                <p className="text-xs text-orange-600 mt-2">
+                  Bulk upload supports multiple file formats for easy recipe import
+                </p>
               </div>
             </CardContent>
           </Card>

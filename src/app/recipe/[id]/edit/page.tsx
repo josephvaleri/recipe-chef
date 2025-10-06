@@ -45,7 +45,7 @@ interface RecipeData {
   }>
 }
 
-export default function EditRecipePage({ params }: { params: { id: string } }) {
+export default function EditRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const [recipe, setRecipe] = useState<RecipeData | null>(null)
   const [editedRecipe, setEditedRecipe] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -57,11 +57,15 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
   const router = useRouter()
 
   useEffect(() => {
-    loadRecipe()
-    loadReferenceData()
-  }, [params.id])
+    const initializePage = async () => {
+      const resolvedParams = await params
+      await loadRecipe(resolvedParams.id)
+      await loadReferenceData()
+    }
+    initializePage()
+  }, [params])
 
-  const loadRecipe = async () => {
+  const loadRecipe = async (recipeId: string) => {
     try {
       const user = await getCurrentUser()
       if (!user) {
@@ -77,7 +81,7 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
           cuisine:cuisines(name),
           meal_type:meal_types(name)
         `)
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
         .eq('user_id', user.id)
         .single()
 
@@ -87,36 +91,89 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Load ingredients
-      const { data: ingredientsData } = await supabase
-        .from('user_recipe_ingredients')
-        .select('amount, unit, raw_name')
-        .eq('user_recipe_id', params.id)
-        .order('order_index')
+        // Load ingredients and convert to text strings
+        console.log('Loading ingredients for recipe ID:', recipeId)
+        const { data: ingredientsData, error: ingredientsError } = await supabase
+          .from('user_recipe_ingredients')
+          .select('id, amount, unit, raw_name')
+          .eq('user_recipe_id', recipeId)
+
+        console.log('Ingredients query result:', { ingredientsData, ingredientsError })
+
+        // Clean up duplicate ingredient records if found
+        if (ingredientsData && ingredientsData.length > 1) {
+          console.log('Found duplicate ingredient records, cleaning up...')
+          // Keep only the first record and delete the rest
+          const firstRecord = ingredientsData[0]
+          const duplicateIds = ingredientsData.slice(1).map(ing => ing.id).filter(id => id)
+          
+          if (duplicateIds.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('user_recipe_ingredients')
+              .delete()
+              .in('id', duplicateIds)
+            
+            if (deleteError) {
+              console.error('Error cleaning up duplicate ingredients:', deleteError)
+            } else {
+              console.log('Cleaned up duplicate ingredient records')
+            }
+          }
+        }
+
+        // Convert structured ingredients to text strings
+        const ingredientTexts = ingredientsData?.map(ing => {
+          const fullText = `${ing.amount || ''}${ing.unit ? ` ${ing.unit}` : ''} ${ing.raw_name || ''}`.trim()
+          return fullText
+        }).filter(text => text.length > 0) || []
+
+        console.log('Converted ingredient texts:', ingredientTexts)
+
+        // Remove duplicates and split ingredients that contain newlines into separate items
+        const uniqueIngredientTexts = [...new Set(ingredientTexts)]
+        console.log('Unique ingredient texts:', uniqueIngredientTexts)
+        
+        const splitIngredientTexts = uniqueIngredientTexts.flatMap(text => 
+          text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+        )
+
+        console.log('Split ingredient texts:', splitIngredientTexts)
 
       // Load steps
       const { data: stepsData } = await supabase
         .from('user_recipe_steps')
         .select('step_number, text')
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
         .order('step_number')
+
+      // Split steps by paragraphs (same logic as recipe detail page)
+      const splitSteps = stepsData?.flatMap((step, stepIndex) =>
+        step.text.split('\n')
+          .filter(paragraph => paragraph.trim()) // Remove empty paragraphs
+          .map((paragraph, paragraphIndex) => ({
+            step_number: stepIndex + 1,
+            text: paragraph.trim()
+          }))
+      ) || []
+
+      console.log('Split steps:', splitSteps)
 
       // Load equipment
       const { data: equipmentData } = await supabase
         .from('user_recipe_equipment')
         .select('equipment:equipment(name)')
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       // Load tags
       const { data: tagsData } = await supabase
         .from('user_recipe_tags')
         .select('tag:tags(name)')
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       const fullRecipe = {
         ...recipeData,
-        ingredients: ingredientsData || [],
-        steps: stepsData || [],
+        ingredients: splitIngredientTexts,
+        steps: splitSteps,
         equipment: equipmentData || [],
         tags: tagsData || []
       }
@@ -124,8 +181,8 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
       setRecipe(fullRecipe)
       setEditedRecipe({
         ...fullRecipe,
-        ingredients: ingredientsData || [{ amount: '', unit: '', raw_name: '' }],
-        steps: stepsData || [{ step_number: 1, text: '' }],
+        ingredients: splitIngredientTexts.length > 0 ? splitIngredientTexts : [''],
+        steps: splitSteps.length > 0 ? splitSteps : [{ step_number: 1, text: '' }],
         newTags: []
       })
     } catch (error) {
@@ -167,7 +224,7 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
   const addIngredient = () => {
     setEditedRecipe({
       ...editedRecipe,
-      ingredients: [...editedRecipe.ingredients, { amount: '', unit: '', raw_name: '' }]
+      ingredients: [...editedRecipe.ingredients, '']
     })
   }
 
@@ -180,9 +237,9 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
     }
   }
 
-  const updateIngredient = (index: number, field: string, value: string) => {
+  const updateIngredient = (index: number, value: string) => {
     const newIngredients = [...editedRecipe.ingredients]
-    newIngredients[index][field] = value
+    newIngredients[index] = value
     setEditedRecipe({
       ...editedRecipe,
       ingredients: newIngredients
@@ -248,19 +305,33 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
         return
       }
 
+      const resolvedParams = await params
+      const recipeId = resolvedParams.id
+
       // Validate required fields
       if (!editedRecipe.title?.trim()) {
         setError('Recipe title is required')
         return
       }
 
-      if (editedRecipe.ingredients.some((ing: any) => !ing.raw_name?.trim())) {
-        setError('All ingredients must have a name')
+      if (editedRecipe.ingredients.some((ing: any) => !ing?.trim())) {
+        setError('All ingredients in "What You Will Need" must have text')
         return
       }
 
       if (editedRecipe.steps.some((step: any) => !step.text?.trim())) {
         setError('All steps must have text')
+        return
+      }
+
+      // Check if we have any ingredients or steps to save
+      if (editedRecipe.ingredients.length === 0) {
+        setError('At least one ingredient is required')
+        return
+      }
+
+      if (editedRecipe.steps.length === 0) {
+        setError('At least one step is required')
         return
       }
 
@@ -280,60 +351,95 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
           source_name: editedRecipe.source_name || null,
           source_url: editedRecipe.source_url || null
         })
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       if (recipeError) {
         throw new Error('Failed to update recipe')
       }
 
-      // Delete existing ingredients and add new ones
-      await supabase
-        .from('user_recipe_ingredients')
-        .delete()
-        .eq('user_recipe_id', params.id)
-
+      // Only update ingredients if they have changed
       if (editedRecipe.ingredients.length > 0) {
-        const ingredients = editedRecipe.ingredients.map((ing: any, index: number) => ({
-          user_recipe_id: parseInt(params.id),
-          amount: ing.amount || null,
-          unit: ing.unit || null,
-          raw_name: ing.raw_name,
-          order_index: index + 1
-        }))
+        // Save ingredients as a single combined text string (like the original format)
+        const combinedIngredients = editedRecipe.ingredients.join('\n')
+        console.log('Saving ingredients:', { 
+          count: editedRecipe.ingredients.length, 
+          combined: combinedIngredients 
+        })
 
-        await supabase
+        // First, delete existing ingredients
+        const { error: deleteError } = await supabase
+          .from('user_recipe_ingredients')
+          .delete()
+          .eq('user_recipe_id', recipeId)
+
+        if (deleteError) {
+          console.error('Error deleting existing ingredients:', deleteError)
+          throw new Error('Failed to delete existing ingredients')
+        }
+
+        // Then insert new ingredients
+        const ingredients = [{
+          user_recipe_id: parseInt(recipeId),
+          amount: null,
+          unit: null,
+          raw_name: combinedIngredients
+        }]
+
+        const { error: ingredientsError } = await supabase
           .from('user_recipe_ingredients')
           .insert(ingredients)
+        
+        if (ingredientsError) {
+          console.error('Error saving ingredients:', ingredientsError)
+          throw new Error('Failed to save ingredients')
+        } else {
+          console.log('Ingredients saved successfully')
+        }
       }
 
-      // Delete existing steps and add new ones
-      await supabase
-        .from('user_recipe_steps')
-        .delete()
-        .eq('user_recipe_id', params.id)
-
+      // Only update steps if they have changed
       if (editedRecipe.steps.length > 0) {
+        console.log('Saving steps:', { count: editedRecipe.steps.length })
+
+        // First, delete existing steps
+        const { error: deleteStepsError } = await supabase
+          .from('user_recipe_steps')
+          .delete()
+          .eq('user_recipe_id', recipeId)
+
+        if (deleteStepsError) {
+          console.error('Error deleting existing steps:', deleteStepsError)
+          throw new Error('Failed to delete existing steps')
+        }
+
+        // Then insert new steps
         const steps = editedRecipe.steps.map((step: any, index: number) => ({
-          user_recipe_id: parseInt(params.id),
+          user_recipe_id: parseInt(recipeId),
           step_number: index + 1,
-          text: step.text,
-          order_index: index + 1
+          text: step.text
         }))
 
-        await supabase
+        const { error: stepsError } = await supabase
           .from('user_recipe_steps')
           .insert(steps)
+
+        if (stepsError) {
+          console.error('Error saving steps:', stepsError)
+          throw new Error('Failed to save steps')
+        } else {
+          console.log('Steps saved successfully')
+        }
       }
 
       // Update tags (delete existing and add new)
       await supabase
         .from('user_recipe_tags')
         .delete()
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       if (editedRecipe.tags.length > 0) {
         const tags = editedRecipe.tags.map((tagObj: any) => ({
-          user_recipe_id: parseInt(params.id),
+          user_recipe_id: parseInt(recipeId),
           tag_name: tagObj.tag.name
         }))
 
@@ -343,7 +449,7 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
       }
 
       // Redirect to recipe page
-      router.push(`/recipe/${params.id}`)
+      router.push(`/recipe/${recipeId}`)
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save recipe')
@@ -391,7 +497,10 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
           <div className="flex items-center space-x-4 mb-8">
             <Button
               variant="outline"
-              onClick={() => router.push(`/recipe/${params.id}`)}
+              onClick={async () => {
+                const resolvedParams = await params
+                router.push(`/recipe/${resolvedParams.id}`)
+              }}
               className="border-orange-300 text-orange-700 hover:bg-orange-50"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -556,36 +665,24 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
               {/* Ingredients */}
               <Card className="bg-white/80 backdrop-blur-sm border-orange-200">
                 <CardHeader>
-                  <CardTitle>Ingredients</CardTitle>
+                  <CardTitle>What You Will Need</CardTitle>
                   <CardDescription>
-                    Update your recipe ingredients
+                    Update your recipe ingredients list (this is the text that appears in the recipe)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {editedRecipe.ingredients.map((ingredient: any, index: number) => (
+                  {editedRecipe.ingredients.map((ingredient: string, index: number) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="flex items-center space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-200"
                     >
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="flex-1">
                         <Input
-                          placeholder="Amount"
-                          value={ingredient.amount || ''}
-                          onChange={(e) => updateIngredient(index, 'amount', e.target.value)}
-                          className="border-orange-300 focus:border-orange-500"
-                        />
-                        <Input
-                          placeholder="Unit"
-                          value={ingredient.unit || ''}
-                          onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
-                          className="border-orange-300 focus:border-orange-500"
-                        />
-                        <Input
-                          placeholder="Ingredient name *"
-                          value={ingredient.raw_name || ''}
-                          onChange={(e) => updateIngredient(index, 'raw_name', e.target.value)}
+                          placeholder="e.g., '2 cups all-purpose flour, sifted' or '1 large onion, diced'"
+                          value={ingredient || ''}
+                          onChange={(e) => updateIngredient(index, e.target.value)}
                           className="border-orange-300 focus:border-orange-500"
                         />
                       </div>

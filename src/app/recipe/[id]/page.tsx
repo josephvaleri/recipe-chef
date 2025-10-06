@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser, getCurrentProfile } from '@/lib/auth'
 import { scaleAmount } from '@/lib/utils'
@@ -22,7 +23,12 @@ import {
   MessageCircle,
   ArrowLeft,
   ChefHat as DifficultyIcon,
-  Timer
+  Timer,
+  List,
+  CheckCircle,
+  AlertCircle,
+  Globe,
+  Plus
 } from 'lucide-react'
 
 interface RecipeData {
@@ -60,7 +66,18 @@ interface RecipeData {
   rating?: number
 }
 
-export default function RecipePage({ params }: { params: { id: string } }) {
+interface MatchedIngredient {
+  ingredient_id: number
+  name: string
+  category_id: number
+  category: { name: string }
+  original_text: string
+  match_type: 'exact' | 'alias'
+  matched_term?: string
+  matched_alias?: string
+}
+
+export default function RecipePage({ params }: { params: Promise<{ id: string }> }) {
   const [recipe, setRecipe] = useState<RecipeData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -69,14 +86,42 @@ export default function RecipePage({ params }: { params: { id: string } }) {
   const [aiAnswer, setAiAnswer] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
+  const [detailedIngredients, setDetailedIngredients] = useState<Record<string, MatchedIngredient[]>>({})
+  const [unmatchedIngredients, setUnmatchedIngredients] = useState<string[]>([])
+  const [showDetailedIngredients, setShowDetailedIngredients] = useState(false)
+  const [loadingDetailedIngredients, setLoadingDetailedIngredients] = useState(false)
+  const [savingIngredients, setSavingIngredients] = useState(false)
+  const [ingredientsSaved, setIngredientsSaved] = useState(false)
+  const [showGlobalCookbookDialog, setShowGlobalCookbookDialog] = useState(false)
+  const [addingToGlobalCookbook, setAddingToGlobalCookbook] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    loadRecipe()
-    loadProfile()
-  }, [params.id])
+    const loadData = async () => {
+      const resolvedParams = await params
+      await loadRecipe(resolvedParams.id)
+      await loadProfile()
+      
+      // Check for saved detailed ingredients after recipe loads
+      if (recipe) {
+        const hasSavedIngredients = await loadSavedDetailedIngredients()
+        if (!hasSavedIngredients) {
+          // No saved ingredients found, show the analysis button
+          setShowDetailedIngredients(false)
+        }
+      }
+    }
+    loadData()
+  }, [params])
 
-  const loadRecipe = async () => {
+  // Separate useEffect to check for saved ingredients when recipe changes
+  useEffect(() => {
+    if (recipe) {
+      loadSavedDetailedIngredients()
+    }
+  }, [recipe])
+
+  const loadRecipe = async (recipeId: string) => {
     try {
       const user = await getCurrentUser()
       if (!user) {
@@ -92,7 +137,7 @@ export default function RecipePage({ params }: { params: { id: string } }) {
           cuisine:cuisines(name),
           meal_type:meal_types(name)
         `)
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
         .eq('user_id', user.id)
         .single()
 
@@ -111,26 +156,26 @@ export default function RecipePage({ params }: { params: { id: string } }) {
           raw_name,
           ingredient:ingredients(name)
         `)
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       // Load steps
       const { data: stepsData } = await supabase
         .from('user_recipe_steps')
         .select('step_number, text')
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
         .order('step_number')
 
       // Load equipment
       const { data: equipmentData } = await supabase
         .from('user_recipe_equipment')
         .select('equipment:equipment(name)')
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       // Load tags
       const { data: tagsData } = await supabase
         .from('user_recipe_tags')
         .select('tag:tags(name)')
-        .eq('user_recipe_id', params.id)
+        .eq('user_recipe_id', recipeId)
 
       // Load rating
       const { data: ratingData } = await supabase
@@ -138,9 +183,11 @@ export default function RecipePage({ params }: { params: { id: string } }) {
         .select('score')
         .eq('user_id', user.id)
         .eq('recipe_scope', 'user')
-        .eq('recipe_key', params.id)
+        .eq('recipe_key', recipeId)
         .single()
 
+      console.log('Loaded ingredients:', ingredientsData)
+      
       setRecipe({
         ...recipeData,
         ingredients: ingredientsData || [],
@@ -160,6 +207,297 @@ export default function RecipePage({ params }: { params: { id: string } }) {
   const loadProfile = async () => {
     const profileData = await getCurrentProfile()
     setProfile(profileData)
+  }
+
+  const loadDetailedIngredients = async () => {
+    if (!recipe) return
+
+    // First check if there are saved ingredients
+    const hasSavedIngredients = await loadSavedDetailedIngredients()
+    if (hasSavedIngredients) {
+      console.log('Found saved ingredients, displaying them instead of running analysis')
+      return
+    }
+
+    // Only run analysis if no saved ingredients found
+    setLoadingDetailedIngredients(true)
+    try {
+      // Parse each ingredient line to extract searchable terms
+      const ingredientLines = recipe.ingredients.flatMap(ing => {
+        const fullText = `${ing.amount ? scaleAmount(ing.amount, scaleFactor) : ''}${ing.unit ? ` ${ing.unit}` : ''} ${ing.raw_name || ing.ingredient?.name || ''}`.trim()
+        // Split by line breaks to get individual ingredient lines
+        return fullText.split('\n').filter(line => line.trim())
+      })
+
+      console.log('Parsed ingredient lines:', ingredientLines)
+
+      const response = await fetch('/api/ingredients/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ingredients: ingredientLines }),
+      })
+
+      console.log('API response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API error response:', errorText)
+        throw new Error(`Failed to search ingredients: ${response.status} ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log('API response data:', data)
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
+      setDetailedIngredients(data.matched || {})
+      setUnmatchedIngredients(data.unmatched || [])
+      setShowDetailedIngredients(true)
+      setIngredientsSaved(false) // Reset saved state when reanalyzing
+    } catch (error) {
+      console.error('Error loading detailed ingredients:', error)
+    } finally {
+      setLoadingDetailedIngredients(false)
+    }
+  }
+
+  const saveDetailedIngredients = async () => {
+    if (!recipe || Object.keys(detailedIngredients).length === 0) return
+
+    setSavingIngredients(true)
+    try {
+      // Flatten all matched ingredients
+      const allMatchedIngredients = Object.values(detailedIngredients).flat()
+      
+      // Use client-side Supabase to save directly
+      const { error: deleteError } = await supabase
+        .from('user_recipe_ingredients_detail')
+        .delete()
+        .eq('user_recipe_id', recipe.user_recipe_id)
+
+      if (deleteError) {
+        console.error('Error clearing existing ingredients:', deleteError)
+        throw new Error('Failed to clear existing ingredients')
+      }
+
+      // Insert new ingredients
+      const ingredientsToInsert = allMatchedIngredients.map((ingredient: any) => ({
+        user_recipe_id: recipe.user_recipe_id,
+        ingredient_id: ingredient.ingredient_id,
+        original_text: ingredient.original_text,
+        matched_term: ingredient.matched_term,
+        match_type: ingredient.match_type,
+        matched_alias: ingredient.matched_alias || null
+      }))
+
+      const { data: insertedIngredients, error: insertError } = await supabase
+        .from('user_recipe_ingredients_detail')
+        .insert(ingredientsToInsert)
+        .select()
+
+      if (insertError) {
+        console.error('Error inserting ingredients:', insertError)
+        throw new Error('Failed to save ingredients')
+      }
+
+      setIngredientsSaved(true)
+      console.log('Ingredients saved successfully:', insertedIngredients.length)
+    } catch (error) {
+      console.error('Error saving detailed ingredients:', error)
+    } finally {
+      setSavingIngredients(false)
+    }
+  }
+
+  const loadSavedDetailedIngredients = async () => {
+    if (!recipe) return
+
+    try {
+      // Use client-side Supabase to load directly
+      const { data: savedIngredients, error: loadError } = await supabase
+        .from('user_recipe_ingredients_detail')
+        .select(`
+          detail_id,
+          original_text,
+          matched_term,
+          match_type,
+          matched_alias,
+          ingredient_id,
+          ingredients!inner(
+            ingredient_id,
+            name,
+            category_id,
+            ingredient_categories!inner(name)
+          )
+        `)
+        .eq('user_recipe_id', recipe.user_recipe_id)
+
+      if (loadError) {
+        console.error('Error loading saved ingredients:', loadError)
+        return false
+      }
+
+      if (savedIngredients && savedIngredients.length > 0) {
+        console.log('Debug: Raw saved ingredients data:', savedIngredients)
+        
+        // Group ingredients by category
+        const groupedIngredients = savedIngredients.reduce((acc, item) => {
+          console.log('Debug: Processing item:', item)
+          console.log('Debug: item.ingredients:', item.ingredients)
+          
+          // Access the joined ingredients data (it's a direct object, not an array)
+          const ingredient = item.ingredients as any
+          const category = ingredient?.ingredient_categories as any
+          const categoryName = category?.name || 'Unknown'
+          
+          console.log('Debug: ingredient:', ingredient)
+          console.log('Debug: category:', category)
+          console.log('Debug: categoryName:', categoryName)
+          
+          if (!acc[categoryName]) {
+            acc[categoryName] = []
+          }
+          acc[categoryName].push({
+            ingredient_id: ingredient?.ingredient_id || 0,
+            name: ingredient?.name || 'Unknown',
+            category_id: ingredient?.category_id || 0,
+            category: category || { name: 'Unknown' },
+            original_text: item.original_text,
+            match_type: item.match_type,
+            matched_term: item.matched_term,
+            matched_alias: item.matched_alias
+          })
+          return acc
+        }, {} as Record<string, MatchedIngredient[]>)
+
+        setDetailedIngredients(groupedIngredients)
+        setUnmatchedIngredients([])
+        setShowDetailedIngredients(true)
+        setIngredientsSaved(true)
+        return true // Found saved ingredients
+      }
+    } catch (error) {
+      console.error('Error loading saved detailed ingredients:', error)
+    }
+    
+    return false // No saved ingredients found
+  }
+
+  const reanalyzeIngredients = async () => {
+    if (!recipe) return
+
+    setLoadingDetailedIngredients(true)
+    try {
+      // Parse each ingredient line to extract searchable terms
+      const ingredientLines = recipe.ingredients.flatMap(ing => {
+        const fullText = `${ing.amount ? scaleAmount(ing.amount, scaleFactor) : ''}${ing.unit ? ` ${ing.unit}` : ''} ${ing.raw_name || ing.ingredient?.name || ''}`.trim()
+        // Split by line breaks to get individual ingredient lines
+        return fullText.split('\n').filter(line => line.trim())
+      })
+
+      console.log('Reanalyzing ingredient lines:', ingredientLines)
+
+      const response = await fetch('/api/ingredients/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ingredients: ingredientLines }),
+      })
+
+      console.log('API response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API error response:', errorText)
+        throw new Error(`Failed to search ingredients: ${response.status} ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log('API response data:', data)
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
+      setDetailedIngredients(data.matched || {})
+      setUnmatchedIngredients(data.unmatched || [])
+      setShowDetailedIngredients(true)
+      setIngredientsSaved(false) // Reset saved state when reanalyzing
+    } catch (error) {
+      console.error('Error reanalyzing ingredients:', error)
+    } finally {
+      setLoadingDetailedIngredients(false)
+    }
+  }
+
+  const addToGlobalCookbook = async () => {
+    console.log('=== FRONTEND DEBUG START ===')
+    if (!recipe) return
+
+    setAddingToGlobalCookbook(true)
+    try {
+      // Get current user to ensure we're authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError || !user) {
+        throw new Error('Please sign in to submit recipes to the Global Cookbook')
+      }
+
+      console.log('Frontend: Submitting recipe to global cookbook:', {
+        user_recipe_id: recipe.user_recipe_id,
+        title: recipe.title,
+        hasDetailedIngredients: ingredientsSaved
+      })
+
+      // Use client-side Supabase to add to global_candidates table directly
+      // This bypasses the server-side authentication issues
+      const { data: candidateData, error: candidateError } = await supabase
+        .from('global_candidates')
+        .insert({
+          submitted_by: user.id,
+          status: 'pending',
+          data: {
+            user_recipe_id: recipe.user_recipe_id,
+            title: recipe.title,
+            description: recipe.description,
+            prep_time: recipe.prep_time,
+            cook_time: recipe.cook_time,
+            total_time: recipe.total_time,
+            servings: recipe.servings,
+            difficulty: recipe.difficulty,
+            image_url: recipe.image_url,
+            cuisine: recipe.cuisine,
+            meal_type: recipe.meal_type,
+            detailed_ingredients: detailedIngredients
+          }
+        })
+        .select()
+
+      if (candidateError) {
+        console.error('Frontend: Error inserting to global_candidates:', candidateError)
+        throw new Error(`Failed to submit recipe: ${candidateError.message}`)
+      }
+
+      console.log('Frontend: Successfully added to global_candidates:', candidateData)
+      alert('Recipe successfully submitted for review! It will be reviewed by moderators before being added to the Global Cookbook.')
+      setShowGlobalCookbookDialog(false)
+    } catch (error) {
+      console.error('Frontend: Error adding to global cookbook:', error)
+      console.error('Frontend: Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : 'Unknown'
+      })
+      alert(`Failed to add recipe to global cookbook: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setAddingToGlobalCookbook(false)
+      console.log('=== FRONTEND DEBUG END ===')
+    }
   }
 
   const toggleFavorite = async () => {
@@ -298,6 +636,22 @@ export default function RecipePage({ params }: { params: { id: string } }) {
     return timeStr.replace('PT', '').replace('H', 'h ').replace('M', 'm').trim()
   }
 
+  const getMatchTypeColor = (matchType: string) => {
+    switch (matchType) {
+      case 'exact': return 'bg-green-100 text-green-800'
+      case 'alias': return 'bg-blue-100 text-blue-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getMatchTypeLabel = (matchType: string) => {
+    switch (matchType) {
+      case 'exact': return 'Exact Match'
+      case 'alias': return 'Alias Match'
+      default: return 'Match'
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
@@ -341,6 +695,18 @@ export default function RecipePage({ params }: { params: { id: string } }) {
             </div>
             
             <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowGlobalCookbookDialog(true)}
+                disabled={!ingredientsSaved}
+                title={ingredientsSaved ? "Submit to Global Cookbook for Review" : "Detailed ingredients must be analyzed first"}
+              >
+                <div className="relative">
+                  <Globe className={`w-4 h-4 ${!ingredientsSaved ? 'text-gray-400' : ''}`} />
+                  <Plus className={`w-2 h-2 absolute -top-1 -right-1 rounded-full ${!ingredientsSaved ? 'bg-gray-400' : 'bg-orange-500'} text-white`} />
+                </div>
+              </Button>
               <Button variant="outline" size="sm" onClick={toggleFavorite}>
                 <Heart className={`w-4 h-4 ${recipe.is_favorite ? 'fill-current text-red-500' : ''}`} />
               </Button>
@@ -438,12 +804,28 @@ export default function RecipePage({ params }: { params: { id: string } }) {
                           onClick={() => handleRating(star)}
                           className="text-gray-300 hover:text-yellow-500 transition-colors"
                         >
-                          <Star className={`w-5 h-5 ${star <= (recipe.rating || 0) ? 'fill-current text-yellow-500' : ''}`} />
+                          <Star className={`w-5 h-5 ${star <= (recipe.rating ?? 0) ? 'fill-current text-yellow-500' : ''}`} />
                         </button>
                       ))}
                     </div>
-                    {recipe.rating > 0 && (
+                    {(recipe.rating ?? 0) > 0 && (
                       <span className="text-sm text-gray-500">({recipe.rating}/5)</span>
+                    )}
+                  </div>
+
+                  {/* Cuisine and Meal Type */}
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    {recipe.cuisine && (
+                      <div className="flex items-center">
+                        <span className="font-medium text-gray-600">Cuisine:</span>
+                        <span className="ml-1 text-gray-900">{recipe.cuisine.name}</span>
+                      </div>
+                    )}
+                    {recipe.meal_type && (
+                      <div className="flex items-center">
+                        <span className="font-medium text-gray-600">Meal Type:</span>
+                        <span className="ml-1 text-gray-900">{recipe.meal_type.name}</span>
+                      </div>
                     )}
                   </div>
 
@@ -497,33 +879,35 @@ export default function RecipePage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
 
-            {/* Ingredients */}
+            {/* What you will need */}
             <Card>
               <CardHeader>
-                <CardTitle>Ingredients</CardTitle>
+                <CardTitle>What you will need</CardTitle>
                 <CardDescription>
                   {recipe.ingredients.length} ingredients
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {recipe.ingredients.map((ingredient, index) => (
-                    <li key={index} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <div className="flex-1">
-                        <span className="font-medium text-orange-600">
-                          {ingredient.amount ? scaleAmount(ingredient.amount, scaleFactor) : ''}
-                          {ingredient.unit && ` ${ingredient.unit}`}
-                        </span>
-                        <span className="text-gray-900 ml-2">
-                          {ingredient.raw_name || ingredient.ingredient?.name}
-                        </span>
-                      </div>
-                    </li>
-                  ))}
+                  {recipe.ingredients.map((ingredient, index) => {
+                    const fullText = `${ingredient.amount ? scaleAmount(ingredient.amount, scaleFactor) : ''}${ingredient.unit ? ` ${ingredient.unit}` : ''} ${ingredient.raw_name || ingredient.ingredient?.name || ''}`.trim()
+                    
+                    // Split by line breaks and create separate list items for each line
+                    const lines = fullText.split('\n').filter(line => line.trim())
+                    
+                    return lines.map((line, lineIndex) => (
+                      <li key={`${index}-${lineIndex}`} className="flex items-start space-x-3">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="flex-1">
+                          <span className="text-gray-900">{line.trim()}</span>
+                        </div>
+                      </li>
+                    ))
+                  }).flat()}
                 </ul>
               </CardContent>
             </Card>
+
 
             {/* Instructions */}
             <Card>
@@ -534,18 +918,30 @@ export default function RecipePage({ params }: { params: { id: string } }) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ol className="space-y-4">
-                  {recipe.steps.map((step) => (
-                    <li key={step.step_number} className="flex items-start space-x-4">
-                      <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0">
-                        {step.step_number}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-gray-900 leading-relaxed">{step.text}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
+                <div className="space-y-4">
+                  {recipe.steps.flatMap((step, stepIndex) => 
+                    step.text.split('\n')
+                      .filter(paragraph => paragraph.trim()) // Remove empty paragraphs
+                      .map((paragraph, paragraphIndex) => {
+                        const globalIndex = recipe.steps
+                          .slice(0, stepIndex)
+                          .reduce((acc, prevStep) => acc + prevStep.text.split('\n').filter(p => p.trim()).length, 0) + paragraphIndex + 1;
+                        
+                        return (
+                          <div key={`${step.step_number}-${paragraphIndex}`} className="flex items-start space-x-4">
+                            <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                              {globalIndex}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-gray-900 leading-relaxed">
+                                {paragraph.trim()}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -563,6 +959,149 @@ export default function RecipePage({ params }: { params: { id: string } }) {
                       </span>
                     ))}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Detailed Ingredient Analysis */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Ingredient Analysis</CardTitle>
+                <CardDescription>
+                  {ingredientsSaved ? 'Analysis completed and saved' : 'Analyze ingredients and group by category'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+          <Button
+            onClick={loadDetailedIngredients}
+            disabled={loadingDetailedIngredients}
+            variant="outline"
+            className="w-full"
+          >
+            {loadingDetailedIngredients ? (
+              <ChefHat className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <List className="w-4 h-4 mr-2" />
+            )}
+            {loadingDetailedIngredients ? 'Analyzing...' : 'Detailed Ingredient List'}
+          </Button>
+                  
+                  {ingredientsSaved && (
+                    <Button
+                      onClick={reanalyzeIngredients}
+                      disabled={loadingDetailedIngredients}
+                      variant="secondary"
+                      className="w-full"
+                    >
+                      {loadingDetailedIngredients ? (
+                        <ChefHat className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <List className="w-4 h-4 mr-2" />
+                      )}
+                      {loadingDetailedIngredients ? 'Reanalyzing...' : 'Reanalyze'}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Detailed Ingredients Results */}
+            {showDetailedIngredients && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <span>Detailed Ingredient List</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Ingredients found in database, organized by category
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {/* Matched ingredients by category */}
+                    {Object.entries(detailedIngredients).map(([categoryName, ingredients]) => (
+                      <div key={categoryName} className="space-y-3">
+                        <h4 className="font-semibold text-lg text-gray-900 border-b-2 border-orange-200 pb-2">
+                          {categoryName}
+                        </h4>
+                        <div className="space-y-2">
+                          {ingredients.map((ingredient, index) => (
+                            <div key={index} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              <div className="flex-1">
+                                <span className="font-medium text-gray-900">{ingredient.name}</span>
+                                <div className="text-sm text-gray-600">
+                                  Found in: "{ingredient.original_text}"
+                                </div>
+                                {ingredient.matched_term && (
+                                  <div className="text-xs text-blue-600">
+                                    Matched term: "{ingredient.matched_term}"
+                                  </div>
+                                )}
+                                {ingredient.matched_alias && (
+                                  <div className="text-xs text-purple-600">
+                                    Via alias: "{ingredient.matched_alias}"
+                                  </div>
+                                )}
+                              </div>
+                              <Badge className={getMatchTypeColor(ingredient.match_type)}>
+                                {getMatchTypeLabel(ingredient.match_type)}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Unmatched ingredients */}
+                    {unmatchedIngredients.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-lg text-gray-900 border-b-2 border-orange-200 pb-2 flex items-center">
+                          <AlertCircle className="w-5 h-5 mr-2 text-orange-500" />
+                          Not Found in Database
+                        </h4>
+                        <div className="space-y-2">
+                          {unmatchedIngredients.map((ingredient, index) => (
+                            <div key={index} className="flex items-center space-x-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                              <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                              <div className="flex-1">
+                                <span className="text-gray-700">{ingredient}</span>
+                              </div>
+                              <Badge variant="outline" className="text-orange-600 border-orange-300">
+                                Not Found
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Save Button */}
+                  {!ingredientsSaved && Object.keys(detailedIngredients).length > 0 && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <Button
+                        onClick={saveDetailedIngredients}
+                        disabled={savingIngredients}
+                        className="w-full"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {savingIngredients ? 'Saving...' : '+ADD to Recipe'}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Saved Indicator */}
+                  {ingredientsSaved && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-center text-green-600 bg-green-50 p-3 rounded-lg">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        <span className="font-medium">Ingredients saved to recipe</span>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -640,6 +1179,68 @@ export default function RecipePage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </main>
+
+      {/* Global Cookbook Confirmation Dialog */}
+      {showGlobalCookbookDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <Globe className="w-5 h-5 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Add to Global Cookbook</h3>
+            </div>
+            
+            {!ingredientsSaved ? (
+              <div className="mb-6">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-yellow-900">Detailed Ingredients Required</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        This recipe must have detailed ingredients analyzed before it can be submitted to the Global Cookbook. 
+                        Please run the "Detailed Ingredient List" analysis first.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-600 mb-6">
+                Do you want to submit this recipe for review to be added to the Global Cookbook? It will be reviewed by moderators before being published.
+              </p>
+            )}
+            
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowGlobalCookbookDialog(false)}
+                disabled={addingToGlobalCookbook}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={addToGlobalCookbook}
+                disabled={addingToGlobalCookbook}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {addingToGlobalCookbook ? (
+                  <>
+                    <ChefHat className="w-4 h-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-4 h-4 mr-2" />
+                    Yes, Submit for Review
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

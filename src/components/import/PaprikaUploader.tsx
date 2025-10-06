@@ -70,6 +70,10 @@ export default function PaprikaUploader() {
       const { getCurrentUser } = await import('@/lib/auth');
       const user = await getCurrentUser();
       
+      console.log('🔍 Debug: User object from getCurrentUser():', user);
+      console.log('🔍 Debug: User ID:', user?.id);
+      console.log('🔍 Debug: User ID type:', typeof user?.id);
+      
       if (!user) {
         throw new Error('Please sign in to import recipes');
       }

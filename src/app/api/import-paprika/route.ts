@@ -42,12 +42,15 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 async function uploadImageToStorage(imageData: Buffer, filename: string, userId: string): Promise<string | null> {
   try {
-    console.log(`   🔍 Attempting to upload image to: recipes-images/${userId}/${filename}`);
+    console.log(`   🔍 Attempting to upload image to: recipe-images/${userId}/${filename}`);
     console.log(`   📊 Image data size: ${imageData.length} bytes`);
+    console.log(`   👤 User ID in upload function: "${userId}"`);
+    console.log(`   📁 Filename: "${filename}"`);
+    console.log(`   🛤️ Full path: ${userId}/${filename}`);
     
     // Try to upload directly - if bucket doesn't exist, it will fail gracefully
     const { data, error } = await supabaseAdmin.storage
-      .from('recipes-images')
+      .from('recipe-images')
       .upload(`${userId}/${filename}`, imageData, {
         contentType: 'image/jpeg',
         upsert: true // Allow overwriting existing files
@@ -66,7 +69,7 @@ async function uploadImageToStorage(imageData: Buffer, filename: string, userId:
     console.log(`   ✅ Image uploaded successfully to: ${data.path}`);
     
     const { data: { publicUrl } } = supabaseAdmin.storage
-      .from('recipes-images')
+      .from('recipe-images')
       .getPublicUrl(data.path);
 
     console.log(`   🔗 Public URL generated: ${publicUrl}`);
@@ -239,7 +242,9 @@ export async function POST(request: NextRequest) {
         size: file?.size,
         type: file?.type
       });
-      console.log('👤 User ID:', userId);
+      console.log('👤 User ID from form data:', userId);
+      console.log('👤 User ID type:', typeof userId);
+      console.log('👤 User ID length:', userId?.length);
 
     if (!file) {
       console.log('❌ No file provided');

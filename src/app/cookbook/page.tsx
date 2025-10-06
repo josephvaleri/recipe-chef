@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import RecipeCard from '@/components/recipe-card'
 // import { offlineStorage, networkManager, syncManager } from '@/lib/offline'
-import { Search, Plus, Star, Clock, Users, ChefHat, Wifi, WifiOff, X, Loader2, Grid3X3, List } from 'lucide-react'
+import { Search, Plus, Star, Clock, Users, ChefHat, Wifi, WifiOff, X, Loader2, Grid3X3, List, Edit } from 'lucide-react'
 
 interface UserRecipe {
   user_recipe_id: number
@@ -286,6 +286,56 @@ export default function MyCookbookPage() {
     if (!timeStr) return ''
     // Convert ISO duration or simple time strings
     return timeStr.replace('PT', '').replace('H', 'h ').replace('M', 'm').trim()
+  }
+
+  const calculateTotalTime = (prepTime?: string, cookTime?: string) => {
+    if (!prepTime && !cookTime) return ''
+    
+    const parseTime = (timeStr: string) => {
+      if (!timeStr) return 0
+      
+      // Handle ISO duration format (PT1H30M)
+      const isoMatch = timeStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?/)
+      if (isoMatch) {
+        const hours = parseInt(isoMatch[1] || '0')
+        const minutes = parseInt(isoMatch[2] || '0')
+        return hours * 60 + minutes
+      }
+      
+      // Handle simple formats like "1h 30m", "90m", "1h", "30 minutes", "2 hours"
+      const simpleMatch = timeStr.match(/(?:(\d+)\s*h(?:ours?)?)?\s*(?:(\d+)\s*m(?:inutes?)?)?/)
+      if (simpleMatch) {
+        const hours = parseInt(simpleMatch[1] || '0')
+        const minutes = parseInt(simpleMatch[2] || '0')
+        return hours * 60 + minutes
+      }
+      
+      // Handle just numbers (assume minutes)
+      const numberMatch = timeStr.match(/^(\d+)$/)
+      if (numberMatch) {
+        const minutes = parseInt(numberMatch[1])
+        return minutes
+      }
+      
+      return 0
+    }
+    
+    const prepMinutes = parseTime(prepTime || '')
+    const cookMinutes = parseTime(cookTime || '')
+    const totalMinutes = prepMinutes + cookMinutes
+    
+    if (totalMinutes === 0) return ''
+    
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}m`
+    } else if (hours > 0) {
+      return `${hours}h`
+    } else {
+      return `${minutes}m`
+    }
   }
 
   if (loading) {
@@ -589,12 +639,15 @@ export default function MyCookbookPage() {
                           className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer"
                           onClick={() => router.push(`/recipe/${recipe.user_recipe_id}`)}
                         >
-                          {recipe.total_time && (
-                            <div className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1 text-gray-400" />
-                              {formatTime(recipe.total_time)}
-                            </div>
-                          )}
+                          {(() => {
+                            const calculatedTime = calculateTotalTime(recipe.prep_time, recipe.cook_time)
+                            return calculatedTime && (
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1 text-gray-400" />
+                                {calculatedTime}
+                              </div>
+                            )
+                          })()}
                         </td>
                         <td 
                           className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer"
@@ -621,15 +674,28 @@ export default function MyCookbookPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleFavorite(recipe.user_recipe_id, recipe.is_favorite)
-                            }}
-                            className="text-gray-300 hover:text-yellow-500 transition-colors"
-                          >
-                            <Star className={`w-5 h-5 ${recipe.is_favorite ? 'fill-current text-yellow-500' : ''}`} />
-                          </button>
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/recipe/${recipe.user_recipe_id}/edit`)
+                              }}
+                              className="text-gray-400 hover:text-blue-500 transition-colors"
+                              title="Edit recipe"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleFavorite(recipe.user_recipe_id, recipe.is_favorite)
+                              }}
+                              className="text-gray-300 hover:text-yellow-500 transition-colors"
+                              title={recipe.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                            >
+                              <Star className={`w-5 h-5 ${recipe.is_favorite ? 'fill-current text-yellow-500' : ''}`} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

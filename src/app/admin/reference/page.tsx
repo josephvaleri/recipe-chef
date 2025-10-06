@@ -272,7 +272,7 @@ export default function AdminReferencePage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Plus className="w-5 h-5 mr-2" />
-                  Add New {tableConfig[activeTab].title.slice(0, -1)}
+                  Add New {activeTab === 'categories' ? 'Ingredient Category' : tableConfig[activeTab].title.slice(0, -1)}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
