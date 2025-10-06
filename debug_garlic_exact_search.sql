@@ -32,3 +32,4 @@ SELECT
   name ~ '^[A-Za-z\s]+$' as is_alpha_only
 FROM public.ingredients 
 WHERE ingredient_id = 8;
+

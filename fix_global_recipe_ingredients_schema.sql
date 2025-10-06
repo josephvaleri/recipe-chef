@@ -10,3 +10,4 @@ COMMENT ON COLUMN public.global_recipe_ingredients.ingredient_id IS 'References 
 
 -- Update the table comment
 COMMENT ON TABLE public.global_recipe_ingredients IS 'Global recipe ingredients - can store either parsed ingredients (with ingredient_id) or raw text (with raw_name)';
+

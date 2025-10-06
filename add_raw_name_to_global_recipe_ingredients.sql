@@ -18,3 +18,4 @@ SET raw_name = CONCAT(
 FROM public.ingredients i 
 WHERE global_recipe_ingredients.ingredient_id = i.ingredient_id
 AND global_recipe_ingredients.raw_name IS NULL;
+

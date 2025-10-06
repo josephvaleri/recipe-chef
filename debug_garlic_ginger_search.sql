@@ -39,3 +39,4 @@ WHERE LOWER(ia.alias) LIKE '%ginger%';
 -- 5. Test the parsing logic - what would be extracted from these ingredient lines?
 -- "5 cloves garlic, smashed and finely chopped" should extract "garlic"
 -- "One 2-inch piece ginger, peeled and grated" should extract "ginger"
+

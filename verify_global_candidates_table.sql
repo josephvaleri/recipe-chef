@@ -72,3 +72,4 @@ END $$;
 -- Grant necessary permissions
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.global_candidates TO authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.global_candidates_candidate_id_seq TO authenticated;
+

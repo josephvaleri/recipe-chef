@@ -50,3 +50,4 @@ CREATE POLICY "Users can delete their own recipe ingredient details" ON user_rec
             SELECT user_recipe_id FROM user_recipes WHERE user_id = auth.uid()
         )
     );
+

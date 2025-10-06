@@ -59,3 +59,4 @@ async function checkAllUserDirs() {
 }
 
 checkAllUserDirs()
+
