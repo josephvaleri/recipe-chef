@@ -154,12 +154,12 @@ export default function EditGlobalRecipesPage() {
     }
   }
 
-  const saveRecipeCuisine = async (recipeId: number, cuisineId: number | null) => {
+  const saveRecipeCuisine = async (recipeId: number, cuisineId: number | undefined) => {
     setSavingRecipe(recipeId)
     try {
       const { error } = await supabase
         .from('global_recipes')
-        .update({ cuisine_id: cuisineId })
+        .update({ cuisine_id: cuisineId || null })
         .eq('recipe_id', recipeId)
 
       if (error) throw error
@@ -167,7 +167,7 @@ export default function EditGlobalRecipesPage() {
       // Update local state
       setRecipes(prev => prev.map(recipe => 
         recipe.recipe_id === recipeId 
-          ? { ...recipe, cuisine_id: cuisineId, cuisine: cuisines.find(c => c.cuisine_id === cuisineId) }
+          ? { ...recipe, cuisine_id: cuisineId, cuisine: cuisineId ? cuisines.find(c => c.cuisine_id === cuisineId) : undefined }
           : recipe
       ))
     } catch (error) {
@@ -178,12 +178,12 @@ export default function EditGlobalRecipesPage() {
     }
   }
 
-  const saveRecipeMealType = async (recipeId: number, mealTypeId: number | null) => {
+  const saveRecipeMealType = async (recipeId: number, mealTypeId: number | undefined) => {
     setSavingRecipe(recipeId)
     try {
       const { error } = await supabase
         .from('global_recipes')
-        .update({ meal_type_id: mealTypeId })
+        .update({ meal_type_id: mealTypeId || null })
         .eq('recipe_id', recipeId)
 
       if (error) throw error
@@ -191,7 +191,7 @@ export default function EditGlobalRecipesPage() {
       // Update local state
       setRecipes(prev => prev.map(recipe => 
         recipe.recipe_id === recipeId 
-          ? { ...recipe, meal_type_id: mealTypeId, meal_type: mealTypes.find(m => m.meal_type_id === mealTypeId) }
+          ? { ...recipe, meal_type_id: mealTypeId, meal_type: mealTypeId ? mealTypes.find(m => m.meal_type_id === mealTypeId) : undefined }
           : recipe
       ))
     } catch (error) {
@@ -602,7 +602,7 @@ export default function EditGlobalRecipesPage() {
                             <div className="space-y-1">
                               <select
                                 value={recipe.cuisine_id || ''}
-                                onChange={(e) => saveRecipeCuisine(recipe.recipe_id, e.target.value ? parseInt(e.target.value) : null)}
+                                onChange={(e) => saveRecipeCuisine(recipe.recipe_id, e.target.value ? parseInt(e.target.value) : undefined)}
                                 onClick={(e) => e.stopPropagation()}
                                 disabled={savingRecipe === recipe.recipe_id}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50"
@@ -625,7 +625,7 @@ export default function EditGlobalRecipesPage() {
                             <div className="space-y-1">
                               <select
                                 value={recipe.meal_type_id || ''}
-                                onChange={(e) => saveRecipeMealType(recipe.recipe_id, e.target.value ? parseInt(e.target.value) : null)}
+                                onChange={(e) => saveRecipeMealType(recipe.recipe_id, e.target.value ? parseInt(e.target.value) : undefined)}
                                 onClick={(e) => e.stopPropagation()}
                                 disabled={savingRecipe === recipe.recipe_id}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 disabled:opacity-50"
