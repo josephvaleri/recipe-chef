@@ -551,12 +551,13 @@ export default function EditGlobalRecipesPage() {
                           className="hover:bg-gray-50 cursor-pointer"
                           onClick={(e) => {
                             // Don't navigate if clicking on a form element (dropdown, checkbox, button)
+                            const target = e.target as HTMLElement
                             if (e.target instanceof HTMLSelectElement || 
                                 e.target instanceof HTMLInputElement || 
                                 e.target instanceof HTMLButtonElement ||
-                                e.target.closest('select') ||
-                                e.target.closest('input') ||
-                                e.target.closest('button')) {
+                                target.closest('select') ||
+                                target.closest('input') ||
+                                target.closest('button')) {
                               return
                             }
                             console.log('Navigating to global recipe:', `/global-recipe/${recipe.recipe_id}`)
