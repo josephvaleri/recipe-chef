@@ -236,7 +236,7 @@ export default function AdminReferencePage() {
   ] as const
 
   return (
-    <RouteGuard requireAuth={true} requireAdmin={true}>
+    <RouteGuard requireAuth={true}>
       <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
