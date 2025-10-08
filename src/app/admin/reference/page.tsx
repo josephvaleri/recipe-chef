@@ -98,7 +98,7 @@ export default function AdminReferencePage() {
       }
       
       // Map the specific ID field to generic 'id' field
-      const mappedData = (data || []).map(item => ({
+      const mappedData = (data || []).map((item: any) => ({
         ...item,
         id: item[config.idField]
       }))
