@@ -51,6 +51,7 @@ export default function EditGlobalRecipesPage() {
   const [cuisines, setCuisines] = useState<Cuisine[]>([])
   const [mealTypes, setMealTypes] = useState<MealType[]>([])
   const [savingRecipe, setSavingRecipe] = useState<number | null>(null)
+  const [filterCuisine, setFilterCuisine] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -251,20 +252,35 @@ export default function EditGlobalRecipesPage() {
     }
   }
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
-    if (!query.trim()) {
-      setFilteredRecipes(recipes)
-      return
+  const applyFilters = (query: string = searchQuery, cuisineFilter: number | null = filterCuisine) => {
+    let filtered = recipes
+
+    // Apply cuisine filter
+    if (cuisineFilter !== null) {
+      filtered = filtered.filter(recipe => recipe.cuisine_id === cuisineFilter)
     }
 
-    const filtered = recipes.filter(recipe =>
-      recipe.title.toLowerCase().includes(query.toLowerCase()) ||
-      recipe.description?.toLowerCase().includes(query.toLowerCase()) ||
-      recipe.cuisine?.name.toLowerCase().includes(query.toLowerCase()) ||
-      recipe.meal_type?.name.toLowerCase().includes(query.toLowerCase())
-    )
+    // Apply search filter
+    if (query.trim()) {
+      filtered = filtered.filter(recipe =>
+        recipe.title.toLowerCase().includes(query.toLowerCase()) ||
+        recipe.description?.toLowerCase().includes(query.toLowerCase()) ||
+        recipe.cuisine?.name.toLowerCase().includes(query.toLowerCase()) ||
+        recipe.meal_type?.name.toLowerCase().includes(query.toLowerCase())
+      )
+    }
+
     setFilteredRecipes(filtered)
+  }
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    applyFilters(query, filterCuisine)
+  }
+
+  const handleCuisineFilter = (cuisineId: number | null) => {
+    setFilterCuisine(cuisineId)
+    applyFilters(searchQuery, cuisineId)
   }
 
   const handleSort = (newSortBy: 'name' | 'date' | 'rating' | 'cuisine') => {
@@ -412,6 +428,22 @@ export default function EditGlobalRecipesPage() {
                 </div>
                 
                 <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Cuisine:</span>
+                    <select
+                      value={filterCuisine || ''}
+                      onChange={(e) => handleCuisineFilter(e.target.value ? parseInt(e.target.value) : null)}
+                      className="border border-orange-300 rounded-md px-3 py-1 text-sm focus:border-orange-500 focus:outline-none"
+                    >
+                      <option value="">All Cuisines</option>
+                      {cuisines.map(cuisine => (
+                        <option key={cuisine.cuisine_id} value={cuisine.cuisine_id}>
+                          {cuisine.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Sort by:</span>
                     <select

@@ -396,9 +396,24 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
   }
 
   const reanalyzeIngredients = async () => {
-    setIngredientsSaved(false)
-    setDetailedIngredients({})
-    await loadDetailedIngredients()
+    try {
+      // Delete existing saved ingredients from database
+      const { error: deleteError } = await supabase
+        .from('global_recipe_ingredients_detail')
+        .delete()
+        .eq('recipe_id', recipe.recipe_id)
+      
+      if (deleteError) {
+        console.error('Error clearing existing ingredients:', deleteError)
+      }
+      
+      // Reset state and reload
+      setIngredientsSaved(false)
+      setDetailedIngredients({})
+      await loadDetailedIngredients()
+    } catch (error) {
+      console.error('Error reanalyzing ingredients:', error)
+    }
   }
 
   const handlePrint = () => {
@@ -460,9 +475,10 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
     )
   }
 
+  const scaleFactor = servings / (parseInt(recipe.servings || '1') || 1)
   const scaledIngredients = recipe.ingredients.map(ingredient => ({
     ...ingredient,
-    scaled_amount: scaleAmount(ingredient.amount || '', servings, parseInt(recipe.servings || '1') || 1)
+    scaled_amount: scaleAmount(ingredient.amount || '', scaleFactor)
   }))
 
   return (
@@ -480,6 +496,14 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
           </Button>
           
           <div className="flex items-center space-x-2">
+            <Button
+              onClick={() => router.push(`/global-recipe/${recipe.recipe_id}/edit`)}
+              variant="outline"
+              className="border-orange-300 text-orange-700 hover:bg-orange-50"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
             <Button
               onClick={handlePrint}
               variant="outline"
@@ -592,9 +616,28 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                 <div className="space-y-2">
                   {scaledIngredients.length > 0 ? (
                     scaledIngredients.map((ingredient, index) => {
-                      // If raw_name exists, split by \n and display each line
-                      if (ingredient.raw_name) {
-                        const lines = ingredient.raw_name.split('\n')
+                      // Prioritize structured fields over raw_name
+                      if (ingredient.amount || ingredient.unit || ingredient.ingredient?.name) {
+                        // Use structured display
+                        const displayText = [
+                          ingredient.scaled_amount,
+                          ingredient.unit,
+                          ingredient.ingredient?.name
+                        ].filter(Boolean).join(' ')
+                        
+                        return (
+                          <div key={index} className="flex items-center text-orange-800">
+                            <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
+                            <span>{displayText}</span>
+                          </div>
+                        )
+                      } else if (ingredient.raw_name) {
+                        // Simple: just split by newlines and display each line as an ingredient
+                        const lines = ingredient.raw_name
+                          .split(/\r?\n/)
+                          .map(line => line.trim())
+                          .filter(line => line.length > 0)
+                        
                         return lines.map((line, lineIndex) => (
                           <div key={`${index}-${lineIndex}`} className="flex items-center text-orange-800">
                             <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
@@ -602,15 +645,11 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                           </div>
                         ))
                       } else {
-                        // Fallback to structured display
+                        // No data available
                         return (
                           <div key={index} className="flex items-center text-orange-800">
                             <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
-                            <span>
-                              {ingredient.scaled_amount && `${ingredient.scaled_amount} `}
-                              {ingredient.unit && `${ingredient.unit} `}
-                              {ingredient.ingredient?.name}
-                            </span>
+                            <span>Unknown ingredient</span>
                           </div>
                         )
                       }
@@ -763,12 +802,33 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                           Not Found ({unmatchedIngredients.length})
                         </h4>
                         <div className="space-y-2">
-                          {unmatchedIngredients.map((ingredient, index) => (
-                            <div key={index} className="flex items-center text-red-700">
-                              <span className="text-red-600 mr-2">•</span>
-                              <span>{ingredient}</span>
-                            </div>
-                          ))}
+                          {unmatchedIngredients.map((ingredient, index) => {
+                            // Parse raw ingredient text that might have newlines
+                            const lines = ingredient
+                            .split(/\r?\n/)
+                            .map(line => line.trim())
+                            .filter(line => line.length > 0)
+                            const parsedIngredients = []
+                            
+                            // Group lines into complete ingredients (amount + description)
+                            for (let i = 0; i < lines.length; i += 2) {
+                              if (i + 1 < lines.length) {
+                                const amount = lines[i].trim()
+                                const description = lines[i + 1].trim()
+                                parsedIngredients.push(`${amount} ${description}`)
+                              } else {
+                                // Odd number of lines, just use the last line
+                                parsedIngredients.push(lines[i].trim())
+                              }
+                            }
+                            
+                            return parsedIngredients.map((parsedIngredient, lineIndex) => (
+                              <div key={`${index}-${lineIndex}`} className="flex items-center text-red-700">
+                                <span className="text-red-600 mr-2">•</span>
+                                <span>{parsedIngredient}</span>
+                              </div>
+                            ))
+                          }).flat()}
                         </div>
                         <p className="text-sm text-red-600 mt-2">
                           These ingredients couldn't be matched to our database. You may need to add them manually.
@@ -829,7 +889,7 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Chef OuiOui */}
+            {/* Chef Tony */}
             <ChefOuiOui />
             
             {/* Recipe Timer */}

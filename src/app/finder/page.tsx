@@ -690,7 +690,7 @@ export default function RecipeFinderPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Chef OuiOui Sidebar */}
+          {/* Chef Tony Sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <ChefOuiOui />

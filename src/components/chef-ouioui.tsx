@@ -27,7 +27,7 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
 
   const loadOuiOuiLines = async () => {
     try {
-      console.log('Loading Chef OuiOui lines...')
+      console.log('Loading Chef Tony lines...')
       
       // Load greeting
       const { data: greetingData, error: greetingError } = await supabase.rpc('get_random_ouioui_line', {
@@ -82,11 +82,11 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
           ease: "easeInOut"
         }}
       >
-        {/* Chef OuiOui Avatar */}
+        {/* Chef Tony Avatar */}
         <div className="relative w-48 h-48 rounded-full overflow-hidden shadow-lg">
           <Image
-            src="/ChefOuiOui.png"
-            alt="Chef OuiOui"
+            src="/chef_tony_avatar.png"
+            alt="Chef Tony"
             fill
             className="object-cover"
             priority

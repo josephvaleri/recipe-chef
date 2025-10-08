@@ -104,7 +104,13 @@ export default function AdminReferencePage() {
         return
       }
       
-      setItems(data || [])
+      // Map the specific ID field to generic 'id' field
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        id: item[config.idField]
+      }))
+      
+      setItems(mappedData)
     } catch (error) {
       console.error('Error loading items:', error)
     } finally {
@@ -166,7 +172,8 @@ export default function AdminReferencePage() {
     const config = tableConfig[activeTab]
     const itemData: any = { [config.nameField]: newItemName.trim() }
     
-    if (activeTab === 'ingredients' && selectedCategory) {
+    // Only include category_id if it's defined and we're editing ingredients
+    if (activeTab === 'ingredients' && selectedCategory !== null && selectedCategory !== undefined) {
       itemData.category_id = selectedCategory
     }
     

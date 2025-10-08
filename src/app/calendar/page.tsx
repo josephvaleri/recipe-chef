@@ -194,114 +194,13 @@ export default function CalendarPage() {
     }
   }
 
-  const generateShoppingList = async (days: number) => {
-    setLoading(true)
-    try {
-      const user = await getCurrentUser()
-      if (!user) return
-
-      const fromDate = new Date()
-      const toDate = new Date()
-      toDate.setDate(toDate.getDate() + days)
-
-      // Get all meal plans in the date range
-      const { data: mealPlansData, error: mealPlansError } = await supabase
-        .from('meal_plan')
-        .select(`
-          user_recipe:user_recipes(user_recipe_id),
-          global_recipe:global_recipes(recipe_id)
-        `)
-        .eq('user_id', user.id)
-        .gte('date', fromDate.toISOString().split('T')[0])
-        .lte('date', toDate.toISOString().split('T')[0])
-
-      if (mealPlansError) {
-        console.error('Error loading meal plans:', mealPlansError)
-        return
-      }
-
-      const recipeIds = mealPlansData
-        ?.map(plan => plan.user_recipe?.user_recipe_id || plan.global_recipe?.recipe_id)
-        .filter(Boolean) || []
-
-      if (recipeIds.length === 0) {
-        alert('No meals planned in the selected period')
-        return
-      }
-
-      // Get ingredients for all recipes
-      const { data: userIngredients } = await supabase
-        .from('user_recipe_ingredients')
-        .select(`
-          amount,
-          unit,
-          raw_name,
-          ingredient:ingredients(name, category:ingredient_categories(name))
-        `)
-        .in('user_recipe_id', recipeIds.filter((_, i) => mealPlansData?.[i]?.user_recipe))
-
-      const { data: globalIngredients } = await supabase
-        .from('global_recipe_ingredients')
-        .select(`
-          amount,
-          unit,
-          ingredient:ingredients(name, category:ingredient_categories(name))
-        `)
-        .in('recipe_id', recipeIds.filter((_, i) => mealPlansData?.[i]?.global_recipe))
-
-      // Combine and group ingredients
-      const allIngredients = [
-        ...(userIngredients || []).map(ing => ({
-          ...ing,
-          name: ing.raw_name || ing.ingredient?.name || '',
-          category: ing.ingredient?.category?.name || 'Other'
-        })),
-        ...(globalIngredients || []).map(ing => ({
-          ...ing,
-          name: ing.ingredient?.name || '',
-          category: ing.ingredient?.category?.name || 'Other'
-        }))
-      ]
-
-      // Group by category
-      const groupedIngredients = allIngredients.reduce((acc, ingredient) => {
-        const category = ingredient.category
-        if (!acc[category]) {
-          acc[category] = []
-        }
-        acc[category].push({
-          name: ingredient.name,
-          amount: ingredient.amount,
-          unit: ingredient.unit
-        })
-        return acc
-      }, {} as Record<string, any[]>)
-
-      // Save shopping list
-      const { data: shoppingList, error: saveError } = await supabase
-        .from('shopping_lists')
-        .insert({
-          user_id: user.id,
-          from_date: fromDate.toISOString().split('T')[0],
-          to_date: toDate.toISOString().split('T')[0],
-          items: groupedIngredients
-        })
-        .select()
-        .single()
-
-      if (saveError) {
-        console.error('Error saving shopping list:', saveError)
-        return
-      }
-
-      setShoppingLists(prev => [shoppingList, ...prev])
-      alert(`Shopping list generated for ${days} days!`)
-    } catch (error) {
-      console.error('Error generating shopping list:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const generateShoppingList = (days: number) => {
+    const today = new Date();
+    const startDate = today.toISOString().split('T')[0];
+    
+    // Navigate to shopping list page with pre-filled parameters
+    router.push(`/shopping-list?start=${startDate}&days=${days}&people=4`);
+  };
 
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return ''
@@ -527,7 +426,7 @@ export default function CalendarPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Chef OuiOui */}
+            {/* Chef Tony */}
             <ChefOuiOui />
 
             {/* Recipe Selection */}

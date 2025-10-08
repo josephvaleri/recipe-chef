@@ -112,7 +112,7 @@ export default function Home() {
     )
   }
 
-  // Non-authenticated users see Chef OuiOui on left, login on right
+  // Non-authenticated users see Chef Tony on left, login on right
   if (!user) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
@@ -130,7 +130,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left Column: Chef OuiOui */}
+              {/* Left Column: Chef Tony */}
               <div className="flex flex-col space-y-6">
                 <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
                   <div className="text-center">
@@ -206,9 +206,9 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column: Chef OuiOui and Search */}
+            {/* Left Column: Chef Tony and Search */}
             <div className="flex flex-col space-y-6">
-              {/* Chef OuiOui Avatar Card */}
+              {/* Chef Tony Avatar Card */}
               <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
                 <div className="text-center">
                   <ChefOuiOui className="mx-auto" />
@@ -220,7 +220,7 @@ export default function Home() {
                 <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200">
                   <div className="space-y-4">
                     <Textarea
-                      placeholder="Ask Chef OuiOui anything about recipes... (e.g., 'What can I make with chicken?', 'Quick pasta recipes', 'How do I make bread?')"
+                      placeholder="Ask Chef Tony anything about recipes... (e.g., 'What can I make with chicken?', 'Quick pasta recipes', 'How do I make bread?')"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
                       className="min-h-[120px] resize-none border-orange-300 focus:border-orange-500"
@@ -246,7 +246,7 @@ export default function Home() {
                         className="bg-orange-600 hover:bg-orange-700 px-8"
                       >
                         <Send className="w-4 h-4 mr-2" />
-                        Ask Chef OuiOui!
+                        Ask Chef Tony!
                       </Button>
                     </div>
                   </div>

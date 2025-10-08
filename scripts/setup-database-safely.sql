@@ -47,7 +47,7 @@ create policy "Users can insert own profile" on public.profiles
 create policy "Users can delete own profile" on public.profiles
   for delete using (auth.uid() = user_id);
 
--- Chef OuiOui Lines
+-- Chef Tony Lines
 create table if not exists public.ouioui_lines (
   line_id serial primary key,
   type text not null check (type in ('greeting', 'joke', 'tip')),

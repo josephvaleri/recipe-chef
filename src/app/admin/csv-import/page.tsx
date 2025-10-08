@@ -318,8 +318,8 @@ export default function CSVImportPage() {
   }
 
   return (
-    <RouteGuard requireAuth={true} className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
-      <div className="container mx-auto px-4 py-8">
+    <RouteGuard requireAuth={true} className="min-h-screen">
+      <div className="container mx-auto px-4 py-8" style={{ backgroundColor: '#C6DBEF' }}>
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-8">

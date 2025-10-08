@@ -42,7 +42,7 @@ async function checkDatabase() {
 
     if (ouiouiError) {
       console.error('❌ OuiOui lines table not found.')
-      console.log('The Chef OuiOui greeting system needs the database schema.')
+      console.log('The Chef Tony greeting system needs the database schema.')
       return
     }
 
@@ -81,7 +81,7 @@ async function checkDatabase() {
     }
 
     console.log('\n🎉 Database is properly set up!')
-    console.log('Chef OuiOui should now show alternating greeting messages.')
+    console.log('Chef Tony should now show alternating greeting messages.')
 
   } catch (error) {
     console.error('❌ Unexpected error:', error)

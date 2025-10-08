@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -22,13 +22,13 @@ interface Step {
 }
 
 export default function AddGlobalRecipePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string } | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [cuisines, setCuisines] = useState<any[]>([])
-  const [mealTypes, setMealTypes] = useState<any[]>([])
-  const [ingredients, setIngredients] = useState<any[]>([])
+  const [cuisines, setCuisines] = useState<{ cuisine_id: number; name: string }[]>([])
+  const [mealTypes, setMealTypes] = useState<{ meal_type_id: number; name: string }[]>([])
+  const [ingredients, setIngredients] = useState<{ ingredient_id: number; name: string }[]>([])
   const router = useRouter()
 
   const [recipe, setRecipe] = useState({
@@ -47,11 +47,7 @@ export default function AddGlobalRecipePage() {
   const [recipeIngredients, setRecipeIngredients] = useState<Ingredient[]>([])
   const [recipeSteps, setRecipeSteps] = useState<Step[]>([])
 
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser()
       const currentProfile = await getCurrentProfile()
@@ -75,7 +71,11 @@ export default function AddGlobalRecipePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   const loadReferenceData = async () => {
     try {

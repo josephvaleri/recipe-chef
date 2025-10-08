@@ -1109,7 +1109,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Chef OuiOui */}
+            {/* Chef Tony */}
             <ChefOuiOui />
 
             {/* Recipe Timer */}

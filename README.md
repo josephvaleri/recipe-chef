@@ -7,7 +7,7 @@ A mobile-first Progressive Web App (PWA) for managing recipes with AI-powered se
 - **Personal Cookbook**: Organize your favorite recipes with fuzzy search
 - **Web Import**: Import recipes from any website using Schema.org parsing
 - **AI-Powered Search**: Find recipes using natural language queries
-- **Chef OuiOui**: Animated French chef avatar with rotating greetings and tips
+- **Chef Tony**: Animated French chef avatar with rotating greetings and tips
 - **Meal Planning**: Calendar-based menu planning with shopping list generation
 - **Recipe Scaling**: Scale ingredient amounts for different serving sizes
 - **PDF Export**: Print recipes to PDF for offline use
@@ -114,7 +114,7 @@ The app supports importing recipes from any website using multiple parsing strat
 4. **h-recipe**: Microformat class-based parsing
 5. **Heuristic**: Fallback text parsing for basic recipe extraction
 
-### Chef OuiOui Avatar
+### Chef Tony Avatar
 
 An animated French chef character that:
 - Sways gently with Framer Motion animations
@@ -150,7 +150,7 @@ The app uses a comprehensive PostgreSQL schema with:
 ## API Routes
 
 - `POST /api/import-recipe` - Import recipe from URL
-- `GET /api/ouioui/random` - Get random Chef OuiOui message
+- `GET /api/ouioui/random` - Get random Chef Tony message
 - `POST /api/search/my` - Search user's cookbook
 - `POST /api/search/global` - Recipe Finder with scoring
 - `POST /api/ai/answer` - AI-powered recipe Q&A

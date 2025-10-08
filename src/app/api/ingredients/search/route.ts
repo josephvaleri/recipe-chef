@@ -36,22 +36,39 @@ export async function POST(request: NextRequest) {
       const unmatchedIngredients = []
 
       // Process ingredients in smaller batches to avoid timeout
-      const BATCH_SIZE = 10
+      const BATCH_SIZE = 5 // Reduced from 10 to prevent crashes
       const batches = []
       for (let i = 0; i < ingredients.length; i += BATCH_SIZE) {
         batches.push(ingredients.slice(i, i + BATCH_SIZE))
       }
 
       for (let i = 0; i < batches.length; i++) {
-        console.log(`API: Processing batch ${i + 1}/${batches.length}`)
-        const batchResults = await processBatch(batches[i], supabase)
-        matchedIngredients.push(...batchResults.matched)
-        unmatchedIngredients.push(...batchResults.unmatched)
-        console.log(`API: Batch ${i + 1} complete. Matched: ${batchResults.matched.length}, Unmatched: ${batchResults.unmatched.length}`)
+        try {
+          console.log(`API: Processing batch ${i + 1}/${batches.length}`)
+          const batchResults = await processBatch(batches[i], supabase)
+          matchedIngredients.push(...batchResults.matched)
+          unmatchedIngredients.push(...batchResults.unmatched)
+          console.log(`API: Batch ${i + 1} complete. Matched: ${batchResults.matched.length}, Unmatched: ${batchResults.unmatched.length}`)
+        } catch (batchError) {
+          console.error(`Error processing batch ${i + 1}:`, batchError)
+          // Add all items from failed batch to unmatched
+          unmatchedIngredients.push(...batches[i])
+        }
       }
 
+      // Deduplicate matched ingredients by ingredient_id
+      const seenIngredientIds = new Set()
+      const uniqueMatchedIngredients = matchedIngredients.filter(ingredient => {
+        if (seenIngredientIds.has(ingredient.ingredient_id)) {
+          console.log(`Removing duplicate: ${ingredient.name} (ID: ${ingredient.ingredient_id})`)
+          return false
+        }
+        seenIngredientIds.add(ingredient.ingredient_id)
+        return true
+      })
+
       // Group matched ingredients by category
-      const groupedIngredients = matchedIngredients.reduce((acc, ingredient) => {
+      const groupedIngredients = uniqueMatchedIngredients.reduce((acc, ingredient) => {
         const categoryName = ingredient.category.name
         if (!acc[categoryName]) {
           acc[categoryName] = []
@@ -63,7 +80,7 @@ export async function POST(request: NextRequest) {
       return {
         matched: groupedIngredients,
         unmatched: unmatchedIngredients,
-        total_matched: matchedIngredients.length,
+        total_matched: uniqueMatchedIngredients.length,
         total_unmatched: unmatchedIngredients.length
       }
     })()
@@ -93,10 +110,11 @@ async function processBatch(ingredients: string[], supabase: any) {
     
     if (!ingredientText.trim()) continue
 
-    // Parse the ingredient text to find potential ingredient names
-    const potentialIngredients = await parseIngredientText(ingredientText, supabase)
-    console.log(`processBatch: Found ${potentialIngredients.length} potential ingredients:`, potentialIngredients)
-    let foundAny = false
+    try {
+      // Parse the ingredient text to find potential ingredient names
+      const potentialIngredients = await parseIngredientText(ingredientText, supabase)
+      console.log(`processBatch: Found ${potentialIngredients.length} potential ingredients:`, potentialIngredients)
+      let foundAny = false
 
     // Limit to first 3 potential ingredients to prevent too many matches
     const limitedIngredients = potentialIngredients.slice(0, 3)
@@ -127,13 +145,33 @@ async function processBatch(ingredients: string[], supabase: any) {
 
       // If no exact match, try singular/plural variations
       if (!exactMatches || exactMatches.length === 0) {
-        const pluralForm = searchQuery + 's'
-        const singularForm = searchQuery.replace(/s$/, '')
+        const searchTerms = [searchQuery]
         
-        console.log(`processBatch: Trying singular/plural variations: exact="${searchQuery}", plural="${pluralForm}", singular="${singularForm}"`)
+        // Smart plural/singular handling
+        if (searchQuery.endsWith('ies')) {
+          // berries -> berry, chilies -> chili, chilies -> chiles
+          searchTerms.push(searchQuery.replace(/ies$/, 'y'))
+          searchTerms.push(searchQuery.replace(/ies$/, 'i'))
+          searchTerms.push(searchQuery.replace(/ies$/, 'es'))
+        } else if (searchQuery.endsWith('es')) {
+          // potatoes -> potato, tomatoes -> tomato
+          searchTerms.push(searchQuery.replace(/es$/, ''))
+          searchTerms.push(searchQuery.replace(/s$/, ''))
+        } else if (searchQuery.endsWith('s')) {
+          // onions -> onion
+          searchTerms.push(searchQuery.replace(/s$/, ''))
+        } else {
+          // Handle pluralization
+          if (searchQuery.endsWith('y')) {
+            searchTerms.push(searchQuery.replace(/y$/, 'ies')) // berry -> berries
+          } else if (searchQuery.endsWith('o') || searchQuery.endsWith('i')) {
+            searchTerms.push(searchQuery + 'es') // potato -> potatoes, chili -> chiles
+          }
+          // Always try just adding 's'
+          searchTerms.push(searchQuery + 's')
+        }
         
-        // Try all variations: exact, plural, singular, and also try matching against both forms
-        const searchTerms = [searchQuery, pluralForm, singularForm]
+        console.log(`processBatch: Trying singular/plural variations: ${searchTerms.join(', ')}`)
         
         // Also try the reverse - if we have "red onions", try "red onion" in database
         if (searchQuery.includes(' ')) {
@@ -148,19 +186,19 @@ async function processBatch(ingredients: string[], supabase: any) {
         }
         
         const { data: variationMatches, error: variationError } = await supabase
-          .from('ingredients')
-          .select(`
-            ingredient_id,
-            name,
-            category_id,
-            category:ingredient_categories(name)
-          `)
+            .from('ingredients')
+            .select(`
+              ingredient_id,
+              name,
+              category_id,
+              category:ingredient_categories(name)
+            `)
           .or(searchTerms.map(term => `name.ilike.${term}`).join(','))
-          .limit(1)
-        
+            .limit(1)
+          
         if (!variationError && variationMatches && variationMatches.length > 0) {
           exactMatches = variationMatches
-          exactError = null
+            exactError = null
           console.log(`processBatch: Found singular/plural match: "${variationMatches[0].name}"`)
         }
       }
@@ -192,8 +230,8 @@ async function processBatch(ingredients: string[], supabase: any) {
 
       if (exactMatches && exactMatches.length > 0) {
         const matchedIngredient = exactMatches[0]
-        const isExactMatch = matchedIngredient.name.toLowerCase() === searchQuery.toLowerCase()
-        const matchType = isExactMatch ? 'exact' : 'partial'
+        // Since we only do strict matching (exact + singular/plural), all matches are considered 'exact'
+        const matchType = 'exact'
         
         console.log(`processBatch: Found ${matchType} match: ${matchedIngredient.name} (ID: ${matchedIngredient.ingredient_id})`)
         matchedIngredients.push({
@@ -220,8 +258,8 @@ async function processBatch(ingredients: string[], supabase: any) {
           const twoWordName = twoWordMatches[0].ingredient_name
           console.log(`processBatch: Found in two_word_ingredients: "${twoWordName}"`)
           
-          // Try to find the ingredient by name (case insensitive)
-          const { data: ingredientMatches, error: ingredientError } = await supabase
+          // Try to find the ingredient by name (case insensitive) with singular/plural variations
+          let { data: ingredientMatches, error: ingredientError } = await supabase
             .from('ingredients')
             .select(`
               ingredient_id,
@@ -231,6 +269,79 @@ async function processBatch(ingredients: string[], supabase: any) {
             `)
             .ilike('name', twoWordName)
             .limit(1)
+          
+          // If not found, try singular/plural variations
+          if (!ingredientMatches || ingredientMatches.length === 0) {
+            const words = twoWordName.split(' ')
+            const lastWord = words[words.length - 1]
+            const variations = []
+            
+            // Try singular forms (remove 's' or 'es')
+            if (lastWord.endsWith('ies')) {
+              // chilies -> chili, chilies -> chiles, berries -> berry
+              const singularI = lastWord.replace(/ies$/, 'i')  // chilies -> chili
+              const singularES = lastWord.replace(/ies$/, 'es')  // chilies -> chiles
+              const singularY = lastWord.replace(/ies$/, 'y')  // berries -> berry
+              variations.push(words.slice(0, -1).join(' ') + ' ' + singularI)
+              if (singularES !== singularI && singularES !== singularY) {
+                variations.push(words.slice(0, -1).join(' ') + ' ' + singularES)
+              }
+              if (singularY !== singularI) {
+                variations.push(words.slice(0, -1).join(' ') + ' ' + singularY)
+              }
+            } else if (lastWord.endsWith('es')) {
+              // tomatoes -> tomato
+              const singularLastWord = lastWord.replace(/es$/, '')
+              variations.push(words.slice(0, -1).join(' ') + ' ' + singularLastWord)
+              // Also try removing just 's'
+              const singularLastWordS = lastWord.replace(/s$/, '')
+              if (singularLastWordS !== singularLastWord) {
+                variations.push(words.slice(0, -1).join(' ') + ' ' + singularLastWordS)
+              }
+            } else if (lastWord.endsWith('s')) {
+              // onions -> onion
+              const singularLastWord = lastWord.replace(/s$/, '')
+              variations.push(words.slice(0, -1).join(' ') + ' ' + singularLastWord)
+            }
+            
+            // Try plural forms (add 's' or 'es')
+            if (!lastWord.endsWith('s')) {
+              if (lastWord.endsWith('y')) {
+                // chili -> chilies
+                const pluralLastWord = lastWord.replace(/y$/, 'ies')
+                variations.push(words.slice(0, -1).join(' ') + ' ' + pluralLastWord)
+              } else if (lastWord.endsWith('i')) {
+                // chili -> chiles (special case for words ending in 'i')
+                const pluralES = lastWord + 'es'
+                variations.push(words.slice(0, -1).join(' ') + ' ' + pluralES)
+              } else if (lastWord.endsWith('o') || lastWord.endsWith('ch') || lastWord.endsWith('sh') || lastWord.endsWith('x') || lastWord.endsWith('z')) {
+                // tomato -> tomatoes
+                const pluralLastWord = lastWord + 'es'
+                variations.push(words.slice(0, -1).join(' ') + ' ' + pluralLastWord)
+              }
+              // Also always try just adding 's'
+              variations.push(words.slice(0, -1).join(' ') + ' ' + lastWord + 's')
+            }
+            
+            if (variations.length > 0) {
+              console.log(`processBatch: Trying singular/plural variations for two-word ingredient: ${variations.join(', ')}`)
+              const { data: variationMatches } = await supabase
+                .from('ingredients')
+                .select(`
+                  ingredient_id,
+                  name,
+                  category_id,
+                  category:ingredient_categories(name)
+                `)
+                .or(variations.map(v => `name.ilike.${v}`).join(','))
+                .limit(1)
+              
+              if (variationMatches && variationMatches.length > 0) {
+                ingredientMatches = variationMatches
+                console.log(`processBatch: Found with variation: ${variationMatches[0].name}`)
+              }
+            }
+          }
           
           if (!ingredientError && ingredientMatches && ingredientMatches.length > 0) {
             const matchedIngredient = ingredientMatches[0]
@@ -291,24 +402,24 @@ async function processBatch(ingredients: string[], supabase: any) {
           }
           
           const { data: aliasVariationMatches, error: aliasVariationError } = await supabase
-            .from('ingredient_aliases')
-            .select(`
-              alias_id,
-              alias,
-              ingredient_id,
-              ingredient:ingredients(
+              .from('ingredient_aliases')
+              .select(`
+                alias_id,
+                alias,
                 ingredient_id,
-                name,
-                category_id,
-                category:ingredient_categories(name)
-              )
-            `)
+                ingredient:ingredients(
+                  ingredient_id,
+                  name,
+                  category_id,
+                  category:ingredient_categories(name)
+                )
+              `)
             .or(aliasSearchTerms.map(term => `alias.ilike.${term}`).join(','))
-            .limit(1)
-          
+              .limit(1)
+            
           if (!aliasVariationError && aliasVariationMatches && aliasVariationMatches.length > 0) {
             aliasMatches = aliasVariationMatches
-            aliasError = null
+              aliasError = null
             console.log(`processBatch: Found alias singular/plural match: "${aliasVariationMatches[0].alias}"`)
           }
         }
@@ -338,10 +449,14 @@ async function processBatch(ingredients: string[], supabase: any) {
       }
     }
 
-    if (!foundAny) {
-      // No exact match found for any term in this ingredient line
-      console.log(`processBatch: NO MATCH found for ingredient: "${ingredientText}"`)
-      console.log(`processBatch: Searched terms were:`, limitedIngredients)
+      if (!foundAny) {
+        // No exact match found for any term in this ingredient line
+        console.log(`processBatch: NO MATCH found for ingredient: "${ingredientText}"`)
+        console.log(`processBatch: Searched terms were:`, limitedIngredients)
+        unmatchedIngredients.push(ingredientText)
+      }
+    } catch (parseError) {
+      console.error(`Error parsing ingredient "${ingredientText}":`, parseError)
       unmatchedIngredients.push(ingredientText)
     }
   }
@@ -357,6 +472,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   // STEP 1: Two-word lookup FIRST (before aggressive cleaning)
   // Light cleaning for two-word lookup - preserve descriptive words
   let lightCleaned = text.toLowerCase()
+    .replace(/[.;]/g, '') // Remove periods and semicolons
     .replace(/\d+\/\d+/g, '') // Remove fractions
     .replace(/\d+/g, '') // Remove numbers  
     .replace(/[^\w\s]/g, ' ') // Remove punctuation
@@ -369,17 +485,95 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   const lightWords = lightCleaned.split(' ')
   
   // Check for two-word combinations in lightly cleaned text
-  for (let i = 0; i < lightWords.length - 1; i++) {
+  // Limit to first 3 two-word combinations to prevent excessive database queries and crashes
+  const maxTwoWordChecks = Math.min(lightWords.length - 1, 3)
+  for (let i = 0; i < maxTwoWordChecks; i++) {
     const twoWord = `${lightWords[i]} ${lightWords[i + 1]}`
     
-    const { data: twoWordMatches } = await supabase
+    // Try exact match first
+    let { data: twoWordMatches } = await supabase
       .from('two_word_ingredients')
       .select('ingredient_name')
       .ilike('ingredient_name', twoWord)
     
+    // If no match, try singular/plural variations
+    if (!twoWordMatches || twoWordMatches.length === 0) {
+      const words = twoWord.split(' ')
+      const lastWord = words[words.length - 1]
+      const variations = []
+      
+      // Try singular forms (remove 's' or 'es' from last word)
+      if (lastWord.endsWith('ies')) {
+        // chilies -> chili (remove 'es'), chilies -> chiles (replace 'ies' with 'es'), berries -> berry (replace 'ies' with 'y')
+        // Try all variations
+        const singularI = lastWord.replace(/ies$/, 'i')  // chilies -> chili
+        const singularES = lastWord.replace(/ies$/, 'es')  // chilies -> chiles
+        const singularY = lastWord.replace(/ies$/, 'y')  // berries -> berry
+        variations.push(words.slice(0, -1).join(' ') + ' ' + singularI)
+        if (singularES !== singularI && singularES !== singularY) {
+          variations.push(words.slice(0, -1).join(' ') + ' ' + singularES)
+        }
+        if (singularY !== singularI) {
+          variations.push(words.slice(0, -1).join(' ') + ' ' + singularY)
+        }
+      } else if (lastWord.endsWith('es')) {
+        // tomatoes -> tomato, potatoes -> potato
+        const singularLastWord = lastWord.replace(/es$/, '')
+        variations.push(words.slice(0, -1).join(' ') + ' ' + singularLastWord)
+        // Also try removing just 's' in case it's like "olives" -> "olive"
+        const singularLastWordS = lastWord.replace(/s$/, '')
+        if (singularLastWordS !== singularLastWord) {
+          variations.push(words.slice(0, -1).join(' ') + ' ' + singularLastWordS)
+        }
+      } else if (lastWord.endsWith('s')) {
+        // onions -> onion
+        const singularLastWord = lastWord.replace(/s$/, '')
+        variations.push(words.slice(0, -1).join(' ') + ' ' + singularLastWord)
+      }
+      
+      // Try plural forms (add 's' or 'es' to last word)
+      if (!lastWord.endsWith('s')) {
+        if (lastWord.endsWith('y')) {
+          // chili -> chilies
+          const pluralLastWord = lastWord.replace(/y$/, 'ies')
+          variations.push(words.slice(0, -1).join(' ') + ' ' + pluralLastWord)
+        } else if (lastWord.endsWith('i')) {
+          // chili -> chiles (special case for words ending in 'i')
+          const pluralES = lastWord + 'es'
+          variations.push(words.slice(0, -1).join(' ') + ' ' + pluralES)
+        } else if (lastWord.endsWith('o') || lastWord.endsWith('ch') || lastWord.endsWith('sh') || lastWord.endsWith('x') || lastWord.endsWith('z')) {
+          // tomato -> tomatoes, potato -> potatoes
+          const pluralLastWord = lastWord + 'es'
+          variations.push(words.slice(0, -1).join(' ') + ' ' + pluralLastWord)
+        }
+        // Also always try just adding 's'
+        const pluralLastWordS = lastWord + 's'
+        variations.push(words.slice(0, -1).join(' ') + ' ' + pluralLastWordS)
+      }
+      
+      if (variations.length > 0) {
+        // Limit variations to prevent excessive queries
+        const limitedVariations = variations.slice(0, 3)
+        console.log(`Trying singular/plural variations for "${twoWord}": ${limitedVariations.join(', ')}`)
+        
+        for (const variation of limitedVariations) {
+          const { data: variationMatches } = await supabase
+            .from('two_word_ingredients')
+            .select('ingredient_name')
+            .ilike('ingredient_name', variation)
+          
+          if (variationMatches && variationMatches.length > 0) {
+            twoWordMatches = variationMatches
+            console.log(`Found two-word ingredient (variation): "${variation}" for "${twoWord}"`)
+            break
+          }
+        }
+      }
+    }
+    
     if (twoWordMatches && twoWordMatches.length > 0) {
-      potentialIngredients.push(twoWord)
-      console.log('Found two-word ingredient from light cleaning:', twoWord)
+      potentialIngredients.push(twoWordMatches[0].ingredient_name)
+      console.log('Found two-word ingredient from light cleaning:', twoWordMatches[0].ingredient_name)
       return potentialIngredients // Return early if found
     }
   }
@@ -387,121 +581,19 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   // STEP 2: Enhanced cleaning for single words and fallbacks
   // Enhanced cleaning - remove measurements, quantities, and descriptive words
   let cleanedText = text
+    .replace(/[.;]/g, '') // Remove periods and semicolons
     .replace(/\b\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
     .replace(/\b\d+\.?\d*\s*-\s*\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
     .replace(/\bounce\b/gi, '')  // Remove standalone "ounce" that might be left over
     .replace(/\b\d+\.?\d*\b/g, '')  // Remove standalone numbers (including decimals)
     .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')  // Remove Unicode fractions with units
     .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g, '')  // Remove standalone Unicode fractions
-    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind|trimmed)\b/gi, '')
-    .replace(/[,\-&()]/g, ' ')  // Replace commas, dashes, ampersands, parentheses with spaces
+    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind|trimmed|stemmed|seeded|spiced|shredded|leaves|ripped|fine|ok|bought|store|hash|browns)\b/gi, '')
+    .replace(/[,\-&();]/g, ' ')  // Replace commas, dashes, ampersands, parentheses, semicolons with spaces
     .replace(/\s+/g, ' ')
     .trim()
 
   console.log('Cleaned text:', cleanedText)
-  
-  // Special handling for ingredients with parentheses - extract the main ingredient before the parentheses
-  if (text.includes('(')) {
-    console.log('Found parentheses in text, extracting main ingredient before parentheses')
-    const beforeParentheses = text.split('(')[0].trim()
-    const afterParentheses = text.split(')')[1] ? text.split(')')[1].trim() : ''
-    console.log('Before parentheses:', beforeParentheses)
-    console.log('After parentheses:', afterParentheses)
-    
-    // Combine before and after parentheses to get the full ingredient
-    const fullIngredient = (beforeParentheses + ' ' + afterParentheses).trim()
-    console.log('Full ingredient (before + after):', fullIngredient)
-    
-    // Clean the full ingredient
-    const cleanedFullIngredient = fullIngredient
-      .replace(/\b\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
-      .replace(/\b\d+\.?\d*\s*-\s*\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
-      .replace(/\bounce\b/gi, '')  // Remove standalone "ounce" that might be left over
-      .replace(/\b\d+\.?\d*\b/g, '')  // Remove standalone numbers (including decimals)
-      .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind)\b/gi, '')
-      .replace(/[,\-&]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-    
-    console.log('Cleaned full ingredient:', cleanedFullIngredient)
-    
-    // If we still have measurements, try to extract just the ingredient part
-    if (cleanedFullIngredient && cleanedFullIngredient.includes(' ')) {
-      const cleanedWords = cleanedFullIngredient.split(' ').filter(word => 
-        word.length > 2 && 
-        !/^\d+$/.test(word) && // not just numbers
-        !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|chicken|vegetable|broth|salt|pepper|black|white|red|green|yellow|blue|purple|orange|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind|trimmed|teaspoon|tablespoon|cup|cups|tbsp|tsp|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)$/i.test(word) // common words, colors, and measurements
-      )
-      
-      if (cleanedWords.length > 0) {
-        // Try the last two words first (for "cumin seeds")
-        if (cleanedWords.length >= 2) {
-          const lastTwoWords = cleanedWords.slice(-2).join(' ')
-          console.log('Extracted two-word ingredient from parentheses:', lastTwoWords)
-          return [lastTwoWords].filter(term => term.trim().length > 0)
-        }
-        
-        // Fall back to last word
-        const lastWord = cleanedWords[cleanedWords.length - 1]
-        console.log('Extracted single-word ingredient from parentheses:', lastWord)
-        return [lastWord].filter(term => term.trim().length > 0)
-      }
-    }
-    
-    if (cleanedFullIngredient) {
-      console.log('Main ingredient from parentheses parsing:', cleanedFullIngredient)
-      
-      // If the main ingredient contains "or", handle it specially
-      if (cleanedFullIngredient.includes(' or ')) {
-        console.log('Found "or" in parentheses-extracted ingredient, splitting options')
-        const parts = cleanedFullIngredient.split(' or ')
-        const allOptions = []
-        for (const part of parts) {
-          const trimmedPart = part.trim()
-          if (trimmedPart.length > 0) {
-            // For "Chicken or Vegetable Broth", we want:
-            // - "Chicken Broth" (first part + last word of second part)
-            // - "Vegetable Broth" (second part)
-            
-            if (parts.length === 2) {
-              const firstPart = parts[0].trim()
-              const secondPart = parts[1].trim()
-              
-              // If second part has multiple words, combine first part with last word of second part
-              const secondWords = secondPart.split(' ')
-              if (secondWords.length > 1) {
-                const lastWord = secondWords[secondWords.length - 1]
-                const combined = `${firstPart} ${lastWord}`
-                allOptions.push(combined) // "Chicken Broth"
-              }
-              
-              // Also try the full second part
-              allOptions.push(secondPart) // "Vegetable Broth"
-            } else {
-              // Fallback to original logic for other cases
-              allOptions.push(trimmedPart)
-            }
-          }
-        }
-        
-        // Remove duplicates while preserving order
-        const uniqueOptions = []
-        const seen = new Set()
-        for (const option of allOptions) {
-          if (!seen.has(option.toLowerCase())) {
-            seen.add(option.toLowerCase())
-            uniqueOptions.push(option)
-          }
-        }
-        
-        console.log('Options from parentheses "or" parsing:', allOptions)
-        console.log('Unique options from parentheses "or" parsing:', uniqueOptions)
-        return uniqueOptions.filter(term => term.trim().length > 0)
-      }
-      
-      return [cleanedFullIngredient].filter(term => term.trim().length > 0)
-    }
-  }
   
   // Special handling for ingredients with "or" - try both options
   if (cleanedText.includes(' or ')) {
@@ -552,7 +644,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   const fallbackIngredients = []
   
   // Look for common single-word ingredients first
-  const commonIngredients = ['eggs', 'ziti', 'mozzarella', 'parsley', 'garlic', 'onion', 'carrot', 'celery', 'tomato', 'cheese', 'bread', 'milk', 'butter', 'oil', 'salt', 'pepper', 'sugar', 'flour', 'rice', 'pasta', 'meat', 'chicken', 'beef', 'pork', 'fish', 'shrimp', 'lobster', 'crab', 'lamb', 'turkey', 'duck', 'veal', 'ham', 'bacon', 'sausage', 'pepperoni', 'salami', 'prosciutto', 'pancetta', 'guanciale', 'chorizo', 'andouille', 'kielbasa', 'bratwurst', 'flakes', 'parmesan', 'cutlets', 'zucchini', 'cumin', 'seeds', 'chillies', 'chili', 'peppers', 'turmeric', 'garam', 'masala', 'powder']
+  const commonIngredients = ['eggs', 'ziti', 'mozzarella', 'parsley', 'garlic', 'onion', 'carrot', 'celery', 'tomato', 'cheese', 'bread', 'milk', 'butter', 'oil', 'salt', 'pepper', 'sugar', 'flour', 'rice', 'pasta', 'meat', 'chicken', 'beef', 'pork', 'fish', 'shrimp', 'lobster', 'crab', 'lamb', 'turkey', 'duck', 'veal', 'ham', 'bacon', 'sausage', 'pepperoni', 'salami', 'prosciutto', 'pancetta', 'guanciale', 'chorizo', 'andouille', 'kielbasa', 'bratwurst', 'flakes', 'parmesan', 'cutlets', 'zucchini', 'cumin', 'seeds', 'chillies', 'chili', 'peppers', 'turmeric', 'garam', 'masala', 'powder', 'venison', 'beetroot', 'beet', 'cabbage', 'ancho', 'guajillo', 'ghee', 'potato', 'potatoes', 'spinach']
   
   // Check if any common ingredients are in the text
   for (const commonIngredient of commonIngredients) {

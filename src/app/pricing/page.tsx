@@ -87,7 +87,7 @@ export default function PricingPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Left Panel - Chef OuiOui */}
+          {/* Left Panel - Chef Tony */}
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               <ChefOuiOui />

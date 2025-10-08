@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { getCurrentProfile, canManageGlobalContent, isAdmin } from '@/lib/auth'
-import { User, LogOut, ChefHat, BookOpen, Calendar, Shield, Menu, X, Search } from 'lucide-react'
+import { User, LogOut, ChefHat, BookOpen, Calendar, Shield, Menu, X, Search, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -154,6 +154,14 @@ export function Header() {
                 >
                   <Search className="w-4 h-4 text-orange-700" />
                   <span className="text-orange-700">Recipe Finder</span>
+                </Link>
+                <Link 
+                  href="/shopping-list"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-orange-50 transition-colors"
+                >
+                  <ShoppingCart className="w-4 h-4 text-orange-700" />
+                  <span className="text-orange-700">Shopping List</span>
                 </Link>
                 {profile && canManageGlobalContent(profile) && (
                   <Link 

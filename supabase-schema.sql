@@ -243,7 +243,7 @@ create table if not exists public.import_logs (
   created_at timestamptz not null default now()
 );
 
--- Chef OuiOui Lines (Appendix B)
+-- Chef Tony Lines (Appendix B)
 create table if not exists public.ouioui_lines (
   line_id serial primary key,
   type text not null check (type in ('greeting', 'joke', 'tip')),
@@ -298,7 +298,7 @@ begin
   end loop;
 end; $$;
 
--- Seed Chef OuiOui Lines
+-- Seed Chef Tony Lines
 insert into public.ouioui_lines (type, text, locale, weight) values
 -- Greetings
 ('greeting', 'Bonjour! Welcome to Recipe Chef!', 'en', 1),

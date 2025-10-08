@@ -83,7 +83,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center p-4">
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Panel - Chef OuiOui */}
+        {/* Left Panel - Chef Tony */}
         <div className="hidden lg:flex items-center justify-center">
           <ChefOuiOui className="max-w-md" />
         </div>
