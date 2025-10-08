@@ -216,7 +216,7 @@ export default function AdminReferencePage() {
     setEditingItem(item)
     setNewItemName(item.name)
     if (activeTab === 'ingredients' && 'category_id' in item) {
-      setSelectedCategory(item.category_id || null)
+      setSelectedCategory(typeof item.category_id === 'number' ? item.category_id : null)
     }
   }
 
