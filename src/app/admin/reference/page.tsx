@@ -85,17 +85,10 @@ export default function AdminReferencePage() {
     setLoading(true)
     try {
       const config = tableConfig[activeTab]
-      let query = supabase.from(config.table).select('*').order(config.nameField)
-      
-      if (activeTab === 'ingredients') {
-        query = query.select(`
-          *,
-          ingredient_categories (
-            category_id,
-            name
-          )
-        `)
-      }
+      const selectQuery = activeTab === 'ingredients' 
+        ? `*,ingredient_categories(category_id,name)` 
+        : '*'
+      let query = supabase.from(config.table).select(selectQuery).order(config.nameField)
       
       const { data, error } = await query
       
