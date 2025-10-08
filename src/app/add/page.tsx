@@ -8,15 +8,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
-import { ChefHat, Globe, Plus, Upload, FileText, Link, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { ChefHat, Globe, Plus, Upload, FileText, Link, Loader2 } from 'lucide-react'
 import PaprikaUploader from '@/components/import/PaprikaUploader'
 
 export default function AddRecipePage() {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [importedRecipe, setImportedRecipe] = useState<any>(null)
+  const [importedRecipe, setImportedRecipe] = useState<{
+    recipe: {
+      name: string;
+      description?: string;
+      image?: string | string[];
+      prepTime?: string;
+      cookTime?: string;
+      totalTime?: string;
+      recipeYield?: string;
+      author?: { name: string };
+      source?: string;
+      url?: string;
+      recipeCategory?: string;
+      recipeIngredient?: string[];
+      recipeInstructions?: string | Array<{ text: string }> | string[];
+    };
+    confidence: number;
+    source: string;
+  } | null>(null)
   const router = useRouter()
 
   const handleImportFromWeb = async (e: React.FormEvent) => {
@@ -47,7 +64,7 @@ export default function AddRecipePage() {
       }
 
       setImportedRecipe(data)
-    } catch (err) {
+    } catch {
       setError('Failed to import recipe')
     } finally {
       setLoading(false)
@@ -104,12 +121,47 @@ export default function AddRecipePage() {
         await supabase
           .from('user_recipe_ingredients')
           .insert(ingredients)
+
+        // Auto-analyze ingredients for detailed matching
+        try {
+          console.log('Starting ingredient analysis for recipe:', savedRecipe.user_recipe_id)
+          
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+          
+          const analyzeResponse = await fetch('/api/ingredients/analyze', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_recipe_id: savedRecipe.user_recipe_id }),
+            signal: controller.signal
+          })
+
+          clearTimeout(timeoutId)
+
+          if (analyzeResponse.ok) {
+            const analyzeResult = await analyzeResponse.json()
+            console.log('Auto-analyzed ingredients:', analyzeResult)
+            console.log(`Matched: ${analyzeResult.matched_count}, Unmatched: ${analyzeResult.unmatched_count}`)
+          } else {
+            const errorText = await analyzeResponse.text()
+            console.error('Analysis API error:', analyzeResponse.status, errorText)
+          }
+        } catch (analyzeError) {
+          if (analyzeError instanceof Error && analyzeError.name === 'AbortError') {
+            console.error('Ingredient analysis timed out after 30 seconds')
+          } else {
+            console.error('Error auto-analyzing ingredients:', analyzeError)
+          }
+          // Don't fail the recipe save if analysis fails
+        }
       }
 
       // Save instructions
       if (recipe.recipeInstructions) {
         const instructions = Array.isArray(recipe.recipeInstructions)
-          ? recipe.recipeInstructions.map((instruction: any, index: number) => ({
+          ? recipe.recipeInstructions.map((instruction: string | { text: string }, index: number) => ({
               user_recipe_id: savedRecipe.user_recipe_id,
               step_number: index + 1,
               text: typeof instruction === 'string' ? instruction : instruction.text
@@ -126,8 +178,8 @@ export default function AddRecipePage() {
       }
 
       router.push(`/recipe/${savedRecipe.user_recipe_id}`)
-    } catch (err) {
-      console.error('Error saving recipe:', err)
+    } catch (error) {
+      console.error('Error saving recipe:', error)
       setError('Failed to save recipe')
     } finally {
       setLoading(false)
@@ -172,7 +224,7 @@ export default function AddRecipePage() {
                   <span>Import from Web</span>
                 </CardTitle>
                 <CardDescription>
-                  Paste a URL from any recipe website and we'll extract the recipe for you
+                  Paste a URL from any recipe website and we&apos;ll extract the recipe for you
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

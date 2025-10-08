@@ -5,6 +5,7 @@ import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,6 +24,10 @@ export const metadata: Metadata = {
   authors: [{ name: "Recipe Chef" }],
   creator: "Recipe Chef",
   publisher: "Recipe Chef",
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/apple-touch-icon.svg',
+  },
   formatDetection: {
     email: false,
     address: false,
@@ -68,6 +73,7 @@ export default function RootLayout({
           src="https://cdn.paddle.com/paddle/paddle.js"
           data-vendor={process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID}
           data-environment={process.env.NEXT_PUBLIC_PADDLE_ENV === 'live' ? 'production' : 'sandbox'}
+          async
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen flex flex-col antialiased`}>
@@ -78,6 +84,7 @@ export default function RootLayout({
         <Footer />
         <OfflineIndicator />
         <InstallPrompt />
+        <Toaster />
       </body>
     </html>
   );

@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase-server'
 export async function POST(request: NextRequest) {
   // Set a timeout to prevent hanging
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Request timeout')), 30000) // 30 second timeout
+    setTimeout(() => reject(new Error('Request timeout')), 60000) // 60 second timeout
   })
 
   try {
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       const matchedIngredients = []
       const unmatchedIngredients = []
 
-      // Process ingredients in batches to avoid hitting the 1000 record limit
-      const BATCH_SIZE = 100
+      // Process ingredients in smaller batches to avoid timeout
+      const BATCH_SIZE = 10
       const batches = []
       for (let i = 0; i < ingredients.length; i += BATCH_SIZE) {
         batches.push(ingredients.slice(i, i + BATCH_SIZE))
@@ -94,7 +94,7 @@ async function processBatch(ingredients: string[], supabase: any) {
     if (!ingredientText.trim()) continue
 
     // Parse the ingredient text to find potential ingredient names
-    const potentialIngredients = parseIngredientText(ingredientText)
+    const potentialIngredients = await parseIngredientText(ingredientText, supabase)
     console.log(`processBatch: Found ${potentialIngredients.length} potential ingredients:`, potentialIngredients)
     let foundAny = false
 
@@ -110,8 +110,10 @@ async function processBatch(ingredients: string[], supabase: any) {
       const searchQuery = searchTerm.trim().toLowerCase()
       let found = false
 
-      // Step 1: Search ingredients.name with exact match (case insensitive)
-      console.log(`processBatch: Searching ingredients.name for "${searchQuery}" (original term: "${searchTerm}")`)
+      // Strict matching: Only exact matches (case insensitive + singular/plural)
+      console.log(`processBatch: Searching for "${searchQuery}" (original term: "${searchTerm}")`)
+      
+      // Try exact match first (case insensitive)
       let { data: exactMatches, error: exactError } = await supabase
         .from('ingredients')
         .select(`
@@ -123,27 +125,43 @@ async function processBatch(ingredients: string[], supabase: any) {
         .ilike('name', searchQuery)
         .limit(1)
 
-      // If no exact match found, try singular form (remove 's' from end)
+      // If no exact match, try singular/plural variations
       if (!exactMatches || exactMatches.length === 0) {
+        const pluralForm = searchQuery + 's'
         const singularForm = searchQuery.replace(/s$/, '')
-        if (singularForm !== searchQuery && singularForm.length > 2) {
-          console.log(`processBatch: Trying singular form "${singularForm}" for "${searchQuery}"`)
-          const { data: singularMatches, error: singularError } = await supabase
-            .from('ingredients')
-            .select(`
-              ingredient_id,
-              name,
-              category_id,
-              category:ingredient_categories(name)
-            `)
-            .ilike('name', singularForm)
-            .limit(1)
-          
-          if (!singularError && singularMatches && singularMatches.length > 0) {
-            exactMatches = singularMatches
-            exactError = null
-            console.log(`processBatch: Found singular match: "${singularForm}"`)
+        
+        console.log(`processBatch: Trying singular/plural variations: exact="${searchQuery}", plural="${pluralForm}", singular="${singularForm}"`)
+        
+        // Try all variations: exact, plural, singular, and also try matching against both forms
+        const searchTerms = [searchQuery, pluralForm, singularForm]
+        
+        // Also try the reverse - if we have "red onions", try "red onion" in database
+        if (searchQuery.includes(' ')) {
+          const words = searchQuery.split(' ')
+          const lastWord = words[words.length - 1]
+          if (lastWord.endsWith('s')) {
+            const singularLastWord = lastWord.replace(/s$/, '')
+            const singularPhrase = words.slice(0, -1).join(' ') + ' ' + singularLastWord
+            searchTerms.push(singularPhrase)
+            console.log(`processBatch: Also trying singular phrase: "${singularPhrase}"`)
           }
+        }
+        
+        const { data: variationMatches, error: variationError } = await supabase
+          .from('ingredients')
+          .select(`
+            ingredient_id,
+            name,
+            category_id,
+            category:ingredient_categories(name)
+          `)
+          .or(searchTerms.map(term => `name.ilike.${term}`).join(','))
+          .limit(1)
+        
+        if (!variationError && variationMatches && variationMatches.length > 0) {
+          exactMatches = variationMatches
+          exactError = null
+          console.log(`processBatch: Found singular/plural match: "${variationMatches[0].name}"`)
         }
       }
 
@@ -152,30 +170,88 @@ async function processBatch(ingredients: string[], supabase: any) {
       }
 
       // Debug: Let's also try a manual search to see what's in the database
-      if (searchQuery === 'guanciale' || searchQuery === 'bacon') {
+      if (searchQuery === 'coriander powder' || searchQuery === 'cardamom powder' || searchQuery === 'green chilies') {
         console.log(`processBatch: DEBUG - Manual search for "${searchQuery}"`)
         const { data: debugMatches } = await supabase
           .from('ingredients')
           .select('ingredient_id, name')
           .ilike('name', `%${searchQuery}%`)
         console.log(`processBatch: DEBUG - Found ingredients containing "${searchQuery}":`, debugMatches)
+        
+        // Also try exact match
+        const { data: exactDebugMatches } = await supabase
+          .from('ingredients')
+          .select('ingredient_id, name')
+          .ilike('name', searchQuery)
+        console.log(`processBatch: DEBUG - Found exact match for "${searchQuery}":`, exactDebugMatches)
+        
+        // Check what exactMatches contains
+        console.log(`processBatch: DEBUG - exactMatches for "${searchQuery}":`, exactMatches)
+        console.log(`processBatch: DEBUG - exactError for "${searchQuery}":`, exactError)
       }
 
       if (exactMatches && exactMatches.length > 0) {
-        console.log(`processBatch: Found exact match: ${exactMatches[0].name} (ID: ${exactMatches[0].ingredient_id})`)
+        const matchedIngredient = exactMatches[0]
+        const isExactMatch = matchedIngredient.name.toLowerCase() === searchQuery.toLowerCase()
+        const matchType = isExactMatch ? 'exact' : 'partial'
+        
+        console.log(`processBatch: Found ${matchType} match: ${matchedIngredient.name} (ID: ${matchedIngredient.ingredient_id})`)
         matchedIngredients.push({
-          ...exactMatches[0],
+          ...matchedIngredient,
           original_text: ingredientText,
           matched_term: searchTerm,
-          match_type: 'exact'
+          match_type: matchType
         })
         found = true
         foundAny = true
       }
 
       if (!found) {
-        // Step 2: Search ingredient_aliases with exact match (case insensitive)
-        console.log(`processBatch: Searching ingredient_aliases.alias for "${searchQuery}"`)
+        // Check two_word_ingredients table if not found in main ingredients table
+        console.log(`processBatch: Searching two_word_ingredients for "${searchQuery}"`)
+        let { data: twoWordMatches, error: twoWordError } = await supabase
+          .from('two_word_ingredients')
+          .select('ingredient_name')
+          .ilike('ingredient_name', searchQuery)
+          .limit(1)
+
+        if (!twoWordError && twoWordMatches && twoWordMatches.length > 0) {
+          // Found in two_word_ingredients, now find the corresponding ingredient
+          const twoWordName = twoWordMatches[0].ingredient_name
+          console.log(`processBatch: Found in two_word_ingredients: "${twoWordName}"`)
+          
+          // Try to find the ingredient by name (case insensitive)
+          const { data: ingredientMatches, error: ingredientError } = await supabase
+            .from('ingredients')
+            .select(`
+              ingredient_id,
+              name,
+              category_id,
+              category:ingredient_categories(name)
+            `)
+            .ilike('name', twoWordName)
+            .limit(1)
+          
+          if (!ingredientError && ingredientMatches && ingredientMatches.length > 0) {
+            const matchedIngredient = ingredientMatches[0]
+            console.log(`processBatch: Found corresponding ingredient: ${matchedIngredient.name} (ID: ${matchedIngredient.ingredient_id})`)
+            matchedIngredients.push({
+              ...matchedIngredient,
+              original_text: ingredientText,
+              matched_term: searchTerm,
+              match_type: 'exact'
+            })
+            found = true
+            foundAny = true
+          } else {
+            console.log(`processBatch: Two-word ingredient "${twoWordName}" not found in ingredients table`)
+          }
+        }
+      }
+
+      if (!found) {
+        // Strict alias matching: Only exact matches (case insensitive + singular/plural)
+        console.log(`processBatch: Searching ingredient_aliases for "${searchQuery}"`)
         let { data: aliasMatches, error: aliasError } = await supabase
           .from('ingredient_aliases')
           .select(`
@@ -192,32 +268,48 @@ async function processBatch(ingredients: string[], supabase: any) {
           .ilike('alias', searchQuery)
           .limit(1)
 
-        // If no alias match found, try singular form (remove 's' from end)
+        // If no exact alias match, try singular/plural variations
         if (!aliasMatches || aliasMatches.length === 0) {
+          const pluralForm = searchQuery + 's'
           const singularForm = searchQuery.replace(/s$/, '')
-          if (singularForm !== searchQuery && singularForm.length > 2) {
-            console.log(`processBatch: Trying singular form "${singularForm}" for alias search`)
-            const { data: singularAliasMatches, error: singularAliasError } = await supabase
-              .from('ingredient_aliases')
-              .select(`
-                alias_id,
-                alias,
-                ingredient_id,
-                ingredient:ingredients(
-                  ingredient_id,
-                  name,
-                  category_id,
-                  category:ingredient_categories(name)
-                )
-              `)
-              .ilike('alias', singularForm)
-              .limit(1)
-            
-            if (!singularAliasError && singularAliasMatches && singularAliasMatches.length > 0) {
-              aliasMatches = singularAliasMatches
-              aliasError = null
-              console.log(`processBatch: Found singular alias match: "${singularForm}"`)
+          
+          console.log(`processBatch: Trying alias singular/plural variations: exact="${searchQuery}", plural="${pluralForm}", singular="${singularForm}"`)
+          
+          // Try all variations: exact, plural, singular, and also try matching against both forms
+          const aliasSearchTerms = [searchQuery, pluralForm, singularForm]
+          
+          // Also try the reverse - if we have "red onions", try "red onion" in database
+          if (searchQuery.includes(' ')) {
+            const words = searchQuery.split(' ')
+            const lastWord = words[words.length - 1]
+            if (lastWord.endsWith('s')) {
+              const singularLastWord = lastWord.replace(/s$/, '')
+              const singularPhrase = words.slice(0, -1).join(' ') + ' ' + singularLastWord
+              aliasSearchTerms.push(singularPhrase)
+              console.log(`processBatch: Also trying alias singular phrase: "${singularPhrase}"`)
             }
+          }
+          
+          const { data: aliasVariationMatches, error: aliasVariationError } = await supabase
+            .from('ingredient_aliases')
+            .select(`
+              alias_id,
+              alias,
+              ingredient_id,
+              ingredient:ingredients(
+                ingredient_id,
+                name,
+                category_id,
+                category:ingredient_categories(name)
+              )
+            `)
+            .or(aliasSearchTerms.map(term => `alias.ilike.${term}`).join(','))
+            .limit(1)
+          
+          if (!aliasVariationError && aliasVariationMatches && aliasVariationMatches.length > 0) {
+            aliasMatches = aliasVariationMatches
+            aliasError = null
+            console.log(`processBatch: Found alias singular/plural match: "${aliasVariationMatches[0].alias}"`)
           }
         }
 
@@ -257,15 +349,52 @@ async function processBatch(ingredients: string[], supabase: any) {
   return { matched: matchedIngredients, unmatched: unmatchedIngredients }
 }
 
-function parseIngredientText(text: string): string[] {
+async function parseIngredientText(text: string, supabase: any): Promise<string[]> {
   console.log('Parsing ingredient text:', text)
   
-  // Remove measurements, quantities, and descriptive words to find the main ingredient noun
+  const potentialIngredients: string[] = []
+  
+  // STEP 1: Two-word lookup FIRST (before aggressive cleaning)
+  // Light cleaning for two-word lookup - preserve descriptive words
+  let lightCleaned = text.toLowerCase()
+    .replace(/\d+\/\d+/g, '') // Remove fractions
+    .replace(/\d+/g, '') // Remove numbers  
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .replace(/\b(lbs?|pounds?|cups?|tablespoons?|tsp|tbsp|oz|ounces?|grams?|g|ml|liters?)\b/g, '') // Remove units
+    .replace(/\s+/g, ' ')
+    .trim()
+  
+  console.log('Light cleaned text for two-word lookup:', lightCleaned)
+  
+  const lightWords = lightCleaned.split(' ')
+  
+  // Check for two-word combinations in lightly cleaned text
+  for (let i = 0; i < lightWords.length - 1; i++) {
+    const twoWord = `${lightWords[i]} ${lightWords[i + 1]}`
+    
+    const { data: twoWordMatches } = await supabase
+      .from('two_word_ingredients')
+      .select('ingredient_name')
+      .ilike('ingredient_name', twoWord)
+    
+    if (twoWordMatches && twoWordMatches.length > 0) {
+      potentialIngredients.push(twoWord)
+      console.log('Found two-word ingredient from light cleaning:', twoWord)
+      return potentialIngredients // Return early if found
+    }
+  }
+  
+  // STEP 2: Enhanced cleaning for single words and fallbacks
+  // Enhanced cleaning - remove measurements, quantities, and descriptive words
   let cleanedText = text
-    .replace(/\b\d+\/\d+|\d+-\d+|\d+\s*(cup|tbsp|tsp|oz|lb|kg|g|ml|l|pound|ounce|gram|liter|milliliter|tablespoon|teaspoon|cloves|clove|pieces|piece|pounds|pound|ounces|ounce)\b/gi, '')
-    .replace(/\b\d+\b/g, '')  // Remove standalone numbers
-    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|fresh|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|fresh|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|grated|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups)\b/gi, '')
-    .replace(/[,\-&()]/g, ' ')  // Also remove parentheses
+    .replace(/\b\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
+    .replace(/\b\d+\.?\d*\s*-\s*\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
+    .replace(/\bounce\b/gi, '')  // Remove standalone "ounce" that might be left over
+    .replace(/\b\d+\.?\d*\b/g, '')  // Remove standalone numbers (including decimals)
+    .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')  // Remove Unicode fractions with units
+    .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g, '')  // Remove standalone Unicode fractions
+    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind)\b/gi, '')
+    .replace(/[,\-&()]/g, ' ')  // Replace commas, dashes, ampersands, parentheses with spaces
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -275,17 +404,102 @@ function parseIngredientText(text: string): string[] {
   if (text.includes('(')) {
     console.log('Found parentheses in text, extracting main ingredient before parentheses')
     const beforeParentheses = text.split('(')[0].trim()
-    const mainIngredient = beforeParentheses
-      .replace(/\b\d+\/\d+|\d+-\d+|\d+\s*(cup|tbsp|tsp|oz|lb|kg|g|ml|l|pound|ounce|gram|liter|milliliter|tablespoon|teaspoon|cloves|clove|pieces|piece|pounds|pound|ounces|ounce)\b/gi, '')
-      .replace(/\b\d+\b/g, '')  // Remove standalone numbers
-      .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|fresh|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|fresh|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|grated|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups)\b/gi, '')
+    const afterParentheses = text.split(')')[1] ? text.split(')')[1].trim() : ''
+    console.log('Before parentheses:', beforeParentheses)
+    console.log('After parentheses:', afterParentheses)
+    
+    // Combine before and after parentheses to get the full ingredient
+    const fullIngredient = (beforeParentheses + ' ' + afterParentheses).trim()
+    console.log('Full ingredient (before + after):', fullIngredient)
+    
+    // Clean the full ingredient
+    const cleanedFullIngredient = fullIngredient
+      .replace(/\b\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
+      .replace(/\b\d+\.?\d*\s*-\s*\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
+      .replace(/\bounce\b/gi, '')  // Remove standalone "ounce" that might be left over
+      .replace(/\b\d+\.?\d*\b/g, '')  // Remove standalone numbers (including decimals)
+      .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind)\b/gi, '')
       .replace(/[,\-&]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
     
-    if (mainIngredient) {
-      console.log('Main ingredient from parentheses parsing:', mainIngredient)
-      return [mainIngredient].filter(term => term.trim().length > 0)
+    console.log('Cleaned full ingredient:', cleanedFullIngredient)
+    
+    // If we still have measurements, try to extract just the ingredient part
+    if (cleanedFullIngredient && cleanedFullIngredient.includes(' ')) {
+      const cleanedWords = cleanedFullIngredient.split(' ').filter(word => 
+        word.length > 2 && 
+        !/^\d+$/.test(word) && // not just numbers
+        !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|chicken|vegetable|broth|salt|pepper|black|white|red|green|yellow|blue|purple|orange|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind|teaspoon|tablespoon|cup|cups|tbsp|tsp|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)$/i.test(word) // common words, colors, and measurements
+      )
+      
+      if (cleanedWords.length > 0) {
+        // Try the last two words first (for "cumin seeds")
+        if (cleanedWords.length >= 2) {
+          const lastTwoWords = cleanedWords.slice(-2).join(' ')
+          console.log('Extracted two-word ingredient from parentheses:', lastTwoWords)
+          return [lastTwoWords].filter(term => term.trim().length > 0)
+        }
+        
+        // Fall back to last word
+        const lastWord = cleanedWords[cleanedWords.length - 1]
+        console.log('Extracted single-word ingredient from parentheses:', lastWord)
+        return [lastWord].filter(term => term.trim().length > 0)
+      }
+    }
+    
+    if (cleanedFullIngredient) {
+      console.log('Main ingredient from parentheses parsing:', cleanedFullIngredient)
+      
+      // If the main ingredient contains "or", handle it specially
+      if (cleanedFullIngredient.includes(' or ')) {
+        console.log('Found "or" in parentheses-extracted ingredient, splitting options')
+        const parts = cleanedFullIngredient.split(' or ')
+        const allOptions = []
+        for (const part of parts) {
+          const trimmedPart = part.trim()
+          if (trimmedPart.length > 0) {
+            // For "Chicken or Vegetable Broth", we want:
+            // - "Chicken Broth" (first part + last word of second part)
+            // - "Vegetable Broth" (second part)
+            
+            if (parts.length === 2) {
+              const firstPart = parts[0].trim()
+              const secondPart = parts[1].trim()
+              
+              // If second part has multiple words, combine first part with last word of second part
+              const secondWords = secondPart.split(' ')
+              if (secondWords.length > 1) {
+                const lastWord = secondWords[secondWords.length - 1]
+                const combined = `${firstPart} ${lastWord}`
+                allOptions.push(combined) // "Chicken Broth"
+              }
+              
+              // Also try the full second part
+              allOptions.push(secondPart) // "Vegetable Broth"
+            } else {
+              // Fallback to original logic for other cases
+              allOptions.push(trimmedPart)
+            }
+          }
+        }
+        
+        // Remove duplicates while preserving order
+        const uniqueOptions = []
+        const seen = new Set()
+        for (const option of allOptions) {
+          if (!seen.has(option.toLowerCase())) {
+            seen.add(option.toLowerCase())
+            uniqueOptions.push(option)
+          }
+        }
+        
+        console.log('Options from parentheses "or" parsing:', allOptions)
+        console.log('Unique options from parentheses "or" parsing:', uniqueOptions)
+        return uniqueOptions.filter(term => term.trim().length > 0)
+      }
+      
+      return [cleanedFullIngredient].filter(term => term.trim().length > 0)
     }
   }
   
@@ -297,45 +511,77 @@ function parseIngredientText(text: string): string[] {
     for (const part of parts) {
       const trimmedPart = part.trim()
       if (trimmedPart.length > 0) {
-        // Try the full part first (e.g., "garlic powder")
+        // Try the full part first (e.g., "chicken broth", "vegetable broth")
         allOptions.push(trimmedPart)
         
-        // Also try just the last word as fallback (e.g., "powder")
+        // Also try just the last word as fallback (e.g., "broth")
         const words = trimmedPart.split(' ').filter(word => word.length > 2)
         if (words.length >= 1) {
           allOptions.push(words[words.length - 1])
         }
+        
+        // For "chicken or vegetable broth", also try "chicken" and "vegetable" separately
+        if (words.length >= 2) {
+          allOptions.push(words[words.length - 2]) // "chicken" or "vegetable"
+        }
       }
     }
+    // Remove duplicates while preserving order
+    const uniqueOptions = []
+    const seen = new Set()
+    for (const option of allOptions) {
+      if (!seen.has(option.toLowerCase())) {
+        seen.add(option.toLowerCase())
+        uniqueOptions.push(option)
+      }
+    }
+    
     console.log('Options from "or" parsing:', allOptions)
-    return allOptions.filter(term => term.trim().length > 0)
+    console.log('Unique options from "or" parsing:', uniqueOptions)
+    return uniqueOptions.filter(term => term.trim().length > 0)
   }
 
-  // Split into words and find the main ingredient noun (usually the last meaningful word)
-  const words = cleanedText.split(' ').filter(word => 
+  // Split into words and find the main ingredient noun
+  const filteredWords = cleanedText.split(' ').filter(word => 
     word.length > 2 && 
     !/^\d+$/.test(word) && // not just numbers
-    !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|or|other|wide|noodle|or|bacon|pancetta)$/i.test(word) // common words
+    !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|chicken|vegetable|broth|salt|pepper|black|white|red|yellow|blue|purple|orange|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind)$/i.test(word) // common words and colors (removed bacon, pancetta, and green from exclusion list)
   )
 
-  // The main ingredient is usually the last word or the last two words
-  const potentialIngredients = []
+  // The main ingredient detection - look for common patterns
+  const fallbackIngredients = []
   
-  if (words.length >= 2) {
-    // Try the last two words (e.g., "olive oil", "pecorino romano")
-    const lastTwoWords = words.slice(-2).join(' ')
-    potentialIngredients.push(lastTwoWords)
+  // Look for common single-word ingredients first
+  const commonIngredients = ['eggs', 'ziti', 'mozzarella', 'parsley', 'garlic', 'onion', 'carrot', 'celery', 'tomato', 'cheese', 'bread', 'milk', 'butter', 'oil', 'salt', 'pepper', 'sugar', 'flour', 'rice', 'pasta', 'meat', 'chicken', 'beef', 'pork', 'fish', 'shrimp', 'lobster', 'crab', 'lamb', 'turkey', 'duck', 'veal', 'ham', 'bacon', 'sausage', 'pepperoni', 'salami', 'prosciutto', 'pancetta', 'guanciale', 'chorizo', 'andouille', 'kielbasa', 'bratwurst', 'flakes', 'parmesan', 'cutlets', 'zucchini', 'cumin', 'seeds', 'chillies', 'chili', 'peppers', 'turmeric', 'garam', 'masala', 'powder']
+  
+  // Check if any common ingredients are in the text
+  for (const commonIngredient of commonIngredients) {
+    if (cleanedText.toLowerCase().includes(commonIngredient.toLowerCase())) {
+      fallbackIngredients.push(commonIngredient)
+      break // Take the first match
+    }
   }
   
-  if (words.length >= 1) {
-    // Try the last word (e.g., "garlic", "onion")
-    const lastWord = words[words.length - 1]
-    potentialIngredients.push(lastWord)
+  // Two-word lookup already done above with light cleaning
+
+  // If still no matches, fall back to last words
+  if (fallbackIngredients.length === 0) {
+    if (filteredWords.length >= 2) {
+      // Try the last two words (e.g., "olive oil", "pecorino romano")
+      const lastTwoWords = filteredWords.slice(-2).join(' ')
+      fallbackIngredients.push(lastTwoWords)
+    }
+    
+    if (filteredWords.length >= 1) {
+      // Try the last word (e.g., "garlic", "onion", "carrot", "celery")
+      const lastWord = filteredWords[filteredWords.length - 1]
+      fallbackIngredients.push(lastWord)
+    }
   }
   
-  console.log('Potential ingredients:', potentialIngredients)
+  console.log('Fallback ingredients:', fallbackIngredients)
   
-  const filteredIngredients = potentialIngredients.filter(term => term.trim().length > 0)
+  const filteredIngredients = fallbackIngredients.filter(term => term.trim().length > 0)
   console.log('Filtered potential ingredients:', filteredIngredients)
   
   return filteredIngredients

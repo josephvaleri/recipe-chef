@@ -152,11 +152,10 @@ export default function ManualAddPage() {
 
       // Add ingredients
       const ingredientInserts = ingredients.map(ing => ({
-        recipe_id: recipeData.recipe_id,
+        user_recipe_id: recipeData.user_recipe_id,
+        raw_name: ing.name,
         amount: ing.amount,
-        unit: ing.unit || null,
-        name: ing.name,
-        order_index: parseInt(ing.id)
+        unit: ing.unit || null
       }))
 
       const { error: ingredientsError } = await supabase
@@ -167,14 +166,32 @@ export default function ManualAddPage() {
         console.error('Error adding ingredients:', ingredientsError)
         alert('Recipe created but failed to add ingredients')
         return
+      } else {
+        // Auto-analyze ingredients for detailed matching
+        try {
+          const analyzeResponse = await fetch('/api/ingredients/analyze', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_recipe_id: recipeData.user_recipe_id }),
+          })
+
+          if (analyzeResponse.ok) {
+            const analyzeResult = await analyzeResponse.json()
+            console.log('Auto-analyzed ingredients:', analyzeResult)
+          }
+        } catch (analyzeError) {
+          console.error('Error auto-analyzing ingredients:', analyzeError)
+          // Don't fail the recipe save if analysis fails
+        }
       }
 
       // Add instructions
       const instructionInserts = instructions.map(inst => ({
-        recipe_id: recipeData.recipe_id,
+        user_recipe_id: recipeData.user_recipe_id,
         step_number: inst.step,
-        instruction: inst.text,
-        order_index: inst.step
+        text: inst.text
       }))
 
       const { error: instructionsError } = await supabase
