@@ -393,7 +393,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
     .replace(/\b\d+\.?\d*\b/g, '')  // Remove standalone numbers (including decimals)
     .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')  // Remove Unicode fractions with units
     .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g, '')  // Remove standalone Unicode fractions
-    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind)\b/gi, '')
+    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind|trimmed)\b/gi, '')
     .replace(/[,\-&()]/g, ' ')  // Replace commas, dashes, ampersands, parentheses with spaces
     .replace(/\s+/g, ' ')
     .trim()
@@ -430,7 +430,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
       const cleanedWords = cleanedFullIngredient.split(' ').filter(word => 
         word.length > 2 && 
         !/^\d+$/.test(word) && // not just numbers
-        !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|chicken|vegetable|broth|salt|pepper|black|white|red|green|yellow|blue|purple|orange|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind|teaspoon|tablespoon|cup|cups|tbsp|tsp|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)$/i.test(word) // common words, colors, and measurements
+        !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|chicken|vegetable|broth|salt|pepper|black|white|red|green|yellow|blue|purple|orange|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind|trimmed|teaspoon|tablespoon|cup|cups|tbsp|tsp|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)$/i.test(word) // common words, colors, and measurements
       )
       
       if (cleanedWords.length > 0) {
