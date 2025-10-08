@@ -115,8 +115,8 @@ export default function EditGlobalRecipesPage() {
 
       const formattedRecipes = data?.map(recipe => ({
         ...recipe,
-        cuisine: recipe.cuisines,
-        meal_type: recipe.meal_types
+        cuisine: Array.isArray(recipe.cuisines) && recipe.cuisines.length > 0 ? recipe.cuisines[0] : undefined,
+        meal_type: Array.isArray(recipe.meal_types) && recipe.meal_types.length > 0 ? recipe.meal_types[0] : undefined
       })) || []
 
       setRecipes(formattedRecipes)
