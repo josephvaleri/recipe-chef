@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShoppingListGenerator, ShoppingListDisplay } from '@/components/shopping-list/shopping-list-generator';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+
+export const dynamic = 'force-dynamic'
 
 interface ShoppingListItem {
   ingredient_id: number;
@@ -17,7 +19,7 @@ interface ShoppingListData {
   [category: string]: ShoppingListItem[];
 }
 
-export default function ShoppingListPage() {
+function ShoppingListPageContent() {
   const [shoppingList, setShoppingList] = useState<ShoppingListData>({});
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
@@ -286,5 +288,20 @@ export default function ShoppingListPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ShoppingListPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ShoppingListPageContent />
+    </Suspense>
   );
 }

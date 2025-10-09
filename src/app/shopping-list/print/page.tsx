@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft } from 'lucide-react';
+
+export const dynamic = 'force-dynamic'
 
 interface ShoppingListItem {
   ingredient_id: number;
@@ -16,7 +18,7 @@ interface ShoppingListData {
   [category: string]: ShoppingListItem[];
 }
 
-export default function ShoppingListPrintPage() {
+function ShoppingListPrintPageContent() {
   const searchParams = useSearchParams();
   const [shoppingList, setShoppingList] = useState<ShoppingListData>({});
   const [loading, setLoading] = useState(true);
@@ -216,5 +218,20 @@ export default function ShoppingListPrintPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function ShoppingListPrintPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ShoppingListPrintPageContent />
+    </Suspense>
   );
 }
