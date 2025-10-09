@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { RouteGuard } from '@/components/route-guard'
 import { Button } from '@/components/ui/button'
@@ -15,15 +15,28 @@ import { getCurrentUser } from '@/lib/auth'
 import JSZip from 'jszip'
 import * as pako from 'pako'
 
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
-
 interface ImportResult {
   recipe: any
   paprikaText: string
   confidence: 'high' | 'medium' | 'low'
   source: string
   title: string
+}
+
+function SearchParamsHandler({ onSharedData }: { onSharedData: (data: { url?: string; title?: string; text?: string }) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const sharedUrl = searchParams.get('url');
+    const sharedTitle = searchParams.get('title');
+    const sharedText = searchParams.get('text');
+    
+    if (sharedUrl || sharedTitle || sharedText) {
+      onSharedData({ url: sharedUrl || undefined, title: sharedTitle || undefined, text: sharedText || undefined });
+    }
+  }, [searchParams, onSharedData]);
+
+  return null;
 }
 
 function ImportPageContent() {
@@ -36,26 +49,20 @@ function ImportPageContent() {
   const [importMethod, setImportMethod] = useState<'url' | 'paprika'>('url')
   const [paprikaFile, setPaprikaFile] = useState<File | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
-  useEffect(() => {
-    // Check for URL from Web Share Target
-    const sharedUrl = searchParams.get('url')
-    const sharedTitle = searchParams.get('title')
-    const sharedText = searchParams.get('text')
-    
-    if (sharedUrl) {
-      setUrl(sharedUrl)
-      handleImport(sharedUrl)
-    } else if (sharedText && sharedText.includes('http')) {
+  const handleSharedData = useCallback((data: { url?: string; title?: string; text?: string }) => {
+    if (data.url) {
+      setUrl(data.url)
+      handleImport(data.url)
+    } else if (data.text && data.text.includes('http')) {
       // Extract URL from shared text
-      const urlMatch = sharedText.match(/https?:\/\/[^\s]+/)
+      const urlMatch = data.text.match(/https?:\/\/[^\s]+/)
       if (urlMatch) {
         setUrl(urlMatch[0])
         handleImport(urlMatch[0])
       }
     }
-  }, [searchParams])
+  }, [])
 
   const handleImport = async (importUrl: string) => {
     setIsImporting(true)
@@ -458,6 +465,7 @@ function ImportPageContent() {
 
   return (
     <RouteGuard requireAuth={true} className="min-h-screen">
+      <SearchParamsHandler onSharedData={handleSharedData} />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
