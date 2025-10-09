@@ -18,6 +18,7 @@ import {
   Users, 
   Star, 
   ArrowLeft,
+  Globe,
   ChefHat as DifficultyIcon
 } from 'lucide-react'
 
@@ -56,7 +57,8 @@ interface FilterState {
 }
 
 export default function RecipeFinderPage() {
-  const [recipes, setRecipes] = useState<GlobalRecipe[]>([])
+  const [userRecipes, setUserRecipes] = useState<GlobalRecipe[]>([])
+  const [globalRecipes, setGlobalRecipes] = useState<GlobalRecipe[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<FilterState>({
@@ -100,7 +102,8 @@ export default function RecipeFinderPage() {
       searchRecipes()
     } else {
       // Clear recipes when no ingredients are selected
-      setRecipes([])
+      setUserRecipes([])
+      setGlobalRecipes([])
     }
   }, [filters])
 
@@ -192,7 +195,8 @@ export default function RecipeFinderPage() {
         return
       }
 
-      setRecipes(data || [])
+      setGlobalRecipes(data || [])
+      setUserRecipes([])
     } catch (error) {
       console.error('Error loading popular recipes:', error)
     }
@@ -291,7 +295,8 @@ export default function RecipeFinderPage() {
 
       // If no ingredients selected, clear recipes
       if (allSelectedIngredients.length === 0) {
-        setRecipes([])
+        setUserRecipes([])
+        setGlobalRecipes([])
         return
       }
 
@@ -317,7 +322,8 @@ export default function RecipeFinderPage() {
 
       // If no ingredients selected, clear recipes
       if (allSelectedIngredients.length === 0) {
-        setRecipes([])
+        setUserRecipes([])
+        setGlobalRecipes([])
         return
       }
 
@@ -403,20 +409,17 @@ export default function RecipeFinderPage() {
         console.log('Recipe 1286 NOT found in user results')
       }
 
-      // Combine results
-      const allRecipes = [
-        ...(globalResult.data || []).map(recipe => ({ ...recipe, source: 'global' })),
-        ...(userResult.data || []).map(recipe => ({ ...recipe, source: 'user' }))
-      ]
+      // Process results separately
+      const globalRecipesData = (globalResult.data || []).map(recipe => ({ ...recipe, source: 'global' }))
+      const userRecipesData = (userResult.data || []).map(recipe => ({ ...recipe, source: 'user' }))
 
       // Debug logging
       console.log('All selected ingredients:', allSelectedIngredients)
-      console.log('Total recipes found:', allRecipes.length)
-      console.log('User recipes:', allRecipes.filter(r => r.source === 'user').length)
-      console.log('Global recipes:', allRecipes.filter(r => r.source === 'global').length)
+      console.log('User recipes found:', userRecipesData.length)
+      console.log('Global recipes found:', globalRecipesData.length)
 
-      // Score recipes based on ingredient matches
-      const scoredRecipes = allRecipes.map(recipe => {
+      // Score user recipes based on ingredient matches
+      const scoredUserRecipes = userRecipesData.map(recipe => {
         let ingredientMatches = 0
         let totalSelectedIngredients = allSelectedIngredients.length
 
@@ -427,24 +430,17 @@ export default function RecipeFinderPage() {
           console.log('Recipe source:', recipe.source)
         }
 
-        // Count matching ingredients - handle both global and user recipe structures
+        // Count matching ingredients - for user recipes
         if (recipe.ingredients && recipe.ingredients.length > 0) {
-          if (recipe.source === 'user') {
-            // For user recipes, match by ingredient_id from user_recipe_ingredients_detail
-            const matchingIngredients = recipe.ingredients.filter((ing: any) =>
-              allSelectedIngredients.includes(ing.ingredient_id)
-            )
-            ingredientMatches = matchingIngredients.length
-            
-            if (recipe.user_recipe_id === 1286) {
-              console.log('Recipe 1286 matching ingredients:', matchingIngredients)
-              console.log('Recipe 1286 ingredient IDs:', recipe.ingredients.map((ing: any) => ing.ingredient_id))
-            }
-          } else {
-            // For global recipes, match by category_id from global_recipe_ingredients
-            ingredientMatches = recipe.ingredients.filter((ing: any) =>
-              allSelectedIngredients.includes(ing.ingredient.category_id)
-            ).length
+          // For user recipes, match by ingredient_id from user_recipe_ingredients_detail
+          const matchingIngredients = recipe.ingredients.filter((ing: any) =>
+            allSelectedIngredients.includes(ing.ingredient_id)
+          )
+          ingredientMatches = matchingIngredients.length
+          
+          if (recipe.user_recipe_id === 1286) {
+            console.log('Recipe 1286 matching ingredients:', matchingIngredients)
+            console.log('Recipe 1286 ingredient IDs:', recipe.ingredients.map((ing: any) => ing.ingredient_id))
           }
         }
 
@@ -473,13 +469,54 @@ export default function RecipeFinderPage() {
         }
       })
 
+      // Score global recipes based on ingredient matches
+      const scoredGlobalRecipes = globalRecipesData.map(recipe => {
+        let ingredientMatches = 0
+        let totalSelectedIngredients = allSelectedIngredients.length
+
+        // Count matching ingredients - for global recipes
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+          // For global recipes, match by category_id from global_recipe_ingredients
+          ingredientMatches = recipe.ingredients.filter((ing: any) =>
+            allSelectedIngredients.includes(ing.ingredient.category_id)
+          ).length
+        }
+
+        // Calculate match percentage
+        const matchPercentage = totalSelectedIngredients > 0 
+          ? (ingredientMatches / totalSelectedIngredients) * 100 
+          : 0
+
+        // Bonus points for exact matches
+        let bonusScore = 0
+        if (filters.cuisine_id && recipe.cuisine_id === filters.cuisine_id) {
+          bonusScore += 10
+        }
+        if (filters.meal_type_id && recipe.meal_type_id === filters.meal_type_id) {
+          bonusScore += 10
+        }
+        if (filters.difficulty && recipe.difficulty === filters.difficulty) {
+          bonusScore += 5
+        }
+
+        return {
+          ...recipe,
+          ingredientMatches,
+          matchPercentage,
+          totalScore: matchPercentage + bonusScore
+        }
+      })
+
       // Filter recipes with at least one matching ingredient
-      const filteredRecipes = scoredRecipes.filter(recipe => recipe.ingredientMatches > 0)
+      const filteredUserRecipes = scoredUserRecipes.filter(recipe => recipe.ingredientMatches > 0)
+      const filteredGlobalRecipes = scoredGlobalRecipes.filter(recipe => recipe.ingredientMatches > 0)
 
       // Sort by total score (ingredient matches + bonus points)
-      filteredRecipes.sort((a, b) => b.totalScore - a.totalScore)
+      filteredUserRecipes.sort((a, b) => b.totalScore - a.totalScore)
+      filteredGlobalRecipes.sort((a, b) => b.totalScore - a.totalScore)
 
-      setRecipes(filteredRecipes)
+      setUserRecipes(filteredUserRecipes)
+      setGlobalRecipes(filteredGlobalRecipes)
     } catch (error) {
       console.error('Error searching recipes:', error)
     } finally {
@@ -492,7 +529,7 @@ export default function RecipeFinderPage() {
       const user = await getCurrentUser()
       if (!user) return
 
-      const recipe = recipes.find(r => r.recipe_id === recipeId)
+      const recipe = [...userRecipes, ...globalRecipes].find(r => r.recipe_id === recipeId)
       if (!recipe) return
 
       // Create user recipe from global recipe
@@ -556,7 +593,7 @@ export default function RecipeFinderPage() {
       }
 
       // Update the added count in the UI
-      setRecipes(prev => prev.map(r => 
+      setGlobalRecipes(prev => prev.map(r => 
         r.recipe_id === recipeId 
           ? { ...r, added_count: r.added_count + 1 }
           : r
@@ -918,14 +955,53 @@ export default function RecipeFinderPage() {
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {loading ? 'Searching...' : `${recipes.length} Recipes Found`}
+                {loading ? 'Searching...' : `${userRecipes.length + globalRecipes.length} Recipes Found`}
               </h2>
               <p className="text-gray-600">
-                Discover amazing recipes from our global cookbook
+                Discover amazing recipes from your cookbook and our global collection
               </p>
             </div>
 
-            {recipes.length === 0 && !loading ? (
+            {/* My Cookbook Section - Top Right */}
+            {userRecipes.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                  <ChefHat className="w-5 h-5 mr-2 text-orange-600" />
+                  My Cookbook ({userRecipes.length})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {userRecipes.map((recipe) => (
+                    <RecipeCard
+                      key={`user-${recipe.user_recipe_id || recipe.recipe_id}`}
+                      recipe={recipe as any}
+                      onAddToCookbook={addToCookbook}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Global Recipes Section - Bottom Right */}
+            {globalRecipes.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                  <Globe className="w-5 h-5 mr-2 text-blue-600" />
+                  Global Recipes ({globalRecipes.length})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {globalRecipes.map((recipe) => (
+                    <RecipeCard
+                      key={`global-${recipe.recipe_id}`}
+                      recipe={recipe as any}
+                      onAddToCookbook={addToCookbook}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Results */}
+            {userRecipes.length === 0 && globalRecipes.length === 0 && !loading && (
               <Card className="text-center py-12">
                 <CardContent>
                   <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -940,16 +1016,6 @@ export default function RecipeFinderPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {recipes.map((recipe) => (
-                  <RecipeCard
-                    key={recipe.recipe_id}
-                    recipe={recipe as any}
-                    onAddToCookbook={addToCookbook}
-                  />
-                ))}
-              </div>
             )}
           </div>
         </div>
