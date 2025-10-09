@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 interface ShoppingListItem {
   ingredient_id: number;

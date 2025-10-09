@@ -16,6 +16,7 @@ import JSZip from 'jszip'
 import * as pako from 'pako'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 interface ImportResult {
   recipe: any
