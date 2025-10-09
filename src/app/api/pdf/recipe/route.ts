@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { generateRecipePDF } from '@/lib/pdf'
+import ReactPDF from '@react-pdf/renderer'
 
 export async function POST(request: NextRequest) {
   try {
@@ -115,9 +116,9 @@ export async function POST(request: NextRequest) {
 
     // Generate PDF
     const pdfDoc = generateRecipePDF(recipeForPDF)
-    const pdfBuffer = await pdfDoc.toBuffer()
+    const pdfBuffer = await ReactPDF.renderToBuffer(pdfDoc)
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${recipeData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`,

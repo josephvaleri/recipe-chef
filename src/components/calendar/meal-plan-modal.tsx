@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 interface Recipe {
   user_recipe_id: number;
@@ -43,7 +43,7 @@ export function MealPlanModal({ isOpen, onClose, selectedDate, onSuccess }: Meal
   const loadRecipes = async () => {
     setLoading(true);
     try {
-      const supabase = createClient();
+      // Using imported supabase client
       const { data, error } = await supabase
         .from('user_recipes')
         .select('user_recipe_id, title, servings, image_url')
@@ -85,7 +85,7 @@ export function MealPlanModal({ isOpen, onClose, selectedDate, onSuccess }: Meal
 
     setSaving(true);
     try {
-      const supabase = createClient();
+      // Using imported supabase client
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) throw new Error('Not authenticated');

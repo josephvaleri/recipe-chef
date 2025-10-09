@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
 })
 
-export function generateRecipePDF(recipe: RecipeForPDF): Document {
+export function generateRecipePDF(recipe: RecipeForPDF) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
