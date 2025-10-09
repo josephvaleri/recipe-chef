@@ -5,9 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft } from 'lucide-react';
 
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
-
 interface ShoppingListItem {
   ingredient_id: number;
   ingredient_name: string;

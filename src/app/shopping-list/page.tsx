@@ -6,9 +6,6 @@ import { ShoppingListGenerator, ShoppingListDisplay } from '@/components/shoppin
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
-
 interface ShoppingListItem {
   ingredient_id: number;
   ingredient_name: string;
@@ -316,3 +313,4 @@ export default function ShoppingListPage() {
     </Suspense>
   );
 }
+// Force rebuild Thu Oct  9 17:52:15 CEST 2025
