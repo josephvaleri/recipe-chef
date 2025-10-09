@@ -15,6 +15,8 @@ import { getCurrentUser } from '@/lib/auth'
 import JSZip from 'jszip'
 import * as pako from 'pako'
 
+export const dynamic = 'force-dynamic'
+
 interface ImportResult {
   recipe: any
   paprikaText: string
