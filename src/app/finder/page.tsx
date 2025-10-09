@@ -57,6 +57,7 @@ interface FilterState {
 }
 
 export default function RecipeFinderPage() {
+  // CACHE BUST - v1.2.1 - Force browser to reload new search logic
   const [userRecipes, setUserRecipes] = useState<GlobalRecipe[]>([])
   const [globalRecipes, setGlobalRecipes] = useState<GlobalRecipe[]>([])
   const [loading, setLoading] = useState(false)
@@ -283,6 +284,7 @@ export default function RecipeFinderPage() {
   }
 
   const performIngredientSearch = async () => {
+    console.log('🚀 NEW SEARCH LOGIC EXECUTING - CACHE BUSTED v1.2.1')
     try {
       // Get all selected ingredients
       const allSelectedIngredients = [
