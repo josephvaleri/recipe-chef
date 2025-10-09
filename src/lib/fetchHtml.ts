@@ -24,7 +24,7 @@ export async function fetchHtml(url: string): Promise<FetchResult> {
     const html = await response.text()
     
     // Try to extract article content
-    const article = await extract(html, url)
+    const article = await extract(html)
     
     return {
       html,

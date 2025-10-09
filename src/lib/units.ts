@@ -117,15 +117,15 @@ export function convertUnit(amount: string, targetUnit: string): string | null {
   // Find common base unit
   let convertedQuantity = parsed.quantity
   
-  if (conversions.ml && targetConversions.ml) {
+  if ((conversions as any).ml && (targetConversions as any).ml) {
     // Volume conversion
-    convertedQuantity = (parsed.quantity * conversions.ml) / targetConversions.ml
-  } else if (conversions.g && targetConversions.g) {
+    convertedQuantity = (parsed.quantity * (conversions as any).ml) / (targetConversions as any).ml
+  } else if ((conversions as any).g && (targetConversions as any).g) {
     // Weight conversion
-    convertedQuantity = (parsed.quantity * conversions.g) / targetConversions.g
-  } else if (conversions.oz && targetConversions.oz) {
+    convertedQuantity = (parsed.quantity * (conversions as any).g) / (targetConversions as any).g
+  } else if ((conversions as any).oz && (targetConversions as any).oz) {
     // Common oz conversion
-    convertedQuantity = (parsed.quantity * conversions.oz) / targetConversions.oz
+    convertedQuantity = (parsed.quantity * (conversions as any).oz) / (targetConversions as any).oz
   } else {
     return null
   }

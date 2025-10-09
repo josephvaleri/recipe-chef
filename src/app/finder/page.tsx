@@ -248,7 +248,7 @@ export default function RecipeFinderPage() {
       const newFilters = { ...prev }
       Object.keys(matchedIngredients).forEach(category => {
         const categoryKey = category as keyof typeof matchedIngredients
-        newFilters[categoryKey] = [...prev[categoryKey], ...matchedIngredients[categoryKey]]
+        ;(newFilters as any)[categoryKey] = [...(prev as any)[categoryKey], ...matchedIngredients[categoryKey]]
       })
       return newFilters
     })
@@ -431,18 +431,18 @@ export default function RecipeFinderPage() {
         if (recipe.ingredients && recipe.ingredients.length > 0) {
           if (recipe.source === 'user') {
             // For user recipes, match by ingredient_id from user_recipe_ingredients_detail
-            const matchingIngredients = recipe.ingredients.filter(ing =>
+            const matchingIngredients = recipe.ingredients.filter((ing: any) =>
               allSelectedIngredients.includes(ing.ingredient_id)
             )
             ingredientMatches = matchingIngredients.length
             
             if (recipe.user_recipe_id === 1286) {
               console.log('Recipe 1286 matching ingredients:', matchingIngredients)
-              console.log('Recipe 1286 ingredient IDs:', recipe.ingredients.map(ing => ing.ingredient_id))
+              console.log('Recipe 1286 ingredient IDs:', recipe.ingredients.map((ing: any) => ing.ingredient_id))
             }
           } else {
             // For global recipes, match by category_id from global_recipe_ingredients
-            ingredientMatches = recipe.ingredients.filter(ing =>
+            ingredientMatches = recipe.ingredients.filter((ing: any) =>
               allSelectedIngredients.includes(ing.ingredient.category_id)
             ).length
           }
@@ -504,8 +504,8 @@ export default function RecipeFinderPage() {
           title: recipe.title,
           description: recipe.description,
           image_url: recipe.image_url,
-          cuisine_id: recipe.cuisine_id,
-          meal_type_id: recipe.meal_type_id,
+          cuisine_id: (recipe as any).cuisine_id,
+          meal_type_id: (recipe as any).meal_type_id,
           servings: recipe.servings,
           difficulty: recipe.difficulty,
           prep_time: recipe.prep_time,
@@ -524,9 +524,9 @@ export default function RecipeFinderPage() {
 
       // Copy ingredients
       if (recipe.ingredients && recipe.ingredients.length > 0) {
-        const ingredients = recipe.ingredients.map(ing => ({
+        const ingredients = recipe.ingredients.map((ing: any) => ({
           user_recipe_id: userRecipe.user_recipe_id,
-          ingredient_id: ing.ingredient.ingredient_id,
+          ingredient_id: ing.ingredient?.ingredient_id || ing.ingredient_id,
           amount: ing.amount,
           unit: ing.unit
         }))
@@ -945,9 +945,8 @@ export default function RecipeFinderPage() {
                 {recipes.map((recipe) => (
                   <RecipeCard
                     key={recipe.recipe_id}
-                    recipe={recipe}
+                    recipe={recipe as any}
                     onAddToCookbook={addToCookbook}
-                    showIngredientDetails={true}
                   />
                 ))}
               </div>

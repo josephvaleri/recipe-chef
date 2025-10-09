@@ -147,10 +147,10 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         .order('step_number')
 
       // Split steps by paragraphs (same logic as recipe detail page)
-      const splitSteps = stepsData?.flatMap((step, stepIndex) =>
+      const splitSteps = stepsData?.flatMap((step: any, stepIndex: number) =>
         step.text.split('\n')
-          .filter(paragraph => paragraph.trim()) // Remove empty paragraphs
-          .map((paragraph, paragraphIndex) => ({
+          .filter((paragraph: string) => paragraph.trim()) // Remove empty paragraphs
+          .map((paragraph: string) => ({
             step_number: stepIndex + 1,
             text: paragraph.trim()
           }))
@@ -490,8 +490,9 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   if (!recipe || !editedRecipe) return null
 
   return (
-    <RouteGuard requireAuth={true} className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
-      <div className="container mx-auto px-4 py-8">
+    <RouteGuard requireAuth={true}>
+      <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
+        <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-8">
@@ -827,6 +828,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
               </Card>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </RouteGuard>

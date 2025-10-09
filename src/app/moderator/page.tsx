@@ -256,8 +256,9 @@ export default function ModeratorPage() {
   }
 
   return (
-    <RouteGuard requireAuth={true} className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
-      <div className="container mx-auto px-4 py-8">
+    <RouteGuard requireAuth={true}>
+      <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
+        <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center space-x-4 mb-8">
@@ -521,6 +522,7 @@ export default function ModeratorPage() {
               )}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </RouteGuard>

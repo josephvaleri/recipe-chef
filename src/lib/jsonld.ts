@@ -64,10 +64,10 @@ export function parseRecipeFromHtml(html: string, url: string): ParseResult {
   
   // Fallback to heuristic parsing
   const heuristicRecipe = parseHeuristic($, url)
-  return { recipe: heuristicRecipe, confidence: 'low', source: 'heuristic' }
+  return { recipe: heuristicRecipe || undefined, confidence: 'low', source: 'heuristic' }
 }
 
-function parseJsonLd($: cheerio.CheerioAPI, url: string): RecipeData | null {
+function parseJsonLd($: cheerio.CheerioAPI, url: string): RecipeData | undefined {
   const scripts = $('script[type="application/ld+json"]')
   
   for (let i = 0; i < scripts.length; i++) {
@@ -89,7 +89,7 @@ function parseJsonLd($: cheerio.CheerioAPI, url: string): RecipeData | null {
     }
   }
   
-  return null
+  return undefined
 }
 
 function parseMicrodata($: cheerio.CheerioAPI, url: string): RecipeData | null {

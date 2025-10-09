@@ -248,7 +248,8 @@ export class CacheManager {
     if (!('caches' in window)) return null
 
     const cache = await caches.open('recipe-images')
-    return await cache.match(url)
+    const response = await cache.match(url)
+    return response || null
   }
 
   async clearCache(): Promise<void> {

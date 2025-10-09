@@ -166,10 +166,10 @@ export default function EditGlobalRecipePage({ params }: { params: Promise<{ id:
         .order('step_number')
 
       // Split steps by paragraphs (same logic as recipe detail page)
-      const splitSteps = stepsData?.flatMap((step, stepIndex) =>
+      const splitSteps = stepsData?.flatMap((step: any, stepIndex: number) =>
         step.text.split('\n')
-          .filter(paragraph => paragraph.trim()) // Remove empty paragraphs
-          .map((paragraph, paragraphIndex) => ({
+          .filter((paragraph: string) => paragraph.trim()) // Remove empty paragraphs
+          .map((paragraph: string) => ({
             step_number: stepIndex + 1,
             text: paragraph.trim()
           }))

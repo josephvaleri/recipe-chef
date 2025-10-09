@@ -45,7 +45,7 @@ export default function Home() {
 
   const handleVoiceSearch = () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       const recognition = new SpeechRecognition()
 
       recognition.continuous = false
@@ -53,7 +53,7 @@ export default function Home() {
       recognition.lang = 'en-US'
 
       recognition.onstart = () => setIsListening(true)
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript
         setSearchQuery(transcript)
         setIsListening(false)

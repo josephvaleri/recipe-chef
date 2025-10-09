@@ -664,7 +664,7 @@ export default function MyCookbookPage() {
                           className="px-6 py-4 whitespace-nowrap cursor-pointer"
                           onClick={() => router.push(`/recipe/${recipe.user_recipe_id}`)}
                         >
-                          {recipe.rating > 0 ? (
+                          {recipe.rating && recipe.rating > 0 ? (
                             <div className="flex items-center">
                               <Star className="w-4 h-4 fill-current text-yellow-400 mr-1" />
                               <span className="text-sm text-gray-900">{recipe.rating}</span>
