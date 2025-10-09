@@ -59,8 +59,6 @@ async function uploadImageToStorage(imageData: Buffer, filename: string, userId:
     if (error) {
       console.warn('❌ Image upload failed with error:', {
         message: error.message,
-        statusCode: error.statusCode,
-        error: error.error,
         path: `${userId}/${filename}`
       });
       return null;

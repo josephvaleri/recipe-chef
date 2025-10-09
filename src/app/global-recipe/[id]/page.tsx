@@ -262,10 +262,10 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
     setLoadingDetailedIngredients(true)
     try {
       // Parse each ingredient line to extract searchable terms
-      const ingredientLines = recipe.ingredients.flatMap(ing => {
+      const ingredientLines = recipe.ingredients.flatMap((ing: any) => {
         if (ing.raw_name) {
           // Split by line breaks to get individual ingredient lines
-          return ing.raw_name.split('\n').filter(line => line.trim())
+          return ing.raw_name.split('\n').filter((line: string) => line.trim())
         } else {
           // Fallback to structured data
           const fullText = `${ing.amount || ''}${ing.unit ? ` ${ing.unit}` : ''} ${ing.ingredient?.name || ''}`.trim()

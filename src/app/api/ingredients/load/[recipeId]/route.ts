@@ -65,15 +65,17 @@ export async function GET(
 
     // Group ingredients by category
     const groupedIngredients = savedIngredients.reduce((acc, item) => {
-      const categoryName = item.ingredient.category.name
+      const ingredient = Array.isArray(item.ingredient) ? item.ingredient[0] : item.ingredient
+      const category = Array.isArray(ingredient?.category) ? ingredient.category[0] : ingredient?.category
+      const categoryName = category?.name || 'Unknown'
       if (!acc[categoryName]) {
         acc[categoryName] = []
       }
       acc[categoryName].push({
-        ingredient_id: item.ingredient.ingredient_id,
-        name: item.ingredient.name,
-        category_id: item.ingredient.category_id,
-        category: item.ingredient.category,
+        ingredient_id: ingredient?.ingredient_id,
+        name: ingredient?.name,
+        category_id: ingredient?.category_id,
+        category: category,
         original_text: item.original_text,
         match_type: item.match_type,
         matched_term: item.matched_term,

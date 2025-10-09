@@ -100,10 +100,10 @@ export async function POST(request: NextRequest) {
       servings: recipeData.servings,
       difficulty: recipeData.difficulty,
       cuisine: recipeData.cuisine?.name,
-      ingredients: ingredientsData.map(ingredient => ({
+      ingredients: ingredientsData.map((ingredient: any) => ({
         amount: ingredient.amount,
         unit: ingredient.unit,
-        name: ingredient.raw_name || ingredient.ingredient?.name || ''
+        name: ('raw_name' in ingredient ? ingredient.raw_name : ingredient.ingredient?.name) || ''
       })),
       instructions: stepsData.map(step => ({
         step: step.step_number,

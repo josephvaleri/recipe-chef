@@ -179,17 +179,17 @@ export async function POST(request: NextRequest) {
     } else if (type === 'csv') {
       // Handle CSV file
       const fileBuffer = await file.arrayBuffer()
-      const fileContent = new TextDecoder().utf8.decode(fileBuffer)
+      const fileContent = new TextDecoder('utf-8').decode(fileBuffer)
       const lines = fileContent.split('\n')
-      const headers = lines[0].split(',').map(h => h.trim())
+      const headers = lines[0].split(',').map((h: string) => h.trim())
       
       for (let i = 1; i < lines.length; i++) {
         if (lines[i].trim() === '') continue
         
-        const values = lines[i].split(',').map(v => v.trim())
+        const values = lines[i].split(',').map((v: string) => v.trim())
         const recipeData: any = {}
         
-        headers.forEach((header, index) => {
+        headers.forEach((header: string, index: number) => {
           recipeData[header] = values[index] || ''
         })
 
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
           // Insert ingredients
           if (ingredients.length > 0) {
-            const ingredientInserts = ingredients.map(ing => ({
+            const ingredientInserts = ingredients.map((ing: any) => ({
               recipe_id: globalRecipe.recipe_id,
               ingredient_id: ing.ingredient_id,
               amount: ing.amount,
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
 
           // Insert steps
           if (steps.length > 0) {
-            const stepInserts = steps.map(step => ({
+            const stepInserts = steps.map((step: any) => ({
               recipe_id: globalRecipe.recipe_id,
               step_number: step.step_number,
               text: step.text

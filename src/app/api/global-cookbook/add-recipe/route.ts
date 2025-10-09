@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
           if (sessionError) {
             console.log('Global cookbook API: First attempt failed, trying direct access token...')
             const { data: directResult, error: directError } = await supabase.auth.setSession({
-              access_token: sessionData.access_token
+              access_token: sessionData.access_token,
+              refresh_token: sessionData.refresh_token || ''
             })
             console.log('Global cookbook API: Direct access token result:', {
               hasSession: !!directResult.session,

@@ -144,7 +144,14 @@ export default function CalendarPage() {
         return
       }
 
-      setMealPlans(data || [])
+      // Transform data: Supabase returns arrays for joined tables, we need single objects
+      const transformedData = (data || []).map((plan: any) => ({
+        ...plan,
+        user_recipe: Array.isArray(plan.user_recipe) && plan.user_recipe.length > 0 ? plan.user_recipe[0] : undefined,
+        global_recipe: Array.isArray(plan.global_recipe) && plan.global_recipe.length > 0 ? plan.global_recipe[0] : undefined
+      }))
+
+      setMealPlans(transformedData)
     } catch (error) {
       console.error('Error loading meal plans:', error)
     }

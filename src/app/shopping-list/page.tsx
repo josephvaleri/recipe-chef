@@ -70,7 +70,7 @@ export default function ShoppingListPage() {
       console.log('Found meal plans:', mealPlans);
 
       // Get detailed ingredients for each recipe
-      const allIngredients = [];
+      const allIngredients: any[] = [];
       for (const mealPlan of mealPlans || []) {
         const { data: ingredients, error: ingredientsError } = await supabase
           .from('user_recipe_ingredients_detail')
@@ -98,8 +98,8 @@ export default function ShoppingListPage() {
           allIngredients.push({
             ...ingredient,
             recipe_id: mealPlan.user_recipe_id,
-            recipe_title: mealPlan.user_recipes.title,
-            servings: mealPlan.user_recipes.servings,
+            recipe_title: (mealPlan as any).user_recipes?.[0]?.title || 'Unknown',
+            servings: (mealPlan as any).user_recipes?.[0]?.servings || '4',
             date: mealPlan.date
           });
         });

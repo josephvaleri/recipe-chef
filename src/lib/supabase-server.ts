@@ -16,7 +16,7 @@ if (!supabaseAnonKey) {
 export async function createServerClient() {
   const cookieStore = await cookies()
   
-  return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
@@ -35,7 +35,7 @@ export async function createServerClient() {
 export function createClient() {
   const cookieStore = cookies()
   
-  return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
