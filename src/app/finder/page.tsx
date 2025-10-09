@@ -327,126 +327,136 @@ export default function RecipeFinderPage() {
         return
       }
 
-      // Search global recipes
-      let globalQuery = supabase
-        .from('global_recipes')
+      console.log('Searching for ingredients:', allSelectedIngredients)
+
+      // Step 1: Find recipes that contain any of the selected ingredients
+      // Search user recipes through user_recipe_ingredients_detail
+      const { data: userIngredientMatches, error: userIngredientError } = await supabase
+        .from('user_recipe_ingredients_detail')
         .select(`
-          *,
-          cuisine:cuisines(name),
-          meal_type:meal_types(name),
-          ingredients:global_recipe_ingredients(
-            ingredient:ingredients(name, category_id),
-            amount,
-            unit
-          )
+          user_recipe_id,
+          ingredient_id,
+          original_text,
+          matched_term
         `)
-        .eq('is_published', true)
+        .in('ingredient_id', allSelectedIngredients)
 
-      // Apply filters to global recipes
-      if (filters.cuisine_id) {
-        globalQuery = globalQuery.eq('cuisine_id', filters.cuisine_id)
-      }
-      if (filters.meal_type_id) {
-        globalQuery = globalQuery.eq('meal_type_id', filters.meal_type_id)
-      }
-      if (filters.difficulty) {
-        globalQuery = globalQuery.eq('difficulty', filters.difficulty)
-      }
-      if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
-        globalQuery = globalQuery.textSearch('title', searchQuery.trim())
+      if (userIngredientError) {
+        console.error('Error searching user ingredient details:', userIngredientError)
       }
 
-      // Search user recipes
-      let userQuery = supabase
-        .from('user_recipes')
+      // Search global recipes through global_recipe_ingredients_detail
+      const { data: globalIngredientMatches, error: globalIngredientError } = await supabase
+        .from('global_recipe_ingredients_detail')
         .select(`
-          *,
-          cuisine:cuisines(name),
-          meal_type:meal_types(name),
-          ingredients:user_recipe_ingredients_detail(
-            ingredient_id,
-            ingredient:ingredients(name, category_id),
-            original_text,
-            matched_term,
-            match_type
-          )
+          recipe_id,
+          ingredient_id,
+          original_text,
+          matched_term
         `)
+        .in('ingredient_id', allSelectedIngredients)
 
-      // Apply filters to user recipes
-      if (filters.cuisine_id) {
-        userQuery = userQuery.eq('cuisine_id', filters.cuisine_id)
-      }
-      if (filters.meal_type_id) {
-        userQuery = userQuery.eq('meal_type_id', filters.meal_type_id)
-      }
-      if (filters.difficulty) {
-        userQuery = userQuery.eq('difficulty', filters.difficulty)
-      }
-      if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
-        userQuery = userQuery.textSearch('title', searchQuery.trim())
+      if (globalIngredientError) {
+        console.error('Error searching global ingredient details:', globalIngredientError)
       }
 
-      // Execute both queries
-      const [globalResult, userResult] = await Promise.all([
-        globalQuery.limit(50),
-        userQuery.limit(50)
-      ])
+      console.log('User ingredient matches:', userIngredientMatches?.length || 0)
+      console.log('Global ingredient matches:', globalIngredientMatches?.length || 0)
 
-      if (globalResult.error) {
-        console.error('Error searching global recipes:', globalResult.error)
+      // Step 2: Get unique recipe IDs
+      const userRecipeIds = [...new Set(userIngredientMatches?.map(match => match.user_recipe_id) || [])]
+      const globalRecipeIds = [...new Set(globalIngredientMatches?.map(match => match.recipe_id) || [])]
+
+      console.log('User recipe IDs:', userRecipeIds)
+      console.log('Global recipe IDs:', globalRecipeIds)
+
+      // Step 3: Fetch full recipe data for matching recipes
+      let userRecipesData: any[] = []
+      let globalRecipesData: any[] = []
+
+      // Fetch user recipes if we have matches
+      if (userRecipeIds.length > 0) {
+        let userQuery = supabase
+          .from('user_recipes')
+          .select(`
+            *,
+            cuisine:cuisines(name),
+            meal_type:meal_types(name)
+          `)
+          .in('user_recipe_id', userRecipeIds)
+
+        // Apply filters to user recipes
+        if (filters.cuisine_id) {
+          userQuery = userQuery.eq('cuisine_id', filters.cuisine_id)
+        }
+        if (filters.meal_type_id) {
+          userQuery = userQuery.eq('meal_type_id', filters.meal_type_id)
+        }
+        if (filters.difficulty) {
+          userQuery = userQuery.eq('difficulty', filters.difficulty)
+        }
+        if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
+          userQuery = userQuery.textSearch('title', searchQuery.trim())
+        }
+
+        const { data: userRecipes, error: userRecipesError } = await userQuery
+
+        if (userRecipesError) {
+          console.error('Error fetching user recipes:', userRecipesError)
+        } else {
+          userRecipesData = (userRecipes || []).map(recipe => ({ ...recipe, source: 'user' }))
+        }
       }
-      if (userResult.error) {
-        console.error('Error searching user recipes:', userResult.error)
+
+      // Fetch global recipes if we have matches
+      if (globalRecipeIds.length > 0) {
+        let globalQuery = supabase
+          .from('global_recipes')
+          .select(`
+            *,
+            cuisine:cuisines(name),
+            meal_type:meal_types(name)
+          `)
+          .in('recipe_id', globalRecipeIds)
+          .eq('is_published', true)
+
+        // Apply filters to global recipes
+        if (filters.cuisine_id) {
+          globalQuery = globalQuery.eq('cuisine_id', filters.cuisine_id)
+        }
+        if (filters.meal_type_id) {
+          globalQuery = globalQuery.eq('meal_type_id', filters.meal_type_id)
+        }
+        if (filters.difficulty) {
+          globalQuery = globalQuery.eq('difficulty', filters.difficulty)
+        }
+        if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
+          globalQuery = globalQuery.textSearch('title', searchQuery.trim())
+        }
+
+        const { data: globalRecipes, error: globalRecipesError } = await globalQuery
+
+        if (globalRecipesError) {
+          console.error('Error fetching global recipes:', globalRecipesError)
+        } else {
+          globalRecipesData = (globalRecipes || []).map(recipe => ({ ...recipe, source: 'global' }))
+        }
       }
 
-      // Debug user recipes
-      console.log('User recipes found:', userResult.data?.length || 0)
-      console.log('User recipes data:', userResult.data)
-      const recipe1286 = userResult.data?.find(r => r.user_recipe_id === 1286)
-      if (recipe1286) {
-        console.log('Found recipe 1286 in user results:', recipe1286)
-      } else {
-        console.log('Recipe 1286 NOT found in user results')
-      }
+      console.log('Fetched user recipes:', userRecipesData.length)
+      console.log('Fetched global recipes:', globalRecipesData.length)
 
-      // Process results separately
-      const globalRecipesData = (globalResult.data || []).map(recipe => ({ ...recipe, source: 'global' }))
-      const userRecipesData = (userResult.data || []).map(recipe => ({ ...recipe, source: 'user' }))
-
-      // Debug logging
-      console.log('All selected ingredients:', allSelectedIngredients)
-      console.log('User recipes found:', userRecipesData.length)
-      console.log('Global recipes found:', globalRecipesData.length)
-
-      // Score user recipes based on ingredient matches
+      // Step 4: Count ingredient matches for each recipe
       const scoredUserRecipes = userRecipesData.map(recipe => {
-        let ingredientMatches = 0
-        let totalSelectedIngredients = allSelectedIngredients.length
+        // Count how many of the selected ingredients this recipe contains
+        const recipeMatches = userIngredientMatches?.filter(match => 
+          match.user_recipe_id === recipe.user_recipe_id && 
+          allSelectedIngredients.includes(match.ingredient_id)
+        ) || []
 
-        // Debug specific recipe
-        if (recipe.user_recipe_id === 1286) {
-          console.log('Found recipe 1286:', recipe.title)
-          console.log('Recipe ingredients:', recipe.ingredients)
-          console.log('Recipe source:', recipe.source)
-        }
-
-        // Count matching ingredients - for user recipes
-        if (recipe.ingredients && recipe.ingredients.length > 0) {
-          // For user recipes, match by ingredient_id from user_recipe_ingredients_detail
-          const matchingIngredients = recipe.ingredients.filter((ing: any) =>
-            allSelectedIngredients.includes(ing.ingredient_id)
-          )
-          ingredientMatches = matchingIngredients.length
-          
-          if (recipe.user_recipe_id === 1286) {
-            console.log('Recipe 1286 matching ingredients:', matchingIngredients)
-            console.log('Recipe 1286 ingredient IDs:', recipe.ingredients.map((ing: any) => ing.ingredient_id))
-          }
-        }
-
-        // Calculate match percentage
-        const matchPercentage = totalSelectedIngredients > 0 
-          ? (ingredientMatches / totalSelectedIngredients) * 100 
+        const ingredientMatches = recipeMatches.length
+        const matchPercentage = allSelectedIngredients.length > 0 
+          ? (ingredientMatches / allSelectedIngredients.length) * 100 
           : 0
 
         // Bonus points for exact matches
@@ -465,26 +475,21 @@ export default function RecipeFinderPage() {
           ...recipe,
           ingredientMatches,
           matchPercentage,
-          totalScore: matchPercentage + bonusScore
+          totalScore: matchPercentage + bonusScore,
+          matchedIngredients: recipeMatches
         }
       })
 
-      // Score global recipes based on ingredient matches
       const scoredGlobalRecipes = globalRecipesData.map(recipe => {
-        let ingredientMatches = 0
-        let totalSelectedIngredients = allSelectedIngredients.length
+        // Count how many of the selected ingredients this recipe contains
+        const recipeMatches = globalIngredientMatches?.filter(match => 
+          match.recipe_id === recipe.recipe_id && 
+          allSelectedIngredients.includes(match.ingredient_id)
+        ) || []
 
-        // Count matching ingredients - for global recipes
-        if (recipe.ingredients && recipe.ingredients.length > 0) {
-          // For global recipes, match by category_id from global_recipe_ingredients
-          ingredientMatches = recipe.ingredients.filter((ing: any) =>
-            allSelectedIngredients.includes(ing.ingredient.category_id)
-          ).length
-        }
-
-        // Calculate match percentage
-        const matchPercentage = totalSelectedIngredients > 0 
-          ? (ingredientMatches / totalSelectedIngredients) * 100 
+        const ingredientMatches = recipeMatches.length
+        const matchPercentage = allSelectedIngredients.length > 0 
+          ? (ingredientMatches / allSelectedIngredients.length) * 100 
           : 0
 
         // Bonus points for exact matches
@@ -503,20 +508,20 @@ export default function RecipeFinderPage() {
           ...recipe,
           ingredientMatches,
           matchPercentage,
-          totalScore: matchPercentage + bonusScore
+          totalScore: matchPercentage + bonusScore,
+          matchedIngredients: recipeMatches
         }
       })
-
-      // Filter recipes with at least one matching ingredient
-      const filteredUserRecipes = scoredUserRecipes.filter(recipe => recipe.ingredientMatches > 0)
-      const filteredGlobalRecipes = scoredGlobalRecipes.filter(recipe => recipe.ingredientMatches > 0)
 
       // Sort by total score (ingredient matches + bonus points)
-      filteredUserRecipes.sort((a, b) => b.totalScore - a.totalScore)
-      filteredGlobalRecipes.sort((a, b) => b.totalScore - a.totalScore)
+      scoredUserRecipes.sort((a, b) => b.totalScore - a.totalScore)
+      scoredGlobalRecipes.sort((a, b) => b.totalScore - a.totalScore)
 
-      setUserRecipes(filteredUserRecipes)
-      setGlobalRecipes(filteredGlobalRecipes)
+      console.log('Final user recipes:', scoredUserRecipes.length)
+      console.log('Final global recipes:', scoredGlobalRecipes.length)
+
+      setUserRecipes(scoredUserRecipes)
+      setGlobalRecipes(scoredGlobalRecipes)
     } catch (error) {
       console.error('Error searching recipes:', error)
     } finally {
