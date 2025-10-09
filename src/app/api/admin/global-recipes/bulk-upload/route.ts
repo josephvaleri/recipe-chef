@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
         for (const recipe of recipes) {
           console.log(`🍽️ Processing recipe: ${recipe.title}`)
           
+          let imageUrl: string | undefined
+          
           // Upload image if present
           if (recipe.imageData) {
             try {
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
                   .from('recipe-images')
                   .getPublicUrl(uploadData.path)
                 
-                recipe.image_url = publicUrl
+                imageUrl = publicUrl
                 console.log('✅ Image uploaded for global recipe:', publicUrl)
               }
             } catch (error) {
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
               prep_time: recipe.prepTime,
               cook_time: recipe.cookTime,
               servings: recipe.servings,
-              image_url: recipe.image_url,
+              image_url: imageUrl,
               is_published: true,
               added_count: 0
             })
