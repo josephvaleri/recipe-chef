@@ -32,8 +32,8 @@ export async function createServerClient() {
 }
 
 // Synchronous version for API routes (legacy compatibility)
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
   
   return createSupabaseServerClient(supabaseUrl!, supabaseAnonKey!, {
     cookies: {

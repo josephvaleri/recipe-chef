@@ -105,12 +105,6 @@ export default function ShoppingListPage() {
         });
       }
 
-      if (mealPlanError) {
-        console.error('Meal plan query error:', mealPlanError);
-        toast.error('Failed to load meal plans: ' + mealPlanError.message);
-        return;
-      }
-
       console.log('Found ingredients:', allIngredients);
 
       // Process the ingredients

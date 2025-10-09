@@ -203,7 +203,7 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
     }
   }
 
-  const loadSavedDetailedIngredients = async (recipeId: string) => {
+  const loadSavedDetailedIngredients = async (recipeId: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase
         .from('global_recipe_ingredients_detail')
@@ -215,7 +215,7 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
 
       if (error) {
         console.error('Error loading saved ingredients:', error)
-        return
+        return false
       }
 
       if (data && data.length > 0) {
@@ -242,9 +242,13 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
         
         setDetailedIngredients(groupedIngredients)
         setIngredientsSaved(true)
+        return true
       }
+      
+      return false
     } catch (error) {
       console.error('Error loading saved detailed ingredients:', error)
+      return false
     }
   }
 
@@ -396,6 +400,8 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
   }
 
   const reanalyzeIngredients = async () => {
+    if (!recipe) return
+    
     try {
       // Delete existing saved ingredients from database
       const { error: deleteError } = await supabase
@@ -631,14 +637,14 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                             <span>{displayText}</span>
                           </div>
                         )
-                      } else if (ingredient.raw_name) {
+                      } else if ((ingredient as any).raw_name) {
                         // Simple: just split by newlines and display each line as an ingredient
-                        const lines = ingredient.raw_name
+                        const lines = (ingredient as any).raw_name
                           .split(/\r?\n/)
-                          .map(line => line.trim())
-                          .filter(line => line.length > 0)
+                          .map((line: string) => line.trim())
+                          .filter((line: string) => line.length > 0)
                         
-                        return lines.map((line, lineIndex) => (
+                        return lines.map((line: string, lineIndex: number) => (
                           <div key={`${index}-${lineIndex}`} className="flex items-center text-orange-800">
                             <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
                             <span>{line}</span>

@@ -22,7 +22,7 @@ export function createAdminClient() {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
   }
   
-  return createClient(supabaseUrl, supabaseServiceKey)
+  return createClient(supabaseUrl!, supabaseServiceKey)
 }
 
 // Legacy export for backward compatibility (will be null on client side)
