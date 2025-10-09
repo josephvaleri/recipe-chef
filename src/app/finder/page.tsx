@@ -23,7 +23,8 @@ import {
 } from 'lucide-react'
 
 interface GlobalRecipe {
-  recipe_id: number
+  recipe_id?: number
+  user_recipe_id?: number
   title: string
   description?: string
   image_url?: string
@@ -32,16 +33,21 @@ interface GlobalRecipe {
   total_time?: string
   servings?: string
   difficulty?: string
-  added_count: number
+  added_count?: number
   cuisine?: { name: string }
   meal_type?: { name: string }
-  ingredients: Array<{
+  ingredients?: Array<{
     ingredient: { name: string; category_id: number }
     amount?: string
     unit?: string
   }>
   rating?: number
   score?: number
+  source?: string
+  ingredientMatches?: number
+  matchPercentage?: number
+  totalScore?: number
+  matchedIngredients?: any[]
 }
 
 interface FilterState {
@@ -578,7 +584,7 @@ export default function RecipeFinderPage() {
       // Update the added count in the UI
       setGlobalRecipes(prev => prev.map(r => 
         r.recipe_id === recipeId 
-          ? { ...r, added_count: r.added_count + 1 }
+          ? { ...r, added_count: (r.added_count || 0) + 1 }
           : r
       ))
 
