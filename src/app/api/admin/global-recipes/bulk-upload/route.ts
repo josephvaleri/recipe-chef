@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           // Upload image if present
           if (recipe.imageData) {
             try {
-              const imageBuffer = Buffer.from(recipe.imageData, 'base64')
+              const imageBuffer = Buffer.isBuffer(recipe.imageData) ? recipe.imageData : Buffer.from(recipe.imageData, 'base64')
               const imageFilename = `global-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`
               const imagePath = `global/${imageFilename}`
               
