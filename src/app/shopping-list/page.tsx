@@ -20,6 +20,27 @@ interface ShoppingListData {
   [category: string]: ShoppingListItem[];
 }
 
+function SearchParamsHandler({ onAutoGenerate }: { onAutoGenerate: (params: { start: string; days: number; people: number }) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const start = searchParams.get('start');
+    const days = searchParams.get('days');
+    const people = searchParams.get('people');
+
+    if (start && days && people) {
+      const params = {
+        start,
+        days: parseInt(days),
+        people: parseInt(people)
+      };
+      onAutoGenerate(params);
+    }
+  }, [searchParams, onAutoGenerate]);
+
+  return null;
+}
+
 function ShoppingListPageContent() {
   const [shoppingList, setShoppingList] = useState<ShoppingListData>({});
   const [loading, setLoading] = useState(false);
@@ -30,7 +51,6 @@ function ShoppingListPageContent() {
     people: number;
   } | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const handleGenerate = useCallback(async (params: { start: string; days: number; people: number }) => {
     setLoading(true);
@@ -175,22 +195,11 @@ function ShoppingListPageContent() {
     }
   }, []);
 
-  // Auto-generate if URL parameters are provided
-  useEffect(() => {
-    const start = searchParams.get('start');
-    const days = searchParams.get('days');
-    const people = searchParams.get('people');
-
-    if (start && days && people) {
-      const params = {
-        start,
-        days: parseInt(days),
-        people: parseInt(people)
-      };
-      setGenerationParams(params);
-      handleGenerate(params);
-    }
-  }, [searchParams, handleGenerate]);
+  // This will be called from the SearchParamsHandler component
+  const handleAutoGenerate = useCallback((params: { start: string; days: number; people: number }) => {
+    setGenerationParams(params);
+    handleGenerate(params);
+  }, [handleGenerate]);
 
   const handlePrint = () => {
     if (!generationParams) return;
@@ -247,6 +256,7 @@ function ShoppingListPageContent() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <SearchParamsHandler onAutoGenerate={handleAutoGenerate} />
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Shopping List Generator</h1>

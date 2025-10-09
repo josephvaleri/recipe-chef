@@ -19,18 +19,34 @@ interface ShoppingListData {
   [category: string]: ShoppingListItem[];
 }
 
-function ShoppingListPrintPageContent() {
+function SearchParamsHandler({ onParamsReady }: { onParamsReady: (params: { start: string; days: string; people: string }) => void }) {
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const start = searchParams.get('start');
+    const days = searchParams.get('days') || '7';
+    const people = searchParams.get('people') || '4';
+    
+    if (start) {
+      onParamsReady({ start, days, people });
+    }
+  }, [searchParams, onParamsReady]);
+
+  return null;
+}
+
+function ShoppingListPrintPageContent() {
   const [shoppingList, setShoppingList] = useState<ShoppingListData>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const start = searchParams.get('start');
-  const days = searchParams.get('days') || '7';
-  const people = searchParams.get('people') || '4';
+  const [params, setParams] = useState<{ start: string; days: string; people: string } | null>(null);
 
   useEffect(() => {
-    if (!start) {
+    if (!params) {
+      return;
+    }
+
+    if (!params.start) {
       setError('Missing start date');
       setLoading(false);
       return;
@@ -39,7 +55,7 @@ function ShoppingListPrintPageContent() {
     const fetchShoppingList = async () => {
       try {
         const response = await fetch(
-          `/api/shopping-list/generate?start=${start}&days=${days}&people=${people}`
+          `/api/shopping-list/generate?start=${params.start}&days=${params.days}&people=${params.people}`
         );
         
         if (!response.ok) {
@@ -56,7 +72,7 @@ function ShoppingListPrintPageContent() {
     };
 
     fetchShoppingList();
-  }, [start, days, people]);
+  }, [params]);
 
   const handlePrint = () => {
     window.print();
@@ -95,13 +111,14 @@ function ShoppingListPrintPageContent() {
 
   return (
     <div className="min-h-screen bg-white">
+      <SearchParamsHandler onParamsReady={setParams} />
       {/* Print controls - hidden when printing */}
       <div className="print:hidden bg-gray-50 border-b p-4">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-semibold">Shopping List</h1>
             <p className="text-sm text-gray-600">
-              {days} days • {people} people • {totalItems} items
+              {params?.days} days • {params?.people} people • {totalItems} items
             </p>
           </div>
           <div className="flex gap-2">
@@ -123,7 +140,7 @@ function ShoppingListPrintPageContent() {
           <div className="text-center mb-8 print:mb-4">
             <h1 className="text-3xl font-bold text-gray-900 print:text-2xl">Shopping List</h1>
             <p className="text-gray-600 print:text-sm">
-              {new Date(start!).toLocaleDateString()} • {days} days • {people} people
+              {params && new Date(params.start).toLocaleDateString()} • {params?.days} days • {params?.people} people
             </p>
           </div>
 
