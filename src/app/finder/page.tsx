@@ -302,7 +302,7 @@ export default function RecipeFinderPage() {
       }
 
       console.log('Searching for ingredients:', allSelectedIngredients)
-      console.log('Starting ingredient search...')
+      console.log('Starting ingredient search...', new Date().toISOString())
 
       // Step 1: Find recipes that contain any of the selected ingredients
       // Search user recipes through user_recipe_ingredients_detail
@@ -337,6 +337,7 @@ export default function RecipeFinderPage() {
 
       console.log('User ingredient matches:', userIngredientMatches?.length || 0)
       console.log('Global ingredient matches:', globalIngredientMatches?.length || 0)
+      console.log('NEW SEARCH LOGIC RUNNING - TIMESTAMP:', new Date().toISOString())
 
       // Step 2: Get unique recipe IDs
       const userRecipeIds = [...new Set(userIngredientMatches?.map(match => match.user_recipe_id) || [])]
