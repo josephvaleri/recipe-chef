@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     
     // Try to log the error if we can get the user
     try {
-      const supabase = createServerClient()
+      const supabase = await createServerClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         await supabase
