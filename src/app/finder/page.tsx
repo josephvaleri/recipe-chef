@@ -172,35 +172,6 @@ export default function RecipeFinderPage() {
     }
   }
 
-  const loadPopularRecipes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('global_recipes')
-        .select(`
-          *,
-          cuisine:cuisines(name),
-          meal_type:meal_types(name),
-          ingredients:global_recipe_ingredients(
-            ingredient:ingredients(name, category_id),
-            amount,
-            unit
-          )
-        `)
-        .eq('is_published', true)
-        .order('added_count', { ascending: false })
-        .limit(12)
-
-      if (error) {
-        console.error('Error loading popular recipes:', error)
-        return
-      }
-
-      setGlobalRecipes(data || [])
-      setUserRecipes([])
-    } catch (error) {
-      console.error('Error loading popular recipes:', error)
-    }
-  }
 
   const parseSearchQuery = (query: string) => {
     if (!query.trim()) return
@@ -233,14 +204,17 @@ export default function RecipeFinderPage() {
     // Use a more efficient matching approach
     ingredientNames.forEach(searchName => {
       const foundIngredients = ingredients.filter(ingredient => {
+        if (!ingredient || !ingredient.name) return false
         const ingredientName = ingredient.name.toLowerCase()
         return ingredientName.includes(searchName) || searchName.includes(ingredientName)
       })
 
       foundIngredients.forEach(ingredient => {
-        const categoryKey = getCategoryKey(ingredient.category_id)
-        if (categoryKey && !matchedIngredients[categoryKey].includes(ingredient.ingredient_id)) {
-          matchedIngredients[categoryKey].push(ingredient.ingredient_id)
+        if (ingredient && ingredient.category_id && ingredient.ingredient_id) {
+          const categoryKey = getCategoryKey(ingredient.category_id)
+          if (categoryKey && !matchedIngredients[categoryKey].includes(ingredient.ingredient_id)) {
+            matchedIngredients[categoryKey].push(ingredient.ingredient_id)
+          }
         }
       })
     })
@@ -328,6 +302,7 @@ export default function RecipeFinderPage() {
       }
 
       console.log('Searching for ingredients:', allSelectedIngredients)
+      console.log('Starting ingredient search...')
 
       // Step 1: Find recipes that contain any of the selected ingredients
       // Search user recipes through user_recipe_ingredients_detail
@@ -628,7 +603,9 @@ export default function RecipeFinderPage() {
       spices: []
     })
     setSearchQuery('')
-    loadPopularRecipes()
+    // Clear recipes instead of loading popular ones
+    setUserRecipes([])
+    setGlobalRecipes([])
   }
 
   const formatTime = (timeStr?: string) => {
@@ -637,7 +614,7 @@ export default function RecipeFinderPage() {
   }
 
   const getIngredientsByCategory = (categoryId: number) => {
-    return ingredients.filter(ing => ing.category_id === categoryId)
+    return ingredients.filter(ing => ing && ing.category_id === categoryId)
   }
 
   const toggleCategory = (category: string) => {
