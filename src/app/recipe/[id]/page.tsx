@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser, getCurrentProfile } from '@/lib/auth'
 import { scaleAmount } from '@/lib/utils'
+import { sanitizeText, sanitizeHTML } from '@/lib/sanitize'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { RecipeTimer } from '@/components/recipe-timer'
 import { 
@@ -761,9 +762,9 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
                 
                 <div className="space-y-4">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{recipe.title}</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{sanitizeText(recipe.title)}</h1>
                     {recipe.description && (
-                      <p className="text-gray-600">{recipe.description}</p>
+                      <p className="text-gray-600">{sanitizeText(recipe.description)}</p>
                     )}
                   </div>
 

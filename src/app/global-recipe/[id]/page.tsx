@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser, getCurrentProfile, isAdmin } from '@/lib/auth'
 import { scaleAmount } from '@/lib/utils'
+import { sanitizeText, sanitizeHTML } from '@/lib/sanitize'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { RecipeTimer } from '@/components/recipe-timer'
 import { 
@@ -529,9 +530,9 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
               <CardContent className="p-8">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex-1">
-                    <h1 className="text-4xl font-bold text-orange-900 mb-4">{recipe.title}</h1>
+                    <h1 className="text-4xl font-bold text-orange-900 mb-4">{sanitizeText(recipe.title)}</h1>
                     {recipe.description && (
-                      <p className="text-lg text-orange-700 mb-4">{recipe.description}</p>
+                      <p className="text-lg text-orange-700 mb-4">{sanitizeText(recipe.description)}</p>
                     )}
                     
                     {/* Rating */}

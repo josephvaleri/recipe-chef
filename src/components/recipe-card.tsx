@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { sanitizeText } from '@/lib/sanitize'
 import { 
   ChefHat, 
   Clock, 
@@ -59,7 +60,7 @@ export default function RecipeCard({
         <div className="aspect-video bg-gray-200 rounded-t-lg overflow-hidden">
           <img 
             src={recipe.image_url} 
-            alt={recipe.title}
+            alt={sanitizeText(recipe.title)}
             className="w-full h-full object-cover"
           />
         </div>
@@ -71,12 +72,12 @@ export default function RecipeCard({
       
       <CardContent className="p-4">
         <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-          {recipe.title}
+          {sanitizeText(recipe.title)}
         </h3>
         
         {recipe.description && (
           <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {recipe.description}
+            {sanitizeText(recipe.description)}
           </p>
         )}
         
