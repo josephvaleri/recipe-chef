@@ -615,6 +615,17 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
     if (!recipe || !confirm('Are you sure you want to delete this recipe?')) return
 
     try {
+      // First, delete meal plan entries that reference this recipe
+      const { error: mealPlanError } = await supabase
+        .from('meal_plan')
+        .delete()
+        .eq('user_recipe_id', recipe.user_recipe_id)
+      
+      if (mealPlanError) {
+        console.warn('Warning: Could not delete meal plan entries:', mealPlanError)
+        // Continue anyway - the meal plan entry might not exist
+      }
+      
       const { error } = await supabase
         .from('user_recipes')
         .delete()
@@ -622,6 +633,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
 
       if (error) {
         console.error('Error deleting recipe:', error)
+        alert(`Failed to delete recipe: ${error.message}`)
         return
       }
 

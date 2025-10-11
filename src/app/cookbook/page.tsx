@@ -259,6 +259,17 @@ export default function MyCookbookPage() {
         console.log(`✅ Successfully deleted ${successCount}/${imageUrls.length} images from storage`)
       }
       
+      // First, delete meal plan entries that reference these recipes
+      const { error: mealPlanError } = await supabase
+        .from('meal_plan')
+        .delete()
+        .in('user_recipe_id', recipeIds)
+      
+      if (mealPlanError) {
+        console.warn('Warning: Could not delete meal plan entries:', mealPlanError)
+        // Continue anyway - the meal plan entries might not exist
+      }
+      
       // Delete recipes from database
       const { error } = await supabase
         .from('user_recipes')
@@ -267,6 +278,7 @@ export default function MyCookbookPage() {
 
       if (error) {
         console.error('Error deleting recipes:', error)
+        alert(`Failed to delete recipes: ${error.message}`)
         return
       }
 
