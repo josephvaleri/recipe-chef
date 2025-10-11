@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Save, Plus, Minus, ChefHat, Loader2 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 
@@ -98,28 +97,12 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           .select('id, amount, unit, raw_name')
           .eq('user_recipe_id', recipeId)
 
-        console.log('Ingredients query result:', { ingredientsData, ingredientsError })
-
-        // Clean up duplicate ingredient records if found
-        if (ingredientsData && ingredientsData.length > 1) {
-          console.log('Found duplicate ingredient records, cleaning up...')
-          // Keep only the first record and delete the rest
-          const firstRecord = ingredientsData[0]
-          const duplicateIds = ingredientsData.slice(1).map(ing => ing.id).filter(id => id)
-          
-          if (duplicateIds.length > 0) {
-            const { error: deleteError } = await supabase
-              .from('user_recipe_ingredients')
-              .delete()
-              .in('id', duplicateIds)
-            
-            if (deleteError) {
-              console.error('Error cleaning up duplicate ingredients:', deleteError)
-            } else {
-              console.log('Cleaned up duplicate ingredient records')
-            }
-          }
+        if (ingredientsError) {
+          console.error('Error loading ingredients:', ingredientsError)
+          throw new Error(`Failed to load ingredients: ${ingredientsError.message}`)
         }
+
+        console.log('Ingredients query result:', { count: ingredientsData?.length || 0 })
 
         // Convert structured ingredients to text strings
         const ingredientTexts = ingredientsData?.map(ing => {
@@ -673,10 +656,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {editedRecipe.ingredients.map((ingredient: string, index: number) => (
-                    <motion.div
+                    <div
                       key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
                       className="flex items-center space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-200"
                     >
                       <div className="flex-1">
@@ -696,7 +677,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
-                    </motion.div>
+                    </div>
                   ))}
                   
                   <Button
@@ -720,10 +701,8 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {editedRecipe.steps.map((step: any, index: number) => (
-                    <motion.div
+                    <div
                       key={index}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
                       className="flex items-start space-x-4 p-4 bg-orange-50 rounded-lg border border-orange-200"
                     >
                       <div className="flex-shrink-0 w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
@@ -746,7 +725,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                       >
                         <Minus className="w-4 h-4" />
                       </Button>
-                    </motion.div>
+                    </div>
                   ))}
                   
                   <Button

@@ -622,9 +622,23 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                 <div className="space-y-2">
                   {scaledIngredients.length > 0 ? (
                     scaledIngredients.map((ingredient, index) => {
-                      // Prioritize structured fields over raw_name
-                      if (ingredient.amount || ingredient.unit || ingredient.ingredient?.name) {
-                        // Use structured display
+                      // Check if we have raw_name (most common for global recipes)
+                      if ((ingredient as any).raw_name) {
+                        // Use raw_name if available - this is the complete ingredient text
+                        const displayText = [
+                          ingredient.scaled_amount,
+                          ingredient.unit,
+                          (ingredient as any).raw_name
+                        ].filter(Boolean).join(' ')
+                        
+                        return (
+                          <div key={index} className="flex items-center text-orange-800">
+                            <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
+                            <span>{displayText}</span>
+                          </div>
+                        )
+                      } else if (ingredient.amount || ingredient.unit || ingredient.ingredient?.name) {
+                        // Fallback to structured display if no raw_name
                         const displayText = [
                           ingredient.scaled_amount,
                           ingredient.unit,
@@ -637,19 +651,6 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                             <span>{displayText}</span>
                           </div>
                         )
-                      } else if ((ingredient as any).raw_name) {
-                        // Simple: just split by newlines and display each line as an ingredient
-                        const lines = (ingredient as any).raw_name
-                          .split(/\r?\n/)
-                          .map((line: string) => line.trim())
-                          .filter((line: string) => line.length > 0)
-                        
-                        return lines.map((line: string, lineIndex: number) => (
-                          <div key={`${index}-${lineIndex}`} className="flex items-center text-orange-800">
-                            <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
-                            <span>{line}</span>
-                          </div>
-                        ))
                       } else {
                         // No data available
                         return (

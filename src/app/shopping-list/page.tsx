@@ -62,7 +62,7 @@ function ShoppingListPageContent() {
         return;
       }
 
-      // Direct query approach - get meal plans and ingredients separately
+      // Direct query approach - get meal plans for both user and global recipes
       const { data: mealPlans, error: mealPlanError } = await supabase
         .from('meal_plan')
         .select(`
@@ -70,16 +70,20 @@ function ShoppingListPageContent() {
           date,
           user_recipe_id,
           global_recipe_id,
-          user_recipes!inner(
+          user_recipes(
             user_recipe_id,
+            title,
+            servings
+          ),
+          global_recipes(
+            recipe_id,
             title,
             servings
           )
         `)
         .eq('user_id', user.id)
         .gte('date', params.start)
-        .lt('date', new Date(new Date(params.start).getTime() + params.days * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-        .not('user_recipe_id', 'is', null);
+        .lt('date', new Date(new Date(params.start).getTime() + params.days * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
       if (mealPlanError) {
         console.error('Meal plan query error:', mealPlanError);
@@ -89,9 +93,29 @@ function ShoppingListPageContent() {
 
       console.log('Found meal plans:', mealPlans);
 
-      // Get detailed ingredients for each recipe
+      // Get detailed ingredients for each recipe (USER RECIPES ONLY)
       const allIngredients: any[] = [];
       for (const mealPlan of mealPlans || []) {
+        // Skip global recipes - they shouldn't be in meal plan directly
+        if (mealPlan.global_recipe_id && !mealPlan.user_recipe_id) {
+          console.warn('Warning: Global recipe in meal plan without user copy:', mealPlan.global_recipe_id);
+          continue;
+        }
+        
+        console.log('Processing meal plan:', mealPlan.user_recipe_id);
+        
+        // First check if this recipe has detail records
+        const { data: detailCheck, error: detailCheckError } = await supabase
+          .from('user_recipe_ingredients_detail')
+          .select('detail_id, user_recipe_ingredient_id')
+          .eq('user_recipe_id', mealPlan.user_recipe_id);
+        
+        console.log(`Recipe ${mealPlan.user_recipe_id} detail records:`, detailCheck?.length || 0);
+        if (detailCheck && detailCheck.length > 0) {
+          const nullFKCount = detailCheck.filter(d => !d.user_recipe_ingredient_id).length;
+          console.log(`  - Records with NULL FK: ${nullFKCount}`);
+        }
+        
         const { data: ingredients, error: ingredientsError } = await supabase
           .from('user_recipe_ingredients_detail')
           .select(`
@@ -99,7 +123,13 @@ function ShoppingListPageContent() {
             matched_term,
             match_type,
             matched_alias,
-            ingredients(
+            user_recipe_ingredients!inner(
+              id,
+              amount,
+              unit,
+              raw_name
+            ),
+            ingredients!inner(
               ingredient_id,
               name,
               category_id,
@@ -109,52 +139,89 @@ function ShoppingListPageContent() {
           .eq('user_recipe_id', mealPlan.user_recipe_id);
 
         if (ingredientsError) {
-          console.error('Ingredients query error:', ingredientsError);
+          console.error('Ingredients query error for recipe', mealPlan.user_recipe_id, ':', ingredientsError);
           continue;
         }
+        
+        console.log(`Recipe ${mealPlan.user_recipe_id} returned ${ingredients?.length || 0} ingredients after joins`);
 
         // Add recipe info to each ingredient
-        ingredients?.forEach(ingredient => {
-          allIngredients.push({
-            ...ingredient,
-            recipe_id: mealPlan.user_recipe_id,
-            recipe_title: (mealPlan as any).user_recipes?.[0]?.title || 'Unknown',
-            servings: (mealPlan as any).user_recipes?.[0]?.servings || '4',
-            date: mealPlan.date
+        if (ingredients && ingredients.length > 0) {
+          ingredients.forEach(ingredient => {
+            allIngredients.push({
+              ...ingredient,
+              recipe_id: mealPlan.user_recipe_id,
+              recipe_title: (mealPlan as any).user_recipes?.[0]?.title || 'Unknown',
+              servings: (mealPlan as any).user_recipes?.[0]?.servings || '4',
+              date: mealPlan.date
+            });
           });
-        });
+        } else {
+          // FALLBACK: If no detail records with FK, use raw ingredients without detail matching
+          console.log(`Recipe ${mealPlan.user_recipe_id} has no linked detail records, using raw ingredients`);
+          const { data: rawIngredients, error: rawError } = await supabase
+            .from('user_recipe_ingredients')
+            .select('id, raw_name, amount, unit')
+            .eq('user_recipe_id', mealPlan.user_recipe_id);
+          
+          if (!rawError && rawIngredients) {
+            console.log(`  Found ${rawIngredients.length} raw ingredients`);
+            rawIngredients.forEach(ing => {
+              allIngredients.push({
+                // Create a structure compatible with the processing logic
+                user_recipe_ingredients: {
+                  id: ing.id,
+                  amount: ing.amount,
+                  unit: ing.unit,
+                  raw_name: ing.raw_name
+                },
+                ingredients: null, // No matched ingredient
+                matched_term: ing.raw_name,
+                original_text: ing.raw_name,
+                recipe_id: mealPlan.user_recipe_id,
+                recipe_title: (mealPlan as any).user_recipes?.[0]?.title || 'Unknown',
+                servings: (mealPlan as any).user_recipes?.[0]?.servings || '4',
+                date: mealPlan.date
+              });
+            });
+          }
+        }
       }
 
       console.log('Found ingredients:', allIngredients);
 
-      // Process the ingredients
+      // Process the ingredients with amounts
       const ingredientMap = new Map();
       
       allIngredients.forEach((ingredient: any) => {
         const servings = parseFloat(ingredient.servings) || 4;
         const scaleFactor = params.people / servings;
         
-        // Use matched_term from detailed ingredients
+        // Get ingredient details
         const ingredientName = ingredient.ingredients?.name || ingredient.matched_term || ingredient.original_text || 'Unknown Ingredient';
         const categoryName = ingredient.ingredients?.ingredient_categories?.name || 'Other';
         const ingredientId = ingredient.ingredients?.ingredient_id;
         
-        // Skip if no ingredient_id (not properly matched)
-        if (!ingredientId) {
-          console.log('Skipping ingredient without ingredient_id:', ingredient);
-          return;
-        }
+        // Get amount and unit from the original ingredient row
+        const originalAmount = parseFloat(ingredient.user_recipe_ingredients?.amount) || 0;
+        const unit = ingredient.user_recipe_ingredients?.unit || 'count';
         
-        const key = `${ingredientId}`;
+        // Scale the amount
+        const scaledAmount = originalAmount * scaleFactor;
+        
+        // For ingredients without matched ingredient_id, use raw name as key
+        const key = ingredientId 
+          ? `${ingredientId}-${unit}`
+          : `raw-${ingredientName}-${unit}`;
         
         if (ingredientMap.has(key)) {
-          ingredientMap.get(key).quantity += 1 * scaleFactor; // Each ingredient counts as 1 unit
+          ingredientMap.get(key).quantity += scaledAmount;
         } else {
           ingredientMap.set(key, {
-            ingredient_id: ingredientId,
+            ingredient_id: ingredientId || null,
             ingredient_name: ingredientName,
-            quantity: 1 * scaleFactor,
-            unit: 'count',
+            quantity: scaledAmount || 0,
+            unit: unit,
             category_name: categoryName
           });
         }

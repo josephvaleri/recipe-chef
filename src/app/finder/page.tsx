@@ -158,13 +158,21 @@ export default function RecipeFinderPage() {
           break
         }
 
-        if (batchData && batchData.length > 0) {
-          allIngredients = [...allIngredients, ...batchData]
-          from += batchSize
-          hasMore = batchData.length === batchSize
-        } else {
-          hasMore = false
-        }
+      if (batchData && batchData.length > 0) {
+        // Filter out any null or invalid ingredients
+        const validIngredients = batchData.filter(ing => 
+          ing && 
+          ing.ingredient_id && 
+          ing.name && 
+          ing.category_id !== null && 
+          ing.category_id !== undefined
+        )
+        allIngredients = [...allIngredients, ...validIngredients]
+        from += batchSize
+        hasMore = batchData.length === batchSize
+      } else {
+        hasMore = false
+      }
       }
 
       console.log(`Loaded ${allIngredients.length} ingredients total`)
@@ -211,7 +219,7 @@ export default function RecipeFinderPage() {
     // Use a more efficient matching approach
     ingredientNames.forEach(searchName => {
       const foundIngredients = ingredients.filter(ingredient => {
-        if (!ingredient || !ingredient.name) return false
+        if (!ingredient || !ingredient.name || !ingredient.category_id || !ingredient.ingredient_id) return false
         const ingredientName = ingredient.name.toLowerCase()
         return ingredientName.includes(searchName) || searchName.includes(ingredientName)
       })
@@ -548,18 +556,77 @@ export default function RecipeFinderPage() {
         return
       }
 
-      // Copy ingredients
-      if (recipe.ingredients && recipe.ingredients.length > 0) {
-        const ingredients = recipe.ingredients.map((ing: any) => ({
-          user_recipe_id: userRecipe.user_recipe_id,
-          ingredient_id: ing.ingredient?.ingredient_id || ing.ingredient_id,
-          amount: ing.amount,
-          unit: ing.unit
-        }))
+      // Copy ingredients from global_recipe_ingredients
+      const { data: globalIngredients } = await supabase
+        .from('global_recipe_ingredients')
+        .select(`
+          id,
+          amount,
+          unit,
+          ingredients!inner(ingredient_id, name)
+        `)
+        .eq('recipe_id', recipeId)
 
-        await supabase
+      if (globalIngredients && globalIngredients.length > 0) {
+        // Create a map to track global_ingredient_id → user_ingredient_id
+        const ingredientIdMap = new Map()
+        
+        // Insert ingredients and get their new IDs
+        const { data: insertedIngredients, error: ingredientsError } = await supabase
           .from('user_recipe_ingredients')
-          .insert(ingredients)
+          .insert(
+            globalIngredients.map((ing: any) => ({
+              user_recipe_id: userRecipe.user_recipe_id,
+              raw_name: ing.ingredients.name, // Store as raw_name for consistency
+              amount: ing.amount,
+              unit: ing.unit
+            }))
+          )
+          .select('id')
+
+        if (ingredientsError) {
+          console.error('Error copying ingredients:', ingredientsError)
+        } else {
+          // Map global IDs to new user IDs
+          globalIngredients.forEach((globalIng: any, index: number) => {
+            if (insertedIngredients && insertedIngredients[index]) {
+              ingredientIdMap.set(globalIng.id, insertedIngredients[index].id)
+            }
+          })
+
+          // Copy detail records from global_recipe_ingredients_detail
+          const { data: globalDetails } = await supabase
+            .from('global_recipe_ingredients_detail')
+            .select('*')
+            .eq('recipe_id', recipeId)
+
+          if (globalDetails && globalDetails.length > 0) {
+            const userDetails = globalDetails
+              .filter((detail: any) => detail.global_recipe_ingredient_id) // Only copy if FK exists
+              .map((detail: any) => ({
+                user_recipe_id: userRecipe.user_recipe_id,
+                user_recipe_ingredient_id: ingredientIdMap.get(detail.global_recipe_ingredient_id), // Map FK!
+                ingredient_id: detail.ingredient_id,
+                original_text: detail.original_text,
+                matched_term: detail.matched_term,
+                match_type: detail.match_type,
+                matched_alias: detail.matched_alias
+              }))
+              .filter((detail: any) => detail.user_recipe_ingredient_id) // Only insert if mapping succeeded
+
+            if (userDetails.length > 0) {
+              const { error: detailsError } = await supabase
+                .from('user_recipe_ingredients_detail')
+                .insert(userDetails)
+
+              if (detailsError) {
+                console.error('Error copying detail records:', detailsError)
+              } else {
+                console.log(`Copied ${userDetails.length} detail records with FK preserved`)
+              }
+            }
+          }
+        }
       }
 
       // Copy steps
@@ -623,7 +690,12 @@ export default function RecipeFinderPage() {
   }
 
   const getIngredientsByCategory = (categoryId: number) => {
-    return ingredients.filter(ing => ing && ing.category_id === categoryId)
+    return ingredients.filter(ing => {
+      return ing && 
+             ing.category_id !== null && 
+             ing.category_id !== undefined && 
+             ing.category_id === categoryId
+    })
   }
 
   const toggleCategory = (category: string) => {

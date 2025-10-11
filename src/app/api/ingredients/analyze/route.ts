@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Get the raw ingredients from user_recipe_ingredients
     const { data: rawIngredients, error: rawError } = await supabase
       .from('user_recipe_ingredients')
-      .select('raw_name, amount, unit')
+      .select('id, raw_name, amount, unit')
       .eq('user_recipe_id', user_recipe_id)
 
     if (rawError) {
@@ -69,10 +69,76 @@ export async function POST(request: NextRequest) {
 
       // Clean the raw name - remove common descriptors
       const cleanRawName = rawName
-        .replace(/\b\d+\b/g, '') // Remove numbers
-        .replace(/\b(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|g|gram|grams|kg|kilogram|kilograms|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|diced|chopped|peeled|minced|sliced|grated|shredded|crushed|whole|large|medium|small|fresh|dried|frozen|canned|organic|raw|cooked|roasted|grilled|fried|boiled|steamed)\b/g, '')
-        .replace(/[,\-&]/g, ' ') // Replace commas, dashes, ampersands with spaces
-        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        // Remove measurements and numbers
+        .replace(/\b\d+([/-]\d+)?(\s*(inch|inches|cm|centimeter|centimeters|mm))?\b/g, '')
+        
+        // Remove volume units
+        .replace(/\b(cup|cups|c|tablespoon|tablespoons|tbsp|tbs|tb|teaspoon|teaspoons|tsp|ts|fluid\s*ounce|fluid\s*ounces|fl\.?\s*oz|pint|pints|pt|quart|quarts|qt|gallon|gallons|gal|milliliter|milliliters|millilitre|millilitres|ml|liter|liters|litre|litres|l|deciliter|deciliters|dl)\b/gi, '')
+        
+        // Remove weight units
+        .replace(/\b(pound|pounds|lb|lbs|ounce|ounces|oz|gram|grams|gramme|grammes|g|kilogram|kilograms|kg|milligram|milligrams|mg)\b/gi, '')
+        
+        // Remove portion/count units
+        .replace(/\b(clove|cloves|stalk|stalks|stick|sticks|piece|pieces|chunk|chunks|strip|strips|wedge|wedges|slice|slices|head|heads|bunch|bunches|sprig|sprigs|leaf|leaves|bulb|bulbs|can|cans|jar|jars|package|packages|pkg|box|boxes|bag|bags|container|containers)\b/gi, '')
+        
+        // Remove cutting/prep styles
+        .replace(/\b(diced|chopped|peeled|minced|sliced|grated|shredded|crushed|mashed|pureed|ground|crumbled|julienned|ribboned|cubed|halved|quartered|sectioned|segmented|torn|broken)\b/gi, '')
+        
+        // Remove cutting instructions
+        .replace(/\b(cut|cutting|slice|slicing|chop|chopping|dice|dicing|mince|mincing|into|in|to|about|approximately)\b/gi, '')
+        
+        // Remove prep actions
+        .replace(/\b(washed|rinsed|cleaned|scrubbed|dried|drained|patted|trimmed|deveined|deseeded|pitted|cored|stemmed|husked|shucked|picked|sorted)\b/gi, '')
+        
+        // Remove cooking states
+        .replace(/\b(fresh|freshly|dried|frozen|defrosted|thawed|bottled|packaged|jarred|smoked|cured|aged)\b/gi, '')
+        
+        // Remove cooking methods
+        .replace(/\b(raw|cooked|uncooked|precooked|blanched|parboiled|steamed|boiled|simmered|poached|roasted|baked|grilled|broiled|fried|sauteed|sautéed|pan-fried|deep-fried|stir-fried|braised|stewed|caramelized)\b/gi, '')
+        
+        // Remove quality/source descriptors
+        .replace(/\b(organic|non-organic|natural|wild|farm-raised|free-range|grass-fed|hormone-free|antibiotic-free|gmo-free|non-gmo|gluten-free|low-sodium|no-salt|unsalted|salted|sweetened|unsweetened|sugar-free)\b/gi, '')
+        
+        // Remove temperature/texture descriptors
+        .replace(/\b(cold|hot|warm|room\s*temperature|chilled|refrigerated|softened|melted|hardened|firm|soft|tender|crisp|crispy|crunchy)\b/gi, '')
+        
+        // Remove adverbs and intensifiers
+        .replace(/\b(very|extra|super|ultra|lightly|slightly|moderately|highly|well|thoroughly|completely|fully|partly|partially|finely|coarsely|roughly|thinly|thickly)\b/gi, '')
+        
+        // Remove size descriptors
+        .replace(/\b(large|medium|small|mini|baby|jumbo|giant|extra-large|x-large|xl|extra-small|x-small|xs|bite-sized|bite-size)\b/gi, '')
+        
+        // Remove color descriptors (for produce)
+        .replace(/\b(red|green|yellow|orange|purple|white|black|brown|golden|dark|light|pale)\b/gi, '')
+        
+        // Remove ripeness/age descriptors
+        .replace(/\b(ripe|unripe|overripe|mature|young|new|old|aged|day-old)\b/gi, '')
+        
+        // Remove origin/variety descriptors (common ones)
+        .replace(/\b(italian|french|spanish|mexican|asian|chinese|japanese|thai|indian|greek|mediterranean|english|american)\b/gi, '')
+        
+        // Remove "parts" language
+        .replace(/\b(top|bottom|end|ends|tip|tips|root|roots|skin|peel|flesh|meat|bone|bones|boneless|skinless|seedless)\b/gi, '')
+        
+        // Remove optional/preference words
+        .replace(/\b(optional|to\s*taste|as\s*needed|for\s*serving|for\s*garnish|if\s*desired|preferably|ideally)\b/gi, '')
+        
+        // Remove conjunctions and articles
+        .replace(/\b(and|or|with|without|plus|a|an|the|of|from|for|on|at|by)\b/gi, '')
+        
+        // Remove parenthetical content (often contains alternatives or notes)
+        .replace(/\([^)]*\)/g, '')
+        
+        // Remove bracket content
+        .replace(/\[[^\]]*\]/g, '')
+        
+        // Replace punctuation with spaces
+        .replace(/[,\-–—&/]/g, ' ')
+        
+        // Collapse multiple spaces into one
+        .replace(/\s+/g, ' ')
+        
+        // Final trim
         .trim()
 
       // Try to find exact match first
@@ -136,6 +202,7 @@ export async function POST(request: NextRequest) {
       if (bestMatch && bestScore > 0.5) {
         matchedIngredients.push({
           user_recipe_id,
+          user_recipe_ingredient_id: rawIngredient.id,
           ingredient_id: bestMatch.ingredient_id,
           original_text: rawIngredient.raw_name,
           matched_term: bestMatch.name,
