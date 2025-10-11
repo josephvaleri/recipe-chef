@@ -1,17 +1,16 @@
-// PHASE 2: Add admin protection
-// To activate: Rename this to middleware.ts (backup current one first)
-
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
+  // Create response object
   let response = NextResponse.next({
     request: {
       headers: req.headers,
     },
   })
 
+  // Create Supabase client for middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -58,47 +57,25 @@ export async function middleware(req: NextRequest) {
     }
   )
 
+  // Get session
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Protected user routes
+  // PHASE 1: Protect basic user routes (not admin yet)
   const protectedRoutes = ['/cookbook', '/calendar', '/shopping-list', '/profile', '/add', '/recipe']
   const isProtectedRoute = protectedRoutes.some(route => req.nextUrl.pathname.startsWith(route))
 
   if (isProtectedRoute && !session) {
+    // Redirect to sign in
     const redirectUrl = new URL('/auth/signin', req.url)
+    // Add return URL so user can go back after login
     redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
     return NextResponse.redirect(redirectUrl)
-  }
-
-  // PHASE 2: Admin route protection
-  if (req.nextUrl.pathname.startsWith('/admin')) {
-    if (!session) {
-      return NextResponse.redirect(new URL('/auth/signin', req.url))
-    }
-
-    // Check admin role
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('user_id', session.user.id)
-        .single()
-
-      if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator')) {
-        // Not authorized - redirect to home
-        return NextResponse.redirect(new URL('/', req.url))
-      }
-    } catch (error) {
-      console.error('Error checking admin role:', error)
-      // On error, deny access
-      return NextResponse.redirect(new URL('/', req.url))
-    }
   }
 
   return response
 }
 
-// PHASE 2: Include admin routes
+// PHASE 1: Only protect user routes, exclude admin for now
 export const config = {
   matcher: [
     '/cookbook/:path*',
@@ -106,8 +83,7 @@ export const config = {
     '/shopping-list/:path*',
     '/profile/:path*',
     '/add/:path*',
-    '/recipe/:path*',
-    '/admin/:path*'  // PHASE 2: Added
+    '/recipe/:path*'
   ]
 }
 
