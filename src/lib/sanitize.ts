@@ -27,8 +27,7 @@ export function sanitizeHTML(html: string | null | undefined): string {
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'blockquote', 'pre', 'code'
     ],
-    ALLOWED_ATTR: ['class', 'style'], // Minimal attributes
-    ALLOWED_STYLES: {}, // No inline styles allowed
+    ALLOWED_ATTR: ['class'], // Minimal attributes (removed style for security)
     KEEP_CONTENT: true, // Keep text content even if tags are removed
   });
 }
