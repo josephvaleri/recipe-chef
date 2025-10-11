@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">RecipeChef</string>
+    <string name="title_activity_main">RecipeChef</string>
+    <string name="package_name">com.recipechef.app</string>
+    <string name="custom_url_scheme">com.recipechef.app</string>
+</resources>
