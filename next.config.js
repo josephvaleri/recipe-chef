@@ -38,6 +38,8 @@ const withPWA = require('next-pwa')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Remove X-Powered-By header for security
+  poweredByHeader: false,
   experimental: {
     turbo: {
       rules: {
