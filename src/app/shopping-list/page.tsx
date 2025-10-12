@@ -250,6 +250,9 @@ function ShoppingListPageContent() {
       
       const totalItems = Object.values(grouped).flat().length;
       
+      // Calculate end date from start date and number of days
+      const endDate = new Date(new Date(params.start).getTime() + params.days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
       // Log badge event for shopping list generation
       try {
         const result = await logEventAndAward(
