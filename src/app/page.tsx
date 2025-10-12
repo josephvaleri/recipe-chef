@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus, Trophy } from 'lucide-react'
+import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus, Trophy, ShoppingCart, Globe, Award, List, Link, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { TrialBanner } from '@/components/trial-banner'
@@ -121,20 +121,29 @@ export default function Home() {
           <div className="max-w-6xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-orange-900 mb-2">
+              <h1 className="text-4xl md:text-5xl font-bold text-orange-900 mb-3">
                 Recipe Chef
               </h1>
-              <p className="text-orange-700 text-lg">
-                Your personal cooking assistant, ready to help with any recipe
+              <p className="text-orange-700 text-xl mb-2">
+                Your Complete Culinary Companion
+              </p>
+              <p className="text-orange-600 text-lg">
+                Discover, organize, and master recipes from around the world
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
               {/* Left Column: Chef Tony */}
               <div className="flex flex-col space-y-6">
                 <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
                   <div className="text-center">
                     <ChefOuiOui className="mx-auto" />
+                    <p className="mt-4 text-orange-700 italic font-semibold">
+                      "Meet Chef Tony, your personal guide to culinary excellence!"
+                    </p>
+                    <p className="mt-2 text-orange-600 text-sm">
+                      Culinary Institute of America Graduate
+                    </p>
                   </div>
                 </Card>
               </div>
@@ -144,10 +153,10 @@ export default function Home() {
                 <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 h-full">
                   <div className="text-center mb-6">
                     <h2 className="text-2xl font-bold text-orange-900 mb-2">
-                      Get Started with Recipe Chef
+                      Start Your Culinary Journey
                     </h2>
                     <p className="text-orange-700">
-                      Sign up for your free trial and start organizing your recipes
+                      Join Recipe Chef and unlock a world of flavors
                     </p>
                   </div>
 
@@ -172,17 +181,219 @@ export default function Home() {
                     </Button>
                   </div>
 
-                  <div className="mt-6 p-4 bg-orange-50 rounded-lg">
-                    <h3 className="font-semibold text-orange-900 mb-2">What you get:</h3>
-                    <ul className="text-sm text-orange-700 space-y-1">
-                      <li>• Unlimited recipe storage</li>
-                      <li>• AI-powered recipe search</li>
-                      <li>• Meal planning calendar</li>
-                      <li>• Shopping list generation</li>
+                  <div className="mt-6 p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border-2 border-orange-200">
+                    <h3 className="font-bold text-orange-900 mb-3 text-center">🎉 Everything You Need:</h3>
+                    <ul className="text-sm text-orange-700 space-y-2">
+                      <li className="flex items-start">
+                        <Globe className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>600+ Global Recipes</strong> - Curated by a CIA graduate chef</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Link className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Import from Websites</strong> - Add recipes in seconds</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Upload className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Paprika Import</strong> - Easy migration from Paprika</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Search className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Recipe Finder</strong> - Search by ingredients you have</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Calendar className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Meal Calendar</strong> - Plan your week effortlessly</span>
+                      </li>
+                      <li className="flex items-start">
+                        <ShoppingCart className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Auto Shopping Lists</strong> - From your meal plans</span>
+                      </li>
+                      <li className="flex items-start">
+                        <Award className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Awards & Badges</strong> - Track your culinary journey</span>
+                      </li>
+                      <li className="flex items-start">
+                        <BookOpen className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-orange-600" />
+                        <span><strong>Personal Cookbook</strong> - Unlimited recipe storage</span>
+                      </li>
                     </ul>
                   </div>
                 </Card>
               </div>
+            </div>
+
+            {/* Feature Highlights Section */}
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-orange-900 text-center mb-8">
+                Powerful Features to Elevate Your Cooking
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center mb-4">
+                        <Link className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Import from Any Website</h3>
+                      <p className="text-gray-700">
+                        Found a great recipe online? Import it to Recipe Chef in seconds! Just paste the URL and we'll extract all the details automatically. No more copy-pasting or retyping!
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-400 to-indigo-500 rounded-full flex items-center justify-center mb-4">
+                        <Upload className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Easy Paprika Migration</h3>
+                      <p className="text-gray-700">
+                        Moving from Paprika? We make it simple! Import all your existing recipes with ease. Your entire collection transfers smoothly, keeping all your favorite recipes intact.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center mb-4">
+                        <Search className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Recipe Finder</h3>
+                      <p className="text-gray-700">
+                        Select ingredients from your pantry and instantly discover delicious recipes you can make right now. No more "what's for dinner?" stress!
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center mb-4">
+                        <Globe className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Global Cookbook by CIA Graduate</h3>
+                      <p className="text-gray-700">
+                        Access over 600 professionally curated recipes from every corner of the world by Culinary Institute of America graduate Chef Tony. From Italian pasta to Thai curries, explore endless culinary possibilities.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center mb-4">
+                        <Calendar className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Meal Planning Made Easy</h3>
+                      <p className="text-gray-700">
+                        Drag and drop recipes into your weekly calendar. Automatically generate shopping lists for your planned meals. Cooking has never been this organized!
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-4">
+                        <ShoppingCart className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Shopping Lists</h3>
+                      <p className="text-gray-700">
+                        Generate comprehensive shopping lists from your meal plans. Ingredients are automatically organized by category for efficient grocery shopping.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center mb-4">
+                        <Award className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Earn Badges & Awards</h3>
+                      <p className="text-gray-700">
+                        Track your culinary progress with achievements and badges. From "First Recipe" to "Master Chef," celebrate every milestone in your cooking journey!
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-red-500 rounded-full flex items-center justify-center mb-4">
+                        <BookOpen className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Your Personal Cookbook</h3>
+                      <p className="text-gray-700">
+                        Import recipes from any website, create your own, or save favorites from our global collection. Build your perfect digital cookbook, accessible anywhere.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* CTA Section */}
+            <div className="text-center">
+              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 border-0">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold text-white mb-4">
+                    Ready to Transform Your Cooking?
+                  </h2>
+                  <p className="text-orange-100 text-lg mb-6">
+                    Join thousands of home cooks discovering the joy of organized, stress-free meal planning
+                  </p>
+                  <Button
+                    onClick={() => router.push('/auth/signup')}
+                    size="lg"
+                    className="bg-white text-orange-600 hover:bg-orange-50 text-lg px-8 py-6"
+                  >
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    Start Your Free Trial Today
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
