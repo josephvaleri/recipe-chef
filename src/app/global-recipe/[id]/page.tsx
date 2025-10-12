@@ -770,19 +770,27 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                     scaledIngredients.map((ingredient, index) => {
                       // Check if we have raw_name (most common for global recipes)
                       if ((ingredient as any).raw_name) {
-                        // Use raw_name if available - this is the complete ingredient text
-                        const displayText = [
-                          ingredient.scaled_amount,
-                          ingredient.unit,
-                          (ingredient as any).raw_name
-                        ].filter(Boolean).join(' ')
+                        // Split raw_name by newlines to handle multi-line ingredients
+                        const lines = (ingredient as any).raw_name
+                          .split(/\r?\n/)
+                          .map((line: string) => line.trim())
+                          .filter((line: string) => line.length > 0)
                         
-                        return (
-                          <div key={index} className="flex items-center text-orange-800">
-                            <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
-                            <span>{displayText}</span>
-                          </div>
-                        )
+                        // Return multiple divs for each line
+                        return lines.map((line: string, lineIndex: number) => {
+                          const displayText = [
+                            ingredient.scaled_amount,
+                            ingredient.unit,
+                            line
+                          ].filter(Boolean).join(' ')
+                          
+                          return (
+                            <div key={`${index}-${lineIndex}`} className="flex items-center text-orange-800">
+                              <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
+                              <span>{displayText}</span>
+                            </div>
+                          )
+                        })
                       } else if (ingredient.amount || ingredient.unit || ingredient.ingredient?.name) {
                         // Fallback to structured display if no raw_name
                         const displayText = [
