@@ -260,7 +260,7 @@ function ShoppingListPageContent() {
           {
             from_date: params.start,
             to_date: endDate,
-            recipe_count: mealPlanData.length,
+            recipe_count: mealPlans?.length || 0,
             item_count: totalItems
           }
         );
