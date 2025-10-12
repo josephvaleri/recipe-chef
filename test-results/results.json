@@ -1,0 +1,300 @@
+{
+  "config": {
+    "configFile": "/Users/josephvaleri/recipe-chef/playwright.config.ts",
+    "rootDir": "/Users/josephvaleri/recipe-chef/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "test-results/html"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/josephvaleri/recipe-chef/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/josephvaleri/recipe-chef/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "trial-user-navigation.spec.ts",
+      "file": "trial-user-navigation.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Trial User - Complete App Navigation",
+          "file": "trial-user-navigation.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Trial User Flow: Sign up and navigate through all pages",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7338,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: \u001b[32m/Recipe Chef/\u001b[39m\nReceived string:  \u001b[31m\"\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"\"\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: \u001b[32m/Recipe Chef/\u001b[39m\nReceived string:  \u001b[31m\"\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"\"\u001b[22m\n\n    at /Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts:25:24",
+                        "location": {
+                          "file": "/Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts",
+                          "column": 24,
+                          "line": 25
+                        },
+                        "snippet": "  23 |     console.log('STEP 1: Signing up...');\n  24 |     await page.goto('/auth/signup');\n> 25 |     await expect(page).toHaveTitle(/Recipe Chef/);\n     |                        ^\n  26 |     \n  27 |     // Fill in sign up form\n  28 |     await page.fill('input[name=\"fullName\"]', 'Trial Test User');"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts",
+                            "column": 24,
+                            "line": 25
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mpage\u001b[39m\u001b[2m).\u001b[22mtoHaveTitle\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nExpected pattern: \u001b[32m/Recipe Chef/\u001b[39m\nReceived string:  \u001b[31m\"\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveTitle\" with timeout 5000ms\u001b[22m\n\u001b[2m    9 × unexpected value \"\"\u001b[22m\n\n\n  23 |     console.log('STEP 1: Signing up...');\n  24 |     await page.goto('/auth/signup');\n> 25 |     await expect(page).toHaveTitle(/Recipe Chef/);\n     |                        ^\n  26 |     \n  27 |     // Fill in sign up form\n  28 |     await page.fill('input[name=\"fullName\"]', 'Trial Test User');\n    at /Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts:25:24"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "STEP 1: Signing up...\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-12T16:35:35.861Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-8257a--navigate-through-all-pages-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-8257a--navigate-through-all-pages-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-8257a--navigate-through-all-pages-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-8257a--navigate-through-all-pages-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts",
+                        "column": 24,
+                        "line": 25
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "855c97373acd6d755386-8debb4b802c6ec9c69ff",
+              "file": "trial-user-navigation.spec.ts",
+              "line": 13,
+              "column": 7
+            },
+            {
+              "title": "Verify Trial User cannot access Admin pages",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1244,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "Testing admin page restriction...\n"
+                        },
+                        {
+                          "text": "✓ Trial user correctly redirected away from admin page\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-12T16:35:46.134Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "855c97373acd6d755386-73d6459140e0a0f859ff",
+              "file": "trial-user-navigation.spec.ts",
+              "line": 185,
+              "column": 7
+            },
+            {
+              "title": "Verify navigation menu is accessible",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 1166,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at /Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts:213:25",
+                        "location": {
+                          "file": "/Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts",
+                          "column": 25,
+                          "line": 213
+                        },
+                        "snippet": "  211 |     // Check for key navigation links\n  212 |     const hasNavLinks = await page.locator('a[href*=\"/cookbook\"], a[href*=\"/finder\"], a[href*=\"/calendar\"]').count() > 0;\n> 213 |     expect(hasNavLinks).toBe(true);\n      |                         ^\n  214 |     \n  215 |     console.log('✓ Navigation menu is accessible');\n  216 |   });"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts",
+                            "column": 25,
+                            "line": 213
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  211 |     // Check for key navigation links\n  212 |     const hasNavLinks = await page.locator('a[href*=\"/cookbook\"], a[href*=\"/finder\"], a[href*=\"/calendar\"]').count() > 0;\n> 213 |     expect(hasNavLinks).toBe(true);\n      |                         ^\n  214 |     \n  215 |     console.log('✓ Navigation menu is accessible');\n  216 |   });\n    at /Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts:213:25"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "Testing navigation menu...\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-10-12T16:35:47.497Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-36c1c-vigation-menu-is-accessible-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-36c1c-vigation-menu-is-accessible-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-36c1c-vigation-menu-is-accessible-chromium/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/Users/josephvaleri/recipe-chef/test-results/trial-user-navigation-Tria-36c1c-vigation-menu-is-accessible-chromium/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/Users/josephvaleri/recipe-chef/tests/trial-user-navigation.spec.ts",
+                        "column": 25,
+                        "line": 213
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "855c97373acd6d755386-bf5af20328cf19bf8a7e",
+              "file": "trial-user-navigation.spec.ts",
+              "line": 202,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2025-10-12T16:35:35.411Z",
+    "duration": 13331.21,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}
