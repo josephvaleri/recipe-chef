@@ -903,16 +903,33 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
               <CardContent>
                 <ul className="space-y-2">
                   {recipe.ingredients.map((ingredient, index) => {
-                    const fullText = `${ingredient.amount ? scaleAmount(ingredient.amount, scaleFactor) : ''}${ingredient.unit ? ` ${ingredient.unit}` : ''} ${ingredient.raw_name || ingredient.ingredient?.name || ''}`.trim()
+                    // Get the ingredient name/text (could be multi-line)
+                    const ingredientText = ingredient.raw_name || ingredient.ingredient?.name || ''
                     
-                    // Split by line breaks and create separate list items for each line
-                    const lines = fullText.split('\n').filter(line => line.trim())
+                    // Split by line breaks first to handle multi-line ingredients
+                    // Handle \r\n (Windows), \n (Unix), and \r (Mac/old data)
+                    const lines = ingredientText
+                      .split(/\r\n|\r|\n/)
+                      .map(line => line.trim())
+                      .filter(line => line.length > 0)
+                    
+                    // Only add amount/unit to the first line if it exists
+                    if (lines.length > 0 && (ingredient.amount || ingredient.unit)) {
+                      const amountUnit = [
+                        ingredient.amount ? scaleAmount(ingredient.amount, scaleFactor) : '',
+                        ingredient.unit || ''
+                      ].filter(Boolean).join(' ').trim()
+                      
+                      if (amountUnit) {
+                        lines[0] = `${amountUnit} ${lines[0]}`.trim()
+                      }
+                    }
                     
                     return lines.map((line, lineIndex) => (
                       <li key={`${index}-${lineIndex}`} className="flex items-start space-x-3">
                         <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
                         <div className="flex-1">
-                          <span className="text-gray-900">{line.trim()}</span>
+                          <span className="text-gray-900">{line}</span>
                         </div>
                       </li>
                     ))

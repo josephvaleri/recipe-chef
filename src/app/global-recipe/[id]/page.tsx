@@ -471,7 +471,8 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
           amount,
           unit,
           ingredient_id,
-          ingredients!inner(ingredient_id, name)
+          raw_name,
+          ingredients(ingredient_id, name)
         `)
         .eq('recipe_id', recipe.recipe_id)
 
@@ -483,11 +484,13 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
         const ingredientsToInsert = globalIngredients.map(ing => ({
           user_recipe_id: userRecipe.user_recipe_id,
           ingredient_id: ing.ingredient_id,
-          raw_name: (ing as any).ingredients?.name || 'Unknown',
+          raw_name: (ing as any).raw_name || (ing as any).ingredients?.name || 'Unknown',
           amount: ing.amount,
           unit: ing.unit
         }))
 
+        console.log(`Copying ${ingredientsToInsert.length} ingredients from global recipe`)
+        
         const { data: insertedIngredients, error: ingredientsError } = await supabase
           .from('user_recipe_ingredients')
           .insert(ingredientsToInsert)
@@ -496,25 +499,37 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
         if (ingredientsError) {
           console.error('Error copying ingredients:', ingredientsError)
         } else if (insertedIngredients) {
+          console.log(`Successfully inserted ${insertedIngredients.length} ingredients`)
           // Map global ingredient IDs to new user ingredient IDs
           globalIngredients.forEach((globalIng, index) => {
             if (insertedIngredients[index]) {
               ingredientIdMap.set(globalIng.id, insertedIngredients[index].id)
             }
           })
+          console.log(`Created ingredient ID map with ${ingredientIdMap.size} entries`)
         }
 
         // Copy detailed ingredient analysis
-        const { data: globalDetails } = await supabase
+        const { data: globalDetails, error: detailsQueryError } = await supabase
           .from('global_recipe_ingredients_detail')
           .select('*')
           .eq('recipe_id', recipe.recipe_id)
 
+        if (detailsQueryError) {
+          console.error('Error querying global ingredient details:', detailsQueryError)
+        }
+
         if (globalDetails && globalDetails.length > 0) {
+          console.log(`Found ${globalDetails.length} detailed ingredients to copy`)
+          console.log('Ingredient ID map:', ingredientIdMap)
+          
           const detailsToInsert = globalDetails
             .map(detail => {
               const userIngredientId = ingredientIdMap.get(detail.global_recipe_ingredient_id)
-              if (!userIngredientId) return null
+              if (!userIngredientId) {
+                console.warn(`Could not find user ingredient ID for global ingredient ${detail.global_recipe_ingredient_id}`)
+                return null
+              }
 
               return {
                 user_recipe_id: userRecipe.user_recipe_id,
@@ -527,11 +542,21 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
             })
             .filter(Boolean)
 
+          console.log(`Inserting ${detailsToInsert.length} detailed ingredients`)
+          
           if (detailsToInsert.length > 0) {
-            await supabase
+            const { error: detailsInsertError } = await supabase
               .from('user_recipe_ingredients_detail')
               .insert(detailsToInsert)
+            
+            if (detailsInsertError) {
+              console.error('Error inserting detailed ingredients:', detailsInsertError)
+            } else {
+              console.log('Successfully copied detailed ingredients')
+            }
           }
+        } else {
+          console.log('No detailed ingredients found for this recipe')
         }
       }
 
@@ -771,23 +796,30 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                       // Check if we have raw_name (most common for global recipes)
                       if ((ingredient as any).raw_name) {
                         // Split raw_name by newlines to handle multi-line ingredients
+                        // Handle \r\n (Windows), \n (Unix), and \r (Mac/old data)
                         const lines = (ingredient as any).raw_name
-                          .split(/\r?\n/)
+                          .split(/\r\n|\r|\n/)
                           .map((line: string) => line.trim())
                           .filter((line: string) => line.length > 0)
                         
+                        // Only add amount/unit to the first line if it exists
+                        if (lines.length > 0 && (ingredient.amount || ingredient.unit)) {
+                          const amountUnit = [
+                            ingredient.scaled_amount,
+                            ingredient.unit
+                          ].filter(Boolean).join(' ').trim()
+                          
+                          if (amountUnit) {
+                            lines[0] = `${amountUnit} ${lines[0]}`.trim()
+                          }
+                        }
+                        
                         // Return multiple divs for each line
                         return lines.map((line: string, lineIndex: number) => {
-                          const displayText = [
-                            ingredient.scaled_amount,
-                            ingredient.unit,
-                            line
-                          ].filter(Boolean).join(' ')
-                          
                           return (
                             <div key={`${index}-${lineIndex}`} className="flex items-center text-orange-800">
                               <CheckCircle className="w-4 h-4 mr-3 text-green-600 flex-shrink-0" />
-                              <span>{displayText}</span>
+                              <span>{line}</span>
                             </div>
                           )
                         })
