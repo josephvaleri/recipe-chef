@@ -88,6 +88,14 @@ export default function RecipeFinderPage() {
     dairy: true,
     spices: true
   })
+  const [showAllIngredients, setShowAllIngredients] = useState<Record<string, boolean>>({
+    proteins: false,
+    vegetables: false,
+    fruits: false,
+    grains: false,
+    dairy: false,
+    spices: false
+  })
   const router = useRouter()
 
   useEffect(() => {
@@ -137,43 +145,27 @@ export default function RecipeFinderPage() {
         .select('*')
         .order('name')
 
-      // Load ingredients by category - use pagination to get all ingredients
-      let allIngredients: any[] = []
-      let from = 0
-      const batchSize = 1000
-      let hasMore = true
-
-      while (hasMore) {
-        const { data: batchData, error } = await supabase
-          .from('ingredients')
-          .select(`
-            *,
-            category:ingredient_categories(name)
-          `)
-          .order('name')
-          .range(from, from + batchSize - 1)
-
-        if (error) {
-          console.error('Error loading ingredients batch:', error)
-          break
-        }
-
-      if (batchData && batchData.length > 0) {
-        // Filter out any null or invalid ingredients
-        const validIngredients = batchData.filter(ing => 
-          ing && 
-          ing.ingredient_id && 
-          ing.name && 
-          ing.category_id !== null && 
-          ing.category_id !== undefined
-        )
-        allIngredients = [...allIngredients, ...validIngredients]
-        from += batchSize
-        hasMore = batchData.length === batchSize
-      } else {
-        hasMore = false
+      // Load all ingredients - simpler and more reliable
+      // Previous optimization attempt caused issues with .in() operator limits
+      const { data: ingredientsData, error: ingredientsError } = await supabase
+        .from('ingredients')
+        .select(`
+          *,
+          category:ingredient_categories(name)
+        `)
+        .order('name')
+      
+      if (ingredientsError) {
+        console.error('Error loading ingredients:', ingredientsError)
       }
-      }
+      
+      const allIngredients = (ingredientsData || []).filter(ing => 
+        ing && 
+        ing.ingredient_id && 
+        ing.name && 
+        ing.category_id !== null && 
+        ing.category_id !== undefined
+      )
 
       console.log(`Loaded ${allIngredients.length} ingredients total`)
 
@@ -704,13 +696,28 @@ export default function RecipeFinderPage() {
     return timeStr.replace('PT', '').replace('H', 'h ').replace('M', 'm').trim()
   }
 
-  const getIngredientsByCategory = (categoryId: number) => {
+  const getIngredientsByCategory = (categoryId: number, categoryKey: string) => {
     return ingredients.filter(ing => {
-      return ing && 
+      const matchesCategory = ing && 
              ing.category_id !== null && 
              ing.category_id !== undefined && 
              ing.category_id === categoryId
+      
+      // If showAllIngredients is true for this category, show all
+      // Otherwise, only show common ingredients
+      if (showAllIngredients[categoryKey]) {
+        return matchesCategory
+      } else {
+        return matchesCategory && ing.common === true
+      }
     })
+  }
+  
+  const toggleShowAllIngredients = (categoryKey: string) => {
+    setShowAllIngredients(prev => ({
+      ...prev,
+      [categoryKey]: !prev[categoryKey]
+    }))
   }
 
   const toggleCategory = (category: string) => {
@@ -828,18 +835,28 @@ export default function RecipeFinderPage() {
                   <div className="grid grid-cols-2 gap-4">
                     {/* Proteins */}
                     <div>
-                      <button
-                        onClick={() => toggleCategory('proteins')}
-                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
-                      >
-                        <span>Proteins ({getIngredientsByCategory(1).length})</span>
-                        <span className="text-xs">
-                          {expandedCategories.proteins ? '▼' : '▶'}
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => toggleCategory('proteins')}
+                          className="flex items-center text-left font-medium text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span>Proteins ({getIngredientsByCategory(1, 'proteins').length})</span>
+                          <span className="text-xs ml-2">
+                            {expandedCategories.proteins ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        <Button
+                          onClick={() => toggleShowAllIngredients('proteins')}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {showAllIngredients.proteins ? 'Common' : 'All'}
+                        </Button>
+                      </div>
                       {expandedCategories.proteins && (
                         <div className="space-y-1 max-h-64 overflow-y-auto">
-                          {getIngredientsByCategory(1).map(ingredient => (
+                          {getIngredientsByCategory(1, 'proteins').map(ingredient => (
                             <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
                               <input
                                 type="checkbox"
@@ -861,18 +878,28 @@ export default function RecipeFinderPage() {
 
                     {/* Vegetables */}
                     <div>
-                      <button
-                        onClick={() => toggleCategory('vegetables')}
-                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
-                      >
-                        <span>Vegetables ({getIngredientsByCategory(2).length})</span>
-                        <span className="text-xs">
-                          {expandedCategories.vegetables ? '▼' : '▶'}
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => toggleCategory('vegetables')}
+                          className="flex items-center text-left font-medium text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span>Vegetables ({getIngredientsByCategory(2, 'vegetables').length})</span>
+                          <span className="text-xs ml-2">
+                            {expandedCategories.vegetables ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        <Button
+                          onClick={() => toggleShowAllIngredients('vegetables')}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {showAllIngredients.vegetables ? 'Common' : 'All'}
+                        </Button>
+                      </div>
                       {expandedCategories.vegetables && (
                         <div className="space-y-1 max-h-64 overflow-y-auto">
-                          {getIngredientsByCategory(2).map(ingredient => (
+                          {getIngredientsByCategory(2, 'vegetables').map(ingredient => (
                             <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
                               <input
                                 type="checkbox"
@@ -894,18 +921,28 @@ export default function RecipeFinderPage() {
 
                     {/* Fruits */}
                     <div>
-                      <button
-                        onClick={() => toggleCategory('fruits')}
-                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
-                      >
-                        <span>Fruits ({getIngredientsByCategory(3).length})</span>
-                        <span className="text-xs">
-                          {expandedCategories.fruits ? '▼' : '▶'}
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => toggleCategory('fruits')}
+                          className="flex items-center text-left font-medium text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span>Fruits ({getIngredientsByCategory(3, 'fruits').length})</span>
+                          <span className="text-xs ml-2">
+                            {expandedCategories.fruits ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        <Button
+                          onClick={() => toggleShowAllIngredients('fruits')}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {showAllIngredients.fruits ? 'Common' : 'All'}
+                        </Button>
+                      </div>
                       {expandedCategories.fruits && (
                         <div className="space-y-1 max-h-64 overflow-y-auto">
-                          {getIngredientsByCategory(3).map(ingredient => (
+                          {getIngredientsByCategory(3, 'fruits').map(ingredient => (
                             <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
                               <input
                                 type="checkbox"
@@ -927,18 +964,28 @@ export default function RecipeFinderPage() {
 
                     {/* Grains */}
                     <div>
-                      <button
-                        onClick={() => toggleCategory('grains')}
-                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
-                      >
-                        <span>Grains ({getIngredientsByCategory(4).length})</span>
-                        <span className="text-xs">
-                          {expandedCategories.grains ? '▼' : '▶'}
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => toggleCategory('grains')}
+                          className="flex items-center text-left font-medium text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span>Grains ({getIngredientsByCategory(4, 'grains').length})</span>
+                          <span className="text-xs ml-2">
+                            {expandedCategories.grains ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        <Button
+                          onClick={() => toggleShowAllIngredients('grains')}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {showAllIngredients.grains ? 'Common' : 'All'}
+                        </Button>
+                      </div>
                       {expandedCategories.grains && (
                         <div className="space-y-1 max-h-64 overflow-y-auto">
-                          {getIngredientsByCategory(4).map(ingredient => (
+                          {getIngredientsByCategory(4, 'grains').map(ingredient => (
                             <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
                               <input
                                 type="checkbox"
@@ -960,18 +1007,28 @@ export default function RecipeFinderPage() {
 
                     {/* Dairy */}
                     <div>
-                      <button
-                        onClick={() => toggleCategory('dairy')}
-                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
-                      >
-                        <span>Dairy ({getIngredientsByCategory(7).length})</span>
-                        <span className="text-xs">
-                          {expandedCategories.dairy ? '▼' : '▶'}
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => toggleCategory('dairy')}
+                          className="flex items-center text-left font-medium text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span>Dairy ({getIngredientsByCategory(7, 'dairy').length})</span>
+                          <span className="text-xs ml-2">
+                            {expandedCategories.dairy ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        <Button
+                          onClick={() => toggleShowAllIngredients('dairy')}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {showAllIngredients.dairy ? 'Common' : 'All'}
+                        </Button>
+                      </div>
                       {expandedCategories.dairy && (
                         <div className="space-y-1 max-h-64 overflow-y-auto">
-                          {getIngredientsByCategory(7).map(ingredient => (
+                          {getIngredientsByCategory(7, 'dairy').map(ingredient => (
                             <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
                               <input
                                 type="checkbox"
@@ -993,18 +1050,28 @@ export default function RecipeFinderPage() {
 
                     {/* Spices */}
                     <div>
-                      <button
-                        onClick={() => toggleCategory('spices')}
-                        className="flex items-center justify-between w-full text-left font-medium text-sm text-gray-700 mb-2 hover:text-gray-900"
-                      >
-                        <span>Spices ({getIngredientsByCategory(6).length})</span>
-                        <span className="text-xs">
-                          {expandedCategories.spices ? '▼' : '▶'}
-                        </span>
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          onClick={() => toggleCategory('spices')}
+                          className="flex items-center text-left font-medium text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <span>Spices ({getIngredientsByCategory(6, 'spices').length})</span>
+                          <span className="text-xs ml-2">
+                            {expandedCategories.spices ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        <Button
+                          onClick={() => toggleShowAllIngredients('spices')}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                        >
+                          {showAllIngredients.spices ? 'Common' : 'All'}
+                        </Button>
+                      </div>
                       {expandedCategories.spices && (
                         <div className="space-y-1 max-h-64 overflow-y-auto">
-                          {getIngredientsByCategory(6).map(ingredient => (
+                          {getIngredientsByCategory(6, 'spices').map(ingredient => (
                             <label key={ingredient.ingredient_id} className="flex items-center space-x-2 text-sm">
                               <input
                                 type="checkbox"
