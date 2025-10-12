@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -11,8 +12,10 @@ if (!supabaseAnonKey) {
   throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
 }
 
-// Client-side Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Client-side Supabase client (SSR compatible for proper cookie handling)
+export const supabase = typeof window !== 'undefined' 
+  ? createBrowserClient(supabaseUrl, supabaseAnonKey)
+  : createClient(supabaseUrl, supabaseAnonKey)
 
 // Server-side admin client (only available in API routes and server components)
 export function createAdminClient() {

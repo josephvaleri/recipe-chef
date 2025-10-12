@@ -2,37 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parsePaprikaFromStream } from '@/lib/paprika';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { NormalizedRecipe } from '@/lib/paprika/types';
+import { parseIngredients as parseIngredientTexts } from '@/lib/parseIngredient';
 
 export const runtime = 'nodejs';
 
 // Helper function to parse complex ingredient lines into individual ingredients
 function parseIngredients(ingredients: string[]): { displayText: string; individualIngredients: Array<{ name: string; amount: string; unit: string }> } {
-  const individualIngredients: Array<{ name: string; amount: string; unit: string }> = [];
-  
   // Join ingredients with line breaks for display
   const displayText = ingredients.join('\n');
   
-  // For now, we'll store each ingredient line as-is for individual ingredients
-  // This ensures we have both the formatted display and individual entries
-  ingredients.forEach(ingredientLine => {
-    // Try to extract amount, unit, and name from each line
-    const match = ingredientLine.match(/^(\d+(?:\.\d+)?(?:\/\d+)?)\s*([a-zA-Z]+)?\s*(.+)$/);
-    if (match) {
-      const [, amount, unit, name] = match;
-      individualIngredients.push({
-        name: name.trim(),
-        amount: amount.trim(),
-        unit: (unit || '').trim()
-      });
-    } else {
-      // If no amount/unit pattern, treat as name only
-      individualIngredients.push({
-        name: ingredientLine.trim(),
-        amount: '',
-        unit: ''
-      });
-    }
-  });
+  // Use the shared ingredient parser for consistent parsing
+  const parsedIngredients = parseIngredientTexts(ingredients);
+  
+  const individualIngredients = parsedIngredients.map(parsed => ({
+    name: parsed.name || parsed.original,
+    amount: parsed.amount,
+    unit: parsed.unit
+  }));
   
   return { displayText, individualIngredients };
 }
@@ -129,11 +115,12 @@ async function saveRecipeToDatabase(recipe: NormalizedRecipe, userId: string): P
       .insert({
         user_id: userId,
         title: recipe.title,
-        description: recipe.description,
+        description: recipe.description,  // Now includes notes!
         image_url: imageUrl,
         prep_time: recipe.prepTime,
         cook_time: recipe.cookTime,
         servings: recipe.servings,
+        difficulty: recipe.difficulty,     // Now includes difficulty!
         source_name: recipe.sourceName,
         source_url: recipe.sourceUrl,
         diet: recipe.diet

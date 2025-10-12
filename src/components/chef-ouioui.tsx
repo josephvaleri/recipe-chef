@@ -154,13 +154,13 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
         </motion.div>
       )}
 
-      {/* Refresh Button */}
-      <button
-        onClick={refreshLines}
-        className="text-xs text-orange-500 hover:text-orange-600 transition-colors"
+      {/* Meet Chef Tony Link */}
+      <a
+        href="/about-chef-tony"
+        className="text-sm text-blue-600 hover:text-blue-700 transition-colors font-semibold"
       >
-        🔄 New messages
-      </button>
+        👨‍🍳 Meet Chef Tony!
+      </a>
     </div>
   )
 }

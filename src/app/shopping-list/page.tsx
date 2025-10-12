@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ShoppingListGenerator, ShoppingListDisplay } from '@/components/shopping-list/shopping-list-generator';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { logEventAndAward } from '@/lib/badges';
+import { useBadgeToast } from '@/components/badges/BadgeToast';
 
 interface ShoppingListItem {
   ingredient_id: number;
@@ -48,6 +50,7 @@ function ShoppingListPageContent() {
     people: number;
   } | null>(null);
   const router = useRouter();
+  const { showBadgeAwards } = useBadgeToast();
 
   const handleGenerate = useCallback(async (params: { start: string; days: number; people: number }) => {
     setLoading(true);
@@ -246,6 +249,27 @@ function ShoppingListPageContent() {
       setGenerated(true);
       
       const totalItems = Object.values(grouped).flat().length;
+      
+      // Log badge event for shopping list generation
+      try {
+        const result = await logEventAndAward(
+          'shopping_list_generated',
+          {
+            from_date: params.start,
+            to_date: endDate,
+            recipe_count: mealPlanData.length,
+            item_count: totalItems
+          }
+        );
+        
+        if (result?.awards && result.awards.length > 0) {
+          showBadgeAwards(result.awards);
+        }
+      } catch (badgeError) {
+        console.error('Error logging badge event:', badgeError);
+        // Don't fail shopping list generation if badge logging fails
+      }
+      
       if (totalItems === 0) {
         toast.info('No recipes found for the selected date range. Add some recipes to your calendar first!');
       } else {

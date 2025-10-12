@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS public.global_recipe_ingredients_detail (
   id bigserial PRIMARY KEY,
   recipe_id bigint NOT NULL REFERENCES public.global_recipes(recipe_id) ON DELETE CASCADE,
+  global_recipe_ingredient_id BIGINT REFERENCES public.global_recipe_ingredients(id) ON DELETE CASCADE,
   ingredient_id int REFERENCES public.ingredients(ingredient_id) ON DELETE SET NULL,
   original_text text NOT NULL,
   matched_term text,
@@ -22,6 +23,9 @@ CREATE INDEX IF NOT EXISTS idx_global_recipe_ingredients_detail_ingredient_id
 
 CREATE INDEX IF NOT EXISTS idx_global_recipe_ingredients_detail_category_id 
   ON public.global_recipe_ingredients_detail(category_id);
+
+CREATE INDEX IF NOT EXISTS idx_global_recipe_ingredients_detail_ingredient_fk
+  ON public.global_recipe_ingredients_detail(global_recipe_ingredient_id);
 
 -- Enable RLS
 ALTER TABLE public.global_recipe_ingredients_detail ENABLE ROW LEVEL SECURITY;

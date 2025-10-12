@@ -505,15 +505,30 @@ export default function RecipeFinderPage() {
         }
       })
 
-      // Sort by total score (ingredient matches + bonus points)
-      scoredUserRecipes.sort((a, b) => b.totalScore - a.totalScore)
-      scoredGlobalRecipes.sort((a, b) => b.totalScore - a.totalScore)
+      // Filter out recipes with 0 matches and sort by ingredient matches
+      const filteredUserRecipes = scoredUserRecipes
+        .filter(r => r.ingredientMatches > 0)
+        .sort((a, b) => {
+          if (b.ingredientMatches !== a.ingredientMatches) {
+            return b.ingredientMatches - a.ingredientMatches
+          }
+          return b.totalScore - a.totalScore
+        })
+      
+      const filteredGlobalRecipes = scoredGlobalRecipes
+        .filter(r => r.ingredientMatches > 0)
+        .sort((a, b) => {
+          if (b.ingredientMatches !== a.ingredientMatches) {
+            return b.ingredientMatches - a.ingredientMatches
+          }
+          return b.totalScore - a.totalScore
+        })
 
-      console.log('Final user recipes:', scoredUserRecipes.length)
-      console.log('Final global recipes:', scoredGlobalRecipes.length)
+      console.log('Final user recipes:', filteredUserRecipes.length)
+      console.log('Final global recipes:', filteredGlobalRecipes.length)
 
-      setUserRecipes(scoredUserRecipes)
-      setGlobalRecipes(scoredGlobalRecipes)
+      setUserRecipes(filteredUserRecipes)
+      setGlobalRecipes(filteredGlobalRecipes)
     } catch (error) {
       console.error('Error searching recipes:', error)
     } finally {
@@ -1057,6 +1072,7 @@ export default function RecipeFinderPage() {
                       key={`global-${recipe.recipe_id}`}
                       recipe={recipe as any}
                       onAddToCookbook={addToCookbook}
+                      openInNewWindow={true}
                     />
                   ))}
                 </div>

@@ -11,6 +11,8 @@ import { Plus, Minus, Save, ArrowLeft, Clock, Users, ChefHat } from 'lucide-reac
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
+import { logEventAndAward } from '@/lib/badges'
+import { useBadgeToast } from '@/components/badges/BadgeToast'
 
 interface Ingredient {
   id: string
@@ -49,6 +51,7 @@ export default function ManualAddPage() {
   const [newTag, setNewTag] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { showBadgeAwards } = useBadgeToast()
 
   const addIngredient = () => {
     const newId = (ingredients.length + 1).toString()
@@ -221,8 +224,36 @@ export default function ManualAddPage() {
         }
       }
 
+      // Log badge event for recipe creation
+      try {
+        const instructionsText = instructions
+          .filter(inst => inst.text.trim())
+          .map(inst => inst.text)
+          .join(' ')
+        
+        const result = await logEventAndAward(
+          'recipe_added',
+          {
+            name: recipe.title,
+            has_ingredients: ingredients.filter(ing => ing.name.trim()).length > 0,
+            instructions_len: instructionsText.length,
+            has_photo: !!recipe.imageUrl,
+            source_url: '',
+            imported: false // This is an original recipe!
+          },
+          recipeData.user_recipe_id
+        )
+        
+        if (result?.awards && result.awards.length > 0) {
+          showBadgeAwards(result.awards)
+        }
+      } catch (badgeError) {
+        console.error('Error logging badge event:', badgeError)
+        // Don't fail recipe creation if badge logging fails
+      }
+
       // Success! Redirect to the recipe
-      router.push(`/recipe/${recipeData.recipe_id}`)
+      router.push(`/recipe/${recipeData.user_recipe_id}`)
 
     } catch (error) {
       console.error('Error creating recipe:', error)

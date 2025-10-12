@@ -11,3 +11,4 @@ COMMENT ON COLUMN public.global_recipe_ingredients_detail.matched_alias IS 'The 
 CREATE INDEX IF NOT EXISTS idx_global_recipe_ingredients_detail_matched_alias 
   ON public.global_recipe_ingredients_detail(matched_alias);
 
+

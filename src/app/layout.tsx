@@ -6,6 +6,7 @@ import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "sonner";
+import { BadgeToastProvider } from "@/components/badges/BadgeToast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -77,14 +78,16 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen flex flex-col antialiased`}>
-        <Header />
-        <main className="flex-1">
-          {children}
-        </main>
-        <Footer />
-        <OfflineIndicator />
-        <InstallPrompt />
-        <Toaster />
+        <BadgeToastProvider>
+          <Header />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer />
+          <OfflineIndicator />
+          <InstallPrompt />
+          <Toaster />
+        </BadgeToastProvider>
       </body>
     </html>
   );

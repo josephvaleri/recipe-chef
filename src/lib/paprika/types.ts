@@ -11,6 +11,7 @@ export type NormalizedRecipe = {
   prepTime?: string;
   cookTime?: string;
   totalTime?: string;
+  difficulty?: string;        // Easy, Medium, Hard, Very Hard
   diet?: string;
   sourceName?: string;
   sourceUrl?: string;

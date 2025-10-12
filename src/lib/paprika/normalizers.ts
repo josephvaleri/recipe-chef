@@ -97,9 +97,25 @@ export function normalizePaprika(json: PaprikaRaw): NormalizedRecipe {
     tags = toArray(json.categories);
   }
 
+  // Map Paprika difficulty to our difficulty levels
+  const mapDifficulty = (paprikaDiff?: string): string | undefined => {
+    if (!paprikaDiff) return undefined
+    
+    const diff = paprikaDiff.toLowerCase().trim()
+    
+    // Paprika might use different values, map to our standard: Easy, Medium, Hard, Very Hard
+    if (diff.includes('easy') || diff === '1' || diff === 'simple') return 'Easy'
+    if (diff.includes('medium') || diff === '2' || diff.includes('moderate')) return 'Medium'
+    if (diff.includes('hard') || diff === '3' || diff.includes('difficult')) return 'Hard'
+    if (diff.includes('very hard') || diff === '4' || diff.includes('expert') || diff.includes('advanced')) return 'Very Hard'
+    
+    // Default to Easy if we have a value but can't map it
+    return 'Easy'
+  }
+
   return {
     title: json.name || json.title || 'Untitled Recipe',
-    description: json.description || json.notes || '',
+    description: json.description || json.notes || '',  // Notes already mapped!
     imageData,
     imageFilename,
     cuisine: json.cuisine || json.course || '',
@@ -108,6 +124,7 @@ export function normalizePaprika(json: PaprikaRaw): NormalizedRecipe {
     prepTime: json.prep_time || json.prepTime || '',
     cookTime: json.cook_time || json.cookTime || '',
     totalTime: json.total_time || json.totalTime || '',
+    difficulty: mapDifficulty(json.difficulty || json.skill_level || json.rating),
     diet: json.diet || '',
     sourceName: json.source || json.source_name || '',
     sourceUrl: json.source_url || json.url || '',

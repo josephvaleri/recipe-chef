@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchHtml } from '@/lib/fetchHtml'
 import { parseRecipeFromHtml } from '@/lib/jsonld'
-import { createServerClient } from '@/lib/supabase-server'
+import { createServerClientFromRequest, createServerClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,11 +12,86 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the server-side Supabase client and check authentication
-    const supabase = await createServerClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    let supabase
+    let user
     
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    try {
+      supabase = createServerClientFromRequest(request)
+      
+      // Try to get session from cookie manually first
+      const authCookie = request.cookies.get('sb-avlqlppqteqjfsnlitiz-auth-token')
+      console.log('Auth cookie exists:', !!authCookie)
+      
+      let sessionData: any = null
+      if (authCookie?.value) {
+        // Parse the base64- prefixed cookie
+        try {
+          const cookieValue = authCookie.value
+          if (cookieValue.startsWith('base64-')) {
+            const base64Data = cookieValue.substring(7) // Remove 'base64-' prefix
+            const jsonString = Buffer.from(base64Data, 'base64').toString('utf-8')
+            sessionData = JSON.parse(jsonString)
+            console.log('Parsed session data:', {
+              hasAccessToken: !!sessionData.access_token,
+              hasRefreshToken: !!sessionData.refresh_token,
+              hasUser: !!sessionData.user,
+              userId: sessionData.user?.id
+            })
+            
+            // Manually set the session
+            if (sessionData.access_token && sessionData.refresh_token) {
+              const { data, error: setSessionError } = await supabase.auth.setSession({
+                access_token: sessionData.access_token,
+                refresh_token: sessionData.refresh_token
+              })
+              
+              if (setSessionError) {
+                console.error('Error setting session:', setSessionError)
+              } else {
+                console.log('Session set successfully:', data.user?.id)
+              }
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing auth cookie:', parseError)
+        }
+      }
+      
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      
+      if (authError) {
+        console.error('Auth error in import-recipe:', authError)
+        console.error('Auth error details:', {
+          message: authError.message,
+          status: authError.status,
+          name: authError.name
+        })
+      }
+      
+      if (!authUser) {
+        console.error('No user found in session')
+        // If we have valid session data but getUser() failed, use the user from cookie
+        if (sessionData?.user?.id) {
+          console.log('Using user from cookie as fallback:', sessionData.user.id)
+          user = sessionData.user
+        } else {
+          return NextResponse.json({ 
+            error: 'Authentication required. Please refresh the page and try again.',
+            details: authError?.message || 'Session not found. You may need to sign out and sign back in.',
+            hint: 'Try: 1) Refresh page, 2) Sign out & back in, 3) Clear browser cache'
+          }, { status: 401 })
+        }
+      } else {
+        user = authUser
+        console.log('User authenticated successfully:', user.id)
+      }
+      
+    } catch (clientError) {
+      console.error('Error creating supabase client or getting user:', clientError)
+      return NextResponse.json({ 
+        error: 'Server authentication error',
+        details: clientError instanceof Error ? clientError.message : 'Unknown error'
+      }, { status: 500 })
     }
 
     // Fetch and parse the recipe

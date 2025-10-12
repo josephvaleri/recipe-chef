@@ -2,6 +2,7 @@
 CREATE TABLE user_recipe_ingredients_detail (
     detail_id SERIAL PRIMARY KEY,
     user_recipe_id INTEGER NOT NULL REFERENCES user_recipes(user_recipe_id) ON DELETE CASCADE,
+    user_recipe_ingredient_id BIGINT REFERENCES user_recipe_ingredients(id) ON DELETE CASCADE,
     ingredient_id INTEGER NOT NULL REFERENCES ingredients(ingredient_id) ON DELETE CASCADE,
     original_text TEXT NOT NULL,
     matched_term TEXT NOT NULL,
@@ -15,6 +16,7 @@ CREATE TABLE user_recipe_ingredients_detail (
 -- Create index for faster lookups
 CREATE INDEX idx_user_recipe_ingredients_detail_recipe_id ON user_recipe_ingredients_detail(user_recipe_id);
 CREATE INDEX idx_user_recipe_ingredients_detail_ingredient_id ON user_recipe_ingredients_detail(ingredient_id);
+CREATE INDEX idx_user_recipe_ingredients_detail_ingredient_fk ON user_recipe_ingredients_detail(user_recipe_ingredient_id);
 
 -- Add RLS (Row Level Security) policies
 ALTER TABLE user_recipe_ingredients_detail ENABLE ROW LEVEL SECURITY;
@@ -50,4 +52,5 @@ CREATE POLICY "Users can delete their own recipe ingredient details" ON user_rec
             SELECT user_recipe_id FROM user_recipes WHERE user_id = auth.uid()
         )
     );
+
 

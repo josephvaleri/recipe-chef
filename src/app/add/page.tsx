@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import { ChefHat, Globe, Plus, Upload, FileText, Link, Loader2 } from 'lucide-react'
 import PaprikaUploader from '@/components/import/PaprikaUploader'
+import { logEventAndAward } from '@/lib/badges'
+import { useBadgeToast } from '@/components/badges/BadgeToast'
 
 export default function AddRecipePage() {
   const [url, setUrl] = useState('')
@@ -35,6 +37,7 @@ export default function AddRecipePage() {
     source: string;
   } | null>(null)
   const router = useRouter()
+  const { showBadgeAwards } = useBadgeToast()
 
   const handleImportFromWeb = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +56,7 @@ export default function AddRecipePage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Ensure cookies are sent
         body: JSON.stringify({ url }),
       })
 
@@ -63,10 +67,11 @@ export default function AddRecipePage() {
         return
       }
 
-      setImportedRecipe(data)
-    } catch {
-      setError('Failed to import recipe')
-    } finally {
+      // Instead of showing preview, save and redirect to edit page immediately
+      await saveAndRedirectToEdit(data)
+    } catch (err) {
+      console.error('Error in import flow:', err)
+      setError(err instanceof Error ? err.message : 'Failed to import recipe')
       setLoading(false)
     }
   }
@@ -74,15 +79,107 @@ export default function AddRecipePage() {
 
 
 
-  const handleSaveRecipe = async () => {
-    if (!importedRecipe?.recipe) return
+  const matchMealType = async (recipeCategory?: any, recipeCuisine?: any): Promise<number | null> => {
+    if (!recipeCategory && !recipeCuisine) return null
+    
+    // Convert to string if it's an array or object
+    let categoryStr = ''
+    if (typeof recipeCategory === 'string') {
+      categoryStr = recipeCategory
+    } else if (Array.isArray(recipeCategory)) {
+      categoryStr = recipeCategory.join(' ')
+    } else if (typeof recipeCategory === 'object' && recipeCategory !== null) {
+      categoryStr = recipeCategory.name || recipeCategory.value || ''
+    }
+    
+    let cuisineStr = ''
+    if (typeof recipeCuisine === 'string') {
+      cuisineStr = recipeCuisine
+    } else if (Array.isArray(recipeCuisine)) {
+      cuisineStr = recipeCuisine.join(' ')
+    } else if (typeof recipeCuisine === 'object' && recipeCuisine !== null) {
+      cuisineStr = recipeCuisine.name || recipeCuisine.value || ''
+    }
+    
+    const searchTerm = (categoryStr || cuisineStr || '').toLowerCase().trim()
+    if (!searchTerm) return null
+    
+    console.log('Matching meal type for:', searchTerm)
+    
+    // Try exact match first
+    const { data: exactMatch } = await supabase
+      .from('meal_types')
+      .select('meal_type_id')
+      .ilike('name', searchTerm)
+      .limit(1)
+    
+    if (exactMatch && exactMatch.length > 0) {
+      console.log('Found exact meal type match:', exactMatch[0].meal_type_id)
+      return exactMatch[0].meal_type_id
+    }
+    
+    // Try alias match
+    const { data: aliasMatch } = await supabase
+      .from('meal_type_aliases')
+      .select('meal_type_id')
+      .ilike('alias', searchTerm)
+      .limit(1)
+    
+    if (aliasMatch && aliasMatch.length > 0) {
+      console.log('Found meal type via alias:', aliasMatch[0].meal_type_id)
+      return aliasMatch[0].meal_type_id
+    }
+    
+    // Try partial matches for common patterns
+    const mealTypeMap: { [key: string]: string } = {
+      'main': 'Entrée',
+      'entree': 'Entrée',
+      'entrée': 'Entrée',
+      'course': 'Entrée',
+      'appetizer': 'Appetizer',
+      'starter': 'Appetizer',
+      'dessert': 'Dessert',
+      'sweet': 'Dessert',
+      'soup': 'Soup',
+      'salad': 'Salad',
+      'side': 'Side Dish',
+      'breakfast': 'Breakfast',
+      'brunch': 'Breakfast',
+      'lunch': 'Lunch',
+      'dinner': 'Dinner',
+      'snack': 'Snack',
+      'drink': 'Beverage',
+      'cocktail': 'Beverage'
+    }
+    
+    for (const [keyword, mealType] of Object.entries(mealTypeMap)) {
+      if (searchTerm.includes(keyword)) {
+        const { data: partialMatch } = await supabase
+          .from('meal_types')
+          .select('meal_type_id')
+          .ilike('name', mealType)
+          .limit(1)
+        
+        if (partialMatch && partialMatch.length > 0) {
+          console.log(`Found meal type via keyword "${keyword}":`, partialMatch[0].meal_type_id)
+          return partialMatch[0].meal_type_id
+        }
+      }
+    }
+    
+    console.log('No meal type match found for:', searchTerm)
+    return null
+  }
 
-    setLoading(true)
+  const saveAndRedirectToEdit = async (importData: any) => {
     try {
       const user = await getCurrentUser()
       if (!user) return
 
-      const recipe = importedRecipe.recipe
+      const recipe = importData.recipe
+      
+      // Try to match meal type from recipe category or cuisine
+      const mealTypeId = await matchMealType(recipe.recipeCategory, recipe.recipeCuisine)
 
       // Save the recipe to user_recipes
       const { data: savedRecipe, error: recipeError } = await supabase
@@ -96,6 +193,7 @@ export default function AddRecipePage() {
           cook_time: recipe.cookTime,
           total_time: recipe.totalTime,
           servings: recipe.recipeYield,
+          meal_type_id: mealTypeId,
           source_name: recipe.author?.name || recipe.source,
           source_url: recipe.url,
           diet: recipe.recipeCategory
@@ -109,18 +207,48 @@ export default function AddRecipePage() {
         return
       }
 
-      // Save ingredients
+      // Save ingredients with parsed amount and unit
       if (recipe.recipeIngredient && recipe.recipeIngredient.length > 0) {
-        const ingredients = recipe.recipeIngredient.map((ingredient: string) => ({
+        // Ensure recipeIngredient is an array of strings
+        let ingredientArray: string[] = []
+        
+        if (Array.isArray(recipe.recipeIngredient)) {
+          ingredientArray = recipe.recipeIngredient
+        } else if (typeof recipe.recipeIngredient === 'string') {
+          // If it's a single string with newlines, split it
+          ingredientArray = recipe.recipeIngredient.split(/[\n\r]+/).filter((line: string) => line.trim())
+        }
+        
+        console.log('Ingredient array for parsing:', ingredientArray)
+        console.log('Number of ingredients:', ingredientArray.length)
+        
+        const { parseIngredients } = await import('@/lib/parseIngredient')
+        const parsedIngredients = parseIngredients(ingredientArray)
+        
+        const ingredients = parsedIngredients.map((parsed) => ({
           user_recipe_id: savedRecipe.user_recipe_id,
-          raw_name: ingredient,
-          amount: '',
-          unit: ''
+          raw_name: parsed.name || parsed.original,
+          amount: parsed.amount,
+          unit: parsed.unit
         }))
 
-        await supabase
+        console.log('Inserting ingredients:', ingredients)
+        console.log('Number of ingredients to insert:', ingredients.length)
+
+        const { data: insertedIngredients, error: ingredientsError } = await supabase
           .from('user_recipe_ingredients')
           .insert(ingredients)
+          .select()
+        
+        if (ingredientsError) {
+          console.error('Error inserting ingredients:', ingredientsError)
+          console.error('Ingredients that failed to insert:', ingredients)
+          throw new Error(`Failed to save ingredients: ${ingredientsError.message}`)
+        }
+        
+        console.log('Successfully inserted ingredients:', insertedIngredients?.length || 0, 'rows')
+        console.log('First 3 inserted ingredients:', insertedIngredients?.slice(0, 3))
+        console.log('Last 3 inserted ingredients:', insertedIngredients?.slice(-3))
 
         // Auto-analyze ingredients for detailed matching
         try {
@@ -177,13 +305,50 @@ export default function AddRecipePage() {
           .insert(instructions)
       }
 
-      router.push(`/recipe/${savedRecipe.user_recipe_id}`)
+      // Log badge event for recipe import
+      try {
+        const instructionsText = Array.isArray(recipe.recipeInstructions)
+          ? recipe.recipeInstructions.map((inst: any) => 
+              typeof inst === 'string' ? inst : inst.text
+            ).join(' ')
+          : String(recipe.recipeInstructions || '')
+        
+        const result = await logEventAndAward(
+          'recipe_added',
+          {
+            name: recipe.name || 'Imported Recipe',
+            has_ingredients: Array.isArray(recipe.recipeIngredient) && recipe.recipeIngredient.length > 0,
+            instructions_len: instructionsText.length,
+            has_photo: !!recipe.image,
+            source_url: recipe.url || recipe.source || '',
+            imported: true // This is an imported recipe
+          },
+          savedRecipe.user_recipe_id
+        )
+        
+        if (result?.awards && result.awards.length > 0) {
+          showBadgeAwards(result.awards)
+        }
+      } catch (badgeError) {
+        console.error('Error logging badge event:', badgeError)
+        // Don't fail recipe import if badge logging fails
+      }
+
+      // Small delay to ensure database transaction completes before redirect
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Redirect to edit page so user can review and make changes
+      router.push(`/recipe/${savedRecipe.user_recipe_id}/edit`)
     } catch (error) {
       console.error('Error saving recipe:', error)
       setError('Failed to save recipe')
-    } finally {
       setLoading(false)
     }
+  }
+
+  const handleSaveRecipe = async () => {
+    if (!importedRecipe?.recipe) return
+    await saveAndRedirectToEdit(importedRecipe)
   }
 
   return (

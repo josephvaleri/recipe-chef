@@ -485,8 +485,8 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   const lightWords = lightCleaned.split(' ')
   
   // Check for two-word combinations in lightly cleaned text
-  // Limit to first 3 two-word combinations to prevent excessive database queries and crashes
-  const maxTwoWordChecks = Math.min(lightWords.length - 1, 3)
+  // Limit to first 6 two-word combinations to catch ingredients like "chicken broth" in "cans reduced-sodium chicken broth"
+  const maxTwoWordChecks = Math.min(lightWords.length - 1, 6)
   for (let i = 0; i < maxTwoWordChecks; i++) {
     const twoWord = `${lightWords[i]} ${lightWords[i + 1]}`
     
@@ -588,7 +588,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
     .replace(/\b\d+\.?\d*\b/g, '')  // Remove standalone numbers (including decimals)
     .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')  // Remove Unicode fractions with units
     .replace(/[½¼¾⅓⅔⅛⅜⅝⅞]/g, '')  // Remove standalone Unicode fractions
-    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|quarter|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|peeled|diced|minced|chopped|sliced|grated|crushed|whole|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|meat|out|skin|mild|cup|cups|such|as|at|room|temperature|rind|trimmed|stemmed|seeded|spiced|shredded|leaves|ripped|fine|ok|bought|store|hash|browns)\b/gi, '')
+    .replace(/\b(for|to|taste|serving|garnish|optional|as needed|cut|crosswise|into|julienned|sliced|crushed|chopped|grated|plus|more|large|medium|small|whole|half|halved|quarter|quartered|extra|virgin|extra-virgin|dried|frozen|canned|raw|cooked|other|wide|spaghetti|and|smashed|finely|thinly|thickly|peeled|diced|minced|sliced|grated|crushed|large|medium|small|dried|frozen|canned|raw|cooked|roasted|grilled|fried|boiled|steamed|braised|sauteed|inch|piece|pieces|one|two|three|four|five|six|seven|eight|nine|ten|zest|juice|juiced|removed|strips|peeler|with|of|in|link|links|bite|size|chunks|chunk|pull|out|skin|mild|cup|cups|such|as|at|room|temperature|rind|trimmed|stemmed|seeded|spiced|shredded|leaves|stems|sprigs|sprig|ripped|fine|ok|bought|store|hash|browns|reduced|sodium|neck|necks|giblets|giblet|discarded|firm|tender|fresh|freshly|squeezed|strained|pulp|enough|cover|cubed|cubes|bodies|body|squares|square|rounds|round)\b/gi, '')
     .replace(/[,\-&();]/g, ' ')  // Replace commas, dashes, ampersands, parentheses, semicolons with spaces
     .replace(/\s+/g, ' ')
     .trim()
@@ -637,20 +637,44 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   const filteredWords = cleanedText.split(' ').filter(word => 
     word.length > 2 && 
     !/^\d+$/.test(word) && // not just numbers
-    !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|chicken|vegetable|broth|salt|pepper|black|white|red|yellow|blue|purple|orange|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind)$/i.test(word) // common words and colors (removed bacon, pancetta, and green from exclusion list)
+    !/^(and|or|the|a|an|of|in|on|at|to|for|with|by|other|wide|noodle|salt|pepper|black|white|red|yellow|blue|purple|pink|brown|gray|grey|bottles|bottle|such|as|at|room|temperature|rind|cans)$/i.test(word) // common words and colors - removed chicken, vegetable, broth, and orange from exclusion list
   )
 
   // The main ingredient detection - look for common patterns
   const fallbackIngredients = []
   
-  // Look for common single-word ingredients first
-  const commonIngredients = ['eggs', 'ziti', 'mozzarella', 'parsley', 'garlic', 'onion', 'carrot', 'celery', 'tomato', 'cheese', 'bread', 'milk', 'butter', 'oil', 'salt', 'pepper', 'sugar', 'flour', 'rice', 'pasta', 'meat', 'chicken', 'beef', 'pork', 'fish', 'shrimp', 'lobster', 'crab', 'lamb', 'turkey', 'duck', 'veal', 'ham', 'bacon', 'sausage', 'pepperoni', 'salami', 'prosciutto', 'pancetta', 'guanciale', 'chorizo', 'andouille', 'kielbasa', 'bratwurst', 'flakes', 'parmesan', 'cutlets', 'zucchini', 'cumin', 'seeds', 'chillies', 'chili', 'peppers', 'turmeric', 'garam', 'masala', 'powder', 'venison', 'beetroot', 'beet', 'cabbage', 'ancho', 'guajillo', 'ghee', 'potato', 'potatoes', 'spinach']
+  // Look for common TWO-WORD ingredients FIRST (to avoid matching "chicken" when we want "chicken broth" or "roasting chicken")
+  const commonTwoWordIngredients = [
+    'chicken broth', 'beef broth', 'vegetable broth', 'chicken stock', 'beef stock', 'vegetable stock',
+    'roasting chicken', 'whole chicken', 'chicken breast', 'chicken thigh', 'chicken wings', 'chicken drumsticks',
+    'ground beef', 'ground pork', 'ground turkey', 'pork chops', 'beef roast',
+    'lobster meat', 'crab meat', 'shrimp meat',
+    'white fish', 'fish fillets', 'fish fillet', 'cod fillets', 'salmon fillets',
+    'olive oil', 'coconut oil', 'sesame oil', 'vegetable oil', 'canola oil',
+    'soy sauce', 'fish sauce', 'worcestershire sauce', 'hot sauce', 'tomato sauce',
+    'black pepper', 'white pepper', 'red pepper', 'cayenne pepper',
+    'garlic powder', 'onion powder', 'chili powder', 'curry powder',
+    'baking powder', 'baking soda'
+  ]
   
-  // Check if any common ingredients are in the text
-  for (const commonIngredient of commonIngredients) {
-    if (cleanedText.toLowerCase().includes(commonIngredient.toLowerCase())) {
-      fallbackIngredients.push(commonIngredient)
+  // Check for two-word ingredients first
+  for (const twoWordIngredient of commonTwoWordIngredients) {
+    if (cleanedText.toLowerCase().includes(twoWordIngredient.toLowerCase())) {
+      fallbackIngredients.push(twoWordIngredient)
       break // Take the first match
+    }
+  }
+  
+  // If no two-word match, check for single-word ingredients
+  if (fallbackIngredients.length === 0) {
+    const commonIngredients = ['eggs', 'ziti', 'mozzarella', 'parsley', 'cilantro', 'coriander', 'basil', 'thyme', 'rosemary', 'oregano', 'garlic', 'onion', 'carrot', 'celery', 'tomato', 'avocado', 'cheese', 'bread', 'milk', 'butter', 'oil', 'salt', 'pepper', 'sugar', 'flour', 'rice', 'pasta', 'lemon', 'lime', 'orange', 'chicken', 'beef', 'pork', 'fish', 'shrimp', 'lobster', 'crab', 'squid', 'calamari', 'octopus', 'clams', 'mussels', 'oysters', 'scallops', 'lamb', 'turkey', 'duck', 'veal', 'ham', 'bacon', 'sausage', 'meat', 'pepperoni', 'salami', 'prosciutto', 'pancetta', 'guanciale', 'chorizo', 'andouille', 'kielbasa', 'bratwurst', 'flakes', 'parmesan', 'cutlets', 'zucchini', 'cumin', 'seeds', 'chillies', 'chili', 'peppers', 'turmeric', 'garam', 'masala', 'powder', 'venison', 'beetroot', 'beet', 'cabbage', 'ancho', 'guajillo', 'ghee', 'potato', 'potatoes', 'spinach', 'broth', 'fillets', 'cod', 'salmon', 'tilapia', 'halibut', 'snapper']
+    
+    // Check if any common single-word ingredients are in the text
+    for (const commonIngredient of commonIngredients) {
+      if (cleanedText.toLowerCase().includes(commonIngredient.toLowerCase())) {
+        fallbackIngredients.push(commonIngredient)
+        break // Take the first match
+      }
     }
   }
   

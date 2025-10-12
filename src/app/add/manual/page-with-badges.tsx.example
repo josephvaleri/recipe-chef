@@ -1,0 +1,227 @@
+/**
+ * Example: Manual Add Page with Badge Event Logging
+ * 
+ * This is an EXAMPLE file showing how to integrate badge event logging
+ * into the manual recipe creation flow.
+ * 
+ * To use this:
+ * 1. Review the changes marked with // BADGE: comments
+ * 2. Apply similar changes to your actual /add/manual/page.tsx
+ * 3. Test by creating a recipe and checking the badges page
+ */
+
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { getCurrentUser } from '@/lib/auth'
+// BADGE: Import event logging utility
+import { logEventAndAward } from '@/lib/badges'
+// BADGE: Import toast hook
+import { useBadgeToast } from '@/components/badges/BadgeToast'
+
+export default function ManualAddPage() {
+  // BADGE: Add badge toast hook
+  const { showBadgeAwards } = useBadgeToast()
+  
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // ... existing state variables ...
+  const [recipe, setRecipe] = useState({
+    title: '',
+    description: '',
+    prepTime: '',
+    cookTime: '',
+    servings: '',
+    cuisine: '',
+    difficulty: 'Easy',
+    imageUrl: ''
+  })
+  
+  const [ingredients, setIngredients] = useState([
+    { amount: '', unit: '', name: '' }
+  ])
+  
+  const [instructions, setInstructions] = useState([
+    { text: '' }
+  ])
+
+  const handleSubmit = async () => {
+    setIsLoading(true)
+    
+    try {
+      const user = await getCurrentUser()
+      if (!user) {
+        router.push('/auth/signin')
+        return
+      }
+
+      // Validate required fields
+      if (!recipe.title.trim()) {
+        alert('Recipe title is required')
+        setIsLoading(false)
+        return
+      }
+
+      // Create the recipe
+      const { data: recipeData, error: recipeError } = await supabase
+        .from('user_recipes')
+        .insert({
+          user_id: user.id,
+          title: recipe.title,
+          description: recipe.description || null,
+          prep_time: recipe.prepTime || null,
+          cook_time: recipe.cookTime || null,
+          servings: recipe.servings || null,
+          cuisine: recipe.cuisine || null,
+          difficulty: recipe.difficulty,
+          image_url: recipe.imageUrl || null,
+          source_url: null,
+          source_name: 'Manual Entry',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (recipeError) {
+        console.error('Error creating recipe:', recipeError)
+        alert('Error creating recipe. Please try again.')
+        setIsLoading(false)
+        return
+      }
+
+      // Add ingredients
+      const ingredientInserts = ingredients
+        .filter(ing => ing.amount.trim() && ing.name.trim())
+        .map(ing => ({
+          user_recipe_id: recipeData.user_recipe_id,
+          raw_name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit || null
+        }))
+
+      if (ingredientInserts.length > 0) {
+        const { error: ingredientsError } = await supabase
+          .from('user_recipe_ingredients')
+          .insert(ingredientInserts)
+
+        if (ingredientsError) {
+          console.error('Error adding ingredients:', ingredientsError)
+        }
+      }
+
+      // Add instructions
+      const instructionInserts = instructions
+        .filter(inst => inst.text.trim())
+        .map((inst, index) => ({
+          user_recipe_id: recipeData.user_recipe_id,
+          step_number: index + 1,
+          text: inst.text
+        }))
+
+      if (instructionInserts.length > 0) {
+        const { error: instructionsError } = await supabase
+          .from('user_recipe_steps')
+          .insert(instructionInserts)
+
+        if (instructionsError) {
+          console.error('Error adding instructions:', instructionsError)
+        }
+      }
+
+      // ============================================================
+      // BADGE: Log event and award badges
+      // ============================================================
+      try {
+        console.log('Logging recipe_added event for badge system...')
+        
+        // Calculate instructions length
+        const instructionsText = instructions
+          .map(inst => inst.text)
+          .join(' ')
+        
+        // Log the event
+        const badgeResult = await logEventAndAward(
+          'recipe_added',
+          {
+            name: recipe.title,
+            has_ingredients: ingredientInserts.length > 0,
+            instructions_len: instructionsText.length,
+            has_photo: !!recipe.imageUrl,
+            source_url: '', // No source URL for manual entry
+            imported: false // This is an original recipe!
+          },
+          recipeData.user_recipe_id
+        )
+        
+        console.log('Badge event result:', badgeResult)
+        
+        // Show toast notification if badges were awarded
+        if (badgeResult?.awards && badgeResult.awards.length > 0) {
+          console.log('New badges awarded:', badgeResult.awards)
+          showBadgeAwards(badgeResult.awards)
+        }
+      } catch (badgeError) {
+        // Don't fail recipe creation if badge logging fails
+        console.error('Error logging badge event:', badgeError)
+      }
+      // ============================================================
+      // END BADGE INTEGRATION
+      // ============================================================
+
+      setIsLoading(false)
+      alert('Recipe added successfully!')
+      router.push('/cookbook')
+      
+    } catch (err) {
+      console.error('Error in handleSubmit:', err)
+      alert('Error creating recipe. Please try again.')
+      setIsLoading(false)
+    }
+  }
+
+  // ... rest of the component (ingredient/instruction management, render, etc) ...
+  
+  return (
+    <div>
+      {/* Your existing form UI */}
+      <h1>Add Recipe Manually</h1>
+      {/* ... form fields ... */}
+      <button onClick={handleSubmit} disabled={isLoading}>
+        {isLoading ? 'Saving...' : 'Save Recipe'}
+      </button>
+    </div>
+  )
+}
+
+/*
+ * INTEGRATION NOTES:
+ * 
+ * 1. Import the badge utilities at the top
+ * 2. Add the useBadgeToast hook
+ * 3. After successful recipe creation, log the event
+ * 4. Show toast if new badges were awarded
+ * 5. Always wrap in try-catch so badge errors don't break recipe creation
+ * 
+ * EVENT METADATA REQUIREMENTS:
+ * - name: Recipe title (required for anti-gaming)
+ * - has_ingredients: Boolean (required)
+ * - instructions_len: Number of characters (required)
+ * - has_photo: Boolean (optional, helps with anti-gaming)
+ * - source_url: String (optional, helps with anti-gaming)
+ * - imported: Boolean (false = original recipe, counts for "Originals Only" badge)
+ * 
+ * ANTI-GAMING:
+ * The system will filter out low-quality recipes:
+ * - Must have name, ingredients, and one of: photo, source_url, or 150+ char instructions
+ * - 5-minute cooldown between recipe additions
+ * 
+ * TESTING:
+ * 1. Create a recipe manually
+ * 2. Check Supabase: SELECT * FROM user_events WHERE type = 'recipe_added';
+ * 3. Check badges: SELECT * FROM user_badges WHERE user_id = 'YOUR_ID';
+ * 4. Visit /badges page to see progress
+ */
+

@@ -75,6 +75,9 @@ export function Footer() {
               <Link href="/add" className="block text-sm text-orange-700 hover:text-orange-900 transition-colors">
                 Add Recipe
               </Link>
+              <Link href="/about-chef-tony" className="block text-sm text-orange-700 hover:text-orange-900 transition-colors">
+                About Chef Tony
+              </Link>
             </div>
           </div>
 

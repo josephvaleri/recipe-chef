@@ -420,7 +420,7 @@ create policy "Users can manage own recipe ingredients" on public.user_recipe_in
   for all using (
     exists (
       select 1 from public.user_recipes
-      where user_recipe_id = user_recipes.user_recipe_id and user_id = auth.uid()
+      where user_recipes.user_recipe_id = user_recipe_ingredients.user_recipe_id and user_recipes.user_id = auth.uid()
     )
   );
 
@@ -428,7 +428,7 @@ create policy "Users can manage own recipe steps" on public.user_recipe_steps
   for all using (
     exists (
       select 1 from public.user_recipes
-      where user_recipe_id = user_recipes.user_recipe_id and user_id = auth.uid()
+      where user_recipes.user_recipe_id = user_recipe_steps.user_recipe_id and user_recipes.user_id = auth.uid()
     )
   );
 
@@ -436,7 +436,7 @@ create policy "Users can manage own recipe equipment" on public.user_recipe_equi
   for all using (
     exists (
       select 1 from public.user_recipes
-      where user_recipe_id = user_recipes.user_recipe_id and user_id = auth.uid()
+      where user_recipes.user_recipe_id = user_recipe_equipment.user_recipe_id and user_recipes.user_id = auth.uid()
     )
   );
 
@@ -444,7 +444,7 @@ create policy "Users can manage own recipe tags" on public.user_recipe_tags
   for all using (
     exists (
       select 1 from public.user_recipes
-      where user_recipe_id = user_recipes.user_recipe_id and user_id = auth.uid()
+      where user_recipes.user_recipe_id = user_recipe_tags.user_recipe_id and user_recipes.user_id = auth.uid()
     )
   );
 

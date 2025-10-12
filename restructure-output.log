@@ -1,0 +1,1890 @@
+[dotenv@17.2.3] injecting env (6) from .env.local -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+🔍 Finding global recipe ingredients with multi-line raw_name...
+
+⚠️  DRY RUN MODE: OFF (will modify database)
+
+🚀 FULL MODE: Processing ALL multi-line recipes
+
+📊 Found 661 ingredient records
+
+
+Recipe 16: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 17: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 18: 24 ingredient lines
+  ✅ Created 24 separate ingredient rows
+
+Recipe 19: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 20: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 21: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 22: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 23: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 24: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 25: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 26: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 27: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 28: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 29: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 70: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 30: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 31: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 32: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 33: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 34: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 35: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 36: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 37: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 38: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 39: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 40: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 41: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 42: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 43: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 44: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 45: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 46: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 47: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 48: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 49: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 51: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 52: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 53: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 54: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 55: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 56: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 57: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 58: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 59: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 60: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 62: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 63: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 64: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 65: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 66: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 67: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 68: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 69: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 71: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 72: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 73: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 74: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 75: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 76: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 77: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 78: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 79: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 80: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 81: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 82: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 83: 26 ingredient lines
+  ✅ Created 26 separate ingredient rows
+
+Recipe 84: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 85: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 86: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 88: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 89: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 90: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 91: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 92: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 93: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 94: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 95: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 96: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 97: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 99: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 100: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 101: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 102: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 103: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 104: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 105: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 107: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 108: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 109: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 110: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 111: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 195: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 112: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 113: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 114: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 115: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 116: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 117: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 118: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 119: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 120: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 121: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 122: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 123: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 124: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 125: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 126: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 127: 25 ingredient lines
+  ✅ Created 25 separate ingredient rows
+
+Recipe 128: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 129: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 130: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 131: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 132: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 133: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 134: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 135: 28 ingredient lines
+  ✅ Created 28 separate ingredient rows
+
+Recipe 136: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 137: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 138: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 139: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 140: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 141: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 142: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 143: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 144: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 145: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 146: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 147: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 148: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 149: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 150: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 151: 25 ingredient lines
+  ✅ Created 25 separate ingredient rows
+
+Recipe 152: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 153: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 154: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 155: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 156: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 157: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 158: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 638: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 159: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 160: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 161: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 162: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 163: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 164: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 165: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 166: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 167: 27 ingredient lines
+  ✅ Created 27 separate ingredient rows
+
+Recipe 168: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 169: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 170: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 171: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 173: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 174: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 175: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 176: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 177: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 178: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 179: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 180: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 181: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 182: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 184: 2 ingredient lines
+  ✅ Created 2 separate ingredient rows
+
+Recipe 185: 47 ingredient lines
+  ✅ Created 47 separate ingredient rows
+
+Recipe 186: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 187: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 188: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 189: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 190: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 191: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 192: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 193: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 194: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 196: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 197: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 199: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 200: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 201: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 202: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 203: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 204: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 205: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 206: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 207: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 208: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 209: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 210: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 211: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 212: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 213: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 214: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 215: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 216: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 289: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 217: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 218: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 219: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 220: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 221: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 222: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 223: 26 ingredient lines
+  ✅ Created 26 separate ingredient rows
+
+Recipe 224: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 225: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 226: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 227: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 228: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 229: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 230: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 231: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 232: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 233: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 234: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 235: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 237: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 238: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 239: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 240: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 241: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 242: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 243: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 244: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 245: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 246: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 247: 24 ingredient lines
+  ✅ Created 24 separate ingredient rows
+
+Recipe 249: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 250: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 251: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 252: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 253: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 290: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 254: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 255: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 258: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 259: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 260: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 261: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 262: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 263: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 264: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 265: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 266: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 267: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 269: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 270: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 271: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 332: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 272: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 273: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 274: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 275: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 276: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 278: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 279: 27 ingredient lines
+  ✅ Created 27 separate ingredient rows
+
+Recipe 280: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 281: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 282: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 283: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 284: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 285: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 286: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 287: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 288: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 291: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 292: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 293: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 294: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 295: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 296: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 297: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 298: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 299: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 300: 25 ingredient lines
+  ✅ Created 25 separate ingredient rows
+
+Recipe 301: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 302: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 303: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 304: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 305: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 306: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 307: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 308: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 416: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 309: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 310: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 311: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 312: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 313: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 314: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 315: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 316: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 317: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 318: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 319: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 320: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 321: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 322: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 323: 24 ingredient lines
+  ✅ Created 24 separate ingredient rows
+
+Recipe 324: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 325: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 326: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 327: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 328: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 329: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 330: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 331: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 333: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 334: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 335: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 336: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 337: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 338: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 339: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 340: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 341: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 342: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 343: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 344: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 345: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 346: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 347: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 348: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 349: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 350: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 351: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 352: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 353: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 354: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 355: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 376: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 377: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 378: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 379: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 380: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 381: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 382: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 383: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 384: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 385: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 356: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 357: 24 ingredient lines
+  ✅ Created 24 separate ingredient rows
+
+Recipe 358: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 359: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 360: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 361: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 362: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 363: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 364: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 365: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 366: 27 ingredient lines
+  ✅ Created 27 separate ingredient rows
+
+Recipe 367: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 368: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 369: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 370: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 371: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 372: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 373: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 417: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 375: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 401: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 402: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 403: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 404: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 405: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 406: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 407: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 408: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 409: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 410: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 411: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 412: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 413: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 414: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 415: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 386: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 387: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 388: 29 ingredient lines
+  ✅ Created 29 separate ingredient rows
+
+Recipe 389: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 390: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 391: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 392: 27 ingredient lines
+  ✅ Created 27 separate ingredient rows
+
+Recipe 393: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 430: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 394: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 395: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 396: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 397: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 398: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 399: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 418: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 419: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 420: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 421: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 422: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 423: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 426: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 427: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 428: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 429: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 431: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 432: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 433: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 434: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 435: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 436: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 437: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 438: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 439: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 440: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 441: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 442: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 443: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 444: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 445: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 446: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 447: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 448: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 449: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 451: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 452: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 453: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 454: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 455: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 456: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 457: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 458: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 459: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 460: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 461: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 462: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 463: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 464: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 465: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 466: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 486: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 569: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 570: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 571: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 572: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 573: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 574: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 575: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 576: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 577: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 467: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 468: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 469: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 470: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 471: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 473: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 474: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 475: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 476: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 477: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 478: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 487: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 488: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 489: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 490: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 491: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 492: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 549: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 472: 30 ingredient lines
+  ✅ Created 30 separate ingredient rows
+
+Recipe 479: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 480: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 481: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 482: 33 ingredient lines
+  ✅ Created 33 separate ingredient rows
+
+Recipe 483: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 484: 31 ingredient lines
+  ✅ Created 31 separate ingredient rows
+
+Recipe 485: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 493: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 494: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 495: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 496: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 497: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 498: 29 ingredient lines
+  ✅ Created 29 separate ingredient rows
+
+Recipe 499: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 500: 34 ingredient lines
+  ✅ Created 34 separate ingredient rows
+
+Recipe 501: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 502: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 503: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 504: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 505: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 506: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 507: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 508: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 509: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 510: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 511: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 512: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 513: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 514: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 515: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 516: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 517: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 518: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 519: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 520: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 521: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 522: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 523: 30 ingredient lines
+  ✅ Created 30 separate ingredient rows
+
+Recipe 524: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 525: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 526: 23 ingredient lines
+  ✅ Created 23 separate ingredient rows
+
+Recipe 527: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 578: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 528: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 529: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 530: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 531: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 532: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 533: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 534: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 535: 31 ingredient lines
+  ✅ Created 31 separate ingredient rows
+
+Recipe 536: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 537: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 538: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 539: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 542: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 543: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 544: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 545: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 546: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 547: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 548: 32 ingredient lines
+  ✅ Created 32 separate ingredient rows
+
+Recipe 550: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 551: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 552: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 553: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 554: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 555: 25 ingredient lines
+  ✅ Created 25 separate ingredient rows
+
+Recipe 556: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 557: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 558: 26 ingredient lines
+  ✅ Created 26 separate ingredient rows
+
+Recipe 559: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 561: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 562: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 563: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 564: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 565: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 579: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 566: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 567: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 580: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 581: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 582: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 584: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 585: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 586: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 587: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 588: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 589: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 590: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 591: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 592: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 593: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 594: 3 ingredient lines
+  ✅ Created 3 separate ingredient rows
+
+Recipe 595: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 596: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 614: 18 ingredient lines
+  ✅ Created 18 separate ingredient rows
+
+Recipe 636: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 597: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 598: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 599: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 600: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 601: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 602: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 603: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 604: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 605: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 606: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 607: 24 ingredient lines
+  ✅ Created 24 separate ingredient rows
+
+Recipe 608: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 609: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 610: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 611: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 612: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 613: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 637: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 615: 26 ingredient lines
+  ✅ Created 26 separate ingredient rows
+
+Recipe 616: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 617: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 618: 19 ingredient lines
+  ✅ Created 19 separate ingredient rows
+
+Recipe 619: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 620: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 622: 10 ingredient lines
+  ✅ Created 10 separate ingredient rows
+
+Recipe 623: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 626: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 635: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 628: 21 ingredient lines
+  ✅ Created 21 separate ingredient rows
+
+Recipe 629: 7 ingredient lines
+  ✅ Created 7 separate ingredient rows
+
+Recipe 631: 5 ingredient lines
+  ✅ Created 5 separate ingredient rows
+
+Recipe 644: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 646: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 648: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 650: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 651: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 653: 26 ingredient lines
+  ✅ Created 26 separate ingredient rows
+
+Recipe 640: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 645: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 658: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 656: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+Recipe 655: 4 ingredient lines
+  ✅ Created 4 separate ingredient rows
+
+Recipe 649: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 647: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 643: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 642: 20 ingredient lines
+  ✅ Created 20 separate ingredient rows
+
+Recipe 641: 15 ingredient lines
+  ✅ Created 15 separate ingredient rows
+
+Recipe 639: 8 ingredient lines
+  ✅ Created 8 separate ingredient rows
+
+Recipe 634: 22 ingredient lines
+  ✅ Created 22 separate ingredient rows
+
+Recipe 633: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 632: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 630: 6 ingredient lines
+  ✅ Created 6 separate ingredient rows
+
+Recipe 627: 16 ingredient lines
+  ✅ Created 16 separate ingredient rows
+
+Recipe 624: 14 ingredient lines
+  ✅ Created 14 separate ingredient rows
+
+Recipe 625: 12 ingredient lines
+  ✅ Created 12 separate ingredient rows
+
+Recipe 621: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 257: 11 ingredient lines
+  ✅ Created 11 separate ingredient rows
+
+Recipe 560: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 450: 9 ingredient lines
+  ✅ Created 9 separate ingredient rows
+
+Recipe 583: 13 ingredient lines
+  ✅ Created 13 separate ingredient rows
+
+Recipe 659: 17 ingredient lines
+  ✅ Created 17 separate ingredient rows
+
+================================================================================
+📊 FINAL REPORT
+================================================================================
+
+📝 Single-line records (already good): 40
+🔨 Multi-line records (split):  621
+✅ Total new ingredient rows created: 7887
+❌ Errors: 0
+
+================================================================================
+✅ Restructuring complete!
+
+📝 NEXT STEPS:
+   1. Run detailed ingredient analysis on ALL global recipes
+   2. This will match ingredient_id and set FK
+   3. Then users who add to cookbook will get proper amounts
+

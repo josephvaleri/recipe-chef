@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus } from 'lucide-react'
+import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus, Trophy } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { TrialBanner } from '@/components/trial-banner'
@@ -308,6 +308,27 @@ export default function Home() {
                           </div>
                         </div>
                       </RouteGuard>
+
+                      {/* Earn Badges CTA */}
+                      <div className="mt-4 p-4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg text-white">
+                        <div className="text-center">
+                          <div className="flex justify-center mb-2">
+                            <Trophy className="w-6 h-6" />
+                          </div>
+                          <h3 className="font-bold text-lg mb-2">Earn Badges!</h3>
+                          <p className="text-orange-100 text-sm mb-3">
+                            Celebrate your culinary journey with achievements
+                          </p>
+                          <Button
+                            variant="secondary"
+                            className="bg-white text-orange-600 hover:bg-orange-50"
+                            onClick={() => router.push('/earn-badges')}
+                          >
+                            <Trophy className="w-4 h-4 mr-2" />
+                            Learn How
+                          </Button>
+                        </div>
+                      </div>
                 </div>
               </Card>
             </div>

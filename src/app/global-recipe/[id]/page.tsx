@@ -87,6 +87,7 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
   const [loadingDetailedIngredients, setLoadingDetailedIngredients] = useState(false)
   const [savingIngredients, setSavingIngredients] = useState(false)
   const [ingredientsSaved, setIngredientsSaved] = useState(false)
+  const [addingToCookbook, setAddingToCookbook] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -427,6 +428,142 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
     window.print()
   }
 
+  const addToCookbook = async () => {
+    if (!recipe || !user) return
+    
+    setAddingToCookbook(true)
+    
+    try {
+      // Create user recipe from global recipe
+      const { data: userRecipe, error: recipeError } = await supabase
+        .from('user_recipes')
+        .insert({
+          user_id: user.id,
+          recipe_id: recipe.recipe_id, // Reference to global recipe
+          title: recipe.title,
+          description: recipe.description,
+          image_url: recipe.image_url,
+          cuisine_id: (recipe as any).cuisine_id,
+          meal_type_id: (recipe as any).meal_type_id,
+          servings: recipe.servings,
+          difficulty: recipe.difficulty,
+          prep_time: recipe.prep_time,
+          cook_time: recipe.cook_time,
+          total_time: recipe.total_time,
+          source_name: 'Global Cookbook',
+          source_url: `/global-recipe/${recipe.recipe_id}`
+        })
+        .select()
+        .single()
+
+      if (recipeError) {
+        console.error('Error adding recipe:', recipeError)
+        alert('Failed to add recipe to cookbook')
+        setAddingToCookbook(false)
+        return
+      }
+
+      // Copy ingredients from global_recipe_ingredients
+      const { data: globalIngredients } = await supabase
+        .from('global_recipe_ingredients')
+        .select(`
+          id,
+          amount,
+          unit,
+          ingredient_id,
+          ingredients!inner(ingredient_id, name)
+        `)
+        .eq('recipe_id', recipe.recipe_id)
+
+      if (globalIngredients && globalIngredients.length > 0) {
+        // Create a map to track global_ingredient_id → user_ingredient_id
+        const ingredientIdMap = new Map()
+        
+        // Insert ingredients and get their new IDs
+        const ingredientsToInsert = globalIngredients.map(ing => ({
+          user_recipe_id: userRecipe.user_recipe_id,
+          ingredient_id: ing.ingredient_id,
+          raw_name: (ing as any).ingredients?.name || 'Unknown',
+          amount: ing.amount,
+          unit: ing.unit
+        }))
+
+        const { data: insertedIngredients, error: ingredientsError } = await supabase
+          .from('user_recipe_ingredients')
+          .insert(ingredientsToInsert)
+          .select('id')
+
+        if (ingredientsError) {
+          console.error('Error copying ingredients:', ingredientsError)
+        } else if (insertedIngredients) {
+          // Map global ingredient IDs to new user ingredient IDs
+          globalIngredients.forEach((globalIng, index) => {
+            if (insertedIngredients[index]) {
+              ingredientIdMap.set(globalIng.id, insertedIngredients[index].id)
+            }
+          })
+        }
+
+        // Copy detailed ingredient analysis
+        const { data: globalDetails } = await supabase
+          .from('global_recipe_ingredients_detail')
+          .select('*')
+          .eq('recipe_id', recipe.recipe_id)
+
+        if (globalDetails && globalDetails.length > 0) {
+          const detailsToInsert = globalDetails
+            .map(detail => {
+              const userIngredientId = ingredientIdMap.get(detail.global_recipe_ingredient_id)
+              if (!userIngredientId) return null
+
+              return {
+                user_recipe_id: userRecipe.user_recipe_id,
+                user_recipe_ingredient_id: userIngredientId,
+                ingredient_id: detail.ingredient_id,
+                matched_term: detail.matched_term,
+                match_type: detail.match_type,
+                original_text: detail.original_text
+              }
+            })
+            .filter(Boolean)
+
+          if (detailsToInsert.length > 0) {
+            await supabase
+              .from('user_recipe_ingredients_detail')
+              .insert(detailsToInsert)
+          }
+        }
+      }
+
+      // Copy steps
+      const { data: globalSteps } = await supabase
+        .from('global_recipe_steps')
+        .select('*')
+        .eq('recipe_id', recipe.recipe_id)
+        .order('step_number')
+
+      if (globalSteps && globalSteps.length > 0) {
+        const stepsToInsert = globalSteps.map(step => ({
+          user_recipe_id: userRecipe.user_recipe_id,
+          step_number: step.step_number,
+          text: step.text
+        }))
+
+        await supabase
+          .from('user_recipe_steps')
+          .insert(stepsToInsert)
+      }
+
+      alert('Recipe added to your cookbook!')
+      router.push('/cookbook')
+    } catch (error) {
+      console.error('Error adding to cookbook:', error)
+      alert('Failed to add recipe to cookbook')
+    } finally {
+      setAddingToCookbook(false)
+    }
+  }
+
   const handleScaleServings = (newServings: number) => {
     setServings(newServings)
   }
@@ -503,6 +640,14 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
           </Button>
           
           <div className="flex items-center space-x-2">
+            <Button
+              onClick={addToCookbook}
+              disabled={addingToCookbook}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {addingToCookbook ? 'Adding...' : 'Add to Cookbook'}
+            </Button>
             <Button
               onClick={() => router.push(`/global-recipe/${recipe.recipe_id}/edit`)}
               variant="outline"
