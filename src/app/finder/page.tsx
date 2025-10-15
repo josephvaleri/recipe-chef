@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase } from '@/lib/supabase'
-import { getCurrentUser, getCurrentProfile } from '@/lib/auth'
+import { getCurrentUser, getCurrentProfile, type Profile } from '@/lib/auth'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import RecipeCard from '@/components/recipe-card'
 import { 
@@ -19,6 +19,7 @@ import {
   Star, 
   ArrowLeft,
   Globe,
+  Sparkles,
   ChefHat as DifficultyIcon
 } from 'lucide-react'
 
@@ -66,6 +67,7 @@ export default function RecipeFinderPage() {
   // CACHE BUST - v1.2.1 - Force browser to reload new search logic
   const [userRecipes, setUserRecipes] = useState<GlobalRecipe[]>([])
   const [globalRecipes, setGlobalRecipes] = useState<GlobalRecipe[]>([])
+  const [aiRecipes, setAiRecipes] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<FilterState>({
@@ -79,7 +81,7 @@ export default function RecipeFinderPage() {
   const [cuisines, setCuisines] = useState<any[]>([])
   const [mealTypes, setMealTypes] = useState<any[]>([])
   const [ingredients, setIngredients] = useState<any[]>([])
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     proteins: true,
     vegetables: true,
@@ -103,6 +105,9 @@ export default function RecipeFinderPage() {
   }, [])
 
   useEffect(() => {
+    console.log('🔍 DEBUG: Filters changed, checking for search trigger')
+    console.log('🔍 DEBUG: Current filters:', filters)
+    
     // Only search if at least one ingredient is selected
     const hasSelectedIngredients = [
       ...filters.proteins,
@@ -111,16 +116,153 @@ export default function RecipeFinderPage() {
       ...filters.grains,
       ...filters.dairy,
       ...filters.spices
-    ].length > 0
+    ]
 
-    if (hasSelectedIngredients) {
+    console.log('🔍 DEBUG: Total selected ingredients:', hasSelectedIngredients.length)
+    console.log('🔍 DEBUG: Selected ingredients:', hasSelectedIngredients)
+
+    if (hasSelectedIngredients.length > 0) {
+      console.log('🔍 DEBUG: Triggering searchRecipes()')
       searchRecipes()
     } else {
+      console.log('🔍 DEBUG: No ingredients selected, clearing recipes')
       // Clear recipes when no ingredients are selected
       setUserRecipes([])
       setGlobalRecipes([])
+      
+      // Check if this was an AI search with no ingredient matches - trigger OpenAI fallback
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.get('aiSearch') === 'true' && searchQuery.trim()) {
+        console.log('🔍 DEBUG: AI search with no ingredient matches, triggering OpenAI fallback')
+        generateRecipesWithOpenAI(searchQuery)
+      }
     }
   }, [filters])
+
+  // Separate useEffect to handle AI search after ingredients are loaded
+  useEffect(() => {
+    // Only process AI search if we have ingredients loaded
+    if (ingredients.length === 0) {
+      console.log('🔍 DEBUG: Ingredients not loaded yet, skipping AI search')
+      return
+    }
+
+    const urlParams = new URLSearchParams(window.location.search)
+    console.log('🔍 DEBUG: Checking for AI search after ingredients loaded')
+    console.log('🔍 DEBUG: aiSearch param:', urlParams.get('aiSearch'))
+    
+    if (urlParams.get('aiSearch') === 'true') {
+      const aiSearchQuery = sessionStorage.getItem('aiSearchQuery')
+      console.log('🔍 DEBUG: AI search detected, query from sessionStorage:', aiSearchQuery)
+      
+      if (aiSearchQuery) {
+        console.log('🔍 DEBUG: Processing AI search query:', aiSearchQuery)
+        setSearchQuery(aiSearchQuery)
+        
+        // Check the search source to determine the search strategy
+        const searchSource = sessionStorage.getItem('aiSearchSource') || 'recipe_finder_search'
+        console.log('🔍 DEBUG: AI search source:', searchSource)
+        
+        if (searchSource === 'recipe_name_search') {
+          console.log('🔍 DEBUG: Recipe name search - checking for pre-computed results')
+          
+          // Check if we have pre-computed recipe name search results
+          const recipeNameResults = sessionStorage.getItem('recipeNameResults')
+          const aiGeneratedRecipes = sessionStorage.getItem('aiGeneratedRecipes')
+          
+          if (recipeNameResults) {
+            console.log('🔍 DEBUG: Found pre-computed recipe name results')
+            const results = JSON.parse(recipeNameResults)
+            
+            if (results.type === 'database_results') {
+              // Display database results directly
+              const userRecipesData = (results.userRecipes || []).map((recipe: any) => ({ ...recipe, source: 'user' }))
+              const globalRecipesData = (results.globalRecipes || []).map((recipe: any) => ({ ...recipe, source: 'global' }))
+              
+              setUserRecipes(userRecipesData)
+              setGlobalRecipes(globalRecipesData)
+              
+              // Clear session storage
+              sessionStorage.removeItem('recipeNameResults')
+              sessionStorage.removeItem('aiSearchQuery')
+              sessionStorage.removeItem('aiSearchSource')
+              console.log('🔍 DEBUG: Cleared session storage after displaying database results')
+            }
+          } else if (aiGeneratedRecipes) {
+            console.log('🔍 DEBUG: Found AI generated recipes for recipe name search')
+            const recipes = JSON.parse(aiGeneratedRecipes)
+            
+            // Format the generated recipes for display
+            const formattedRecipes = recipes.map((recipe: any) => {
+              // Parse instructions from JSON-LD format
+              const instructions = recipe.recipeInstructions?.map((step: any) => {
+                if (typeof step === 'string') {
+                  return step
+                } else if (step && step.text) {
+                  return step.text
+                }
+                return step
+              }) || []
+
+              // Parse ingredients from JSON-LD format
+              const ingredients = recipe.recipeIngredient?.map((ing: string) => ({
+                ingredient: { name: ing, category_id: 1 },
+                raw_name: ing
+              })) || []
+
+              return {
+                recipe_id: `ai_${Date.now()}_${Math.random()}`,
+                title: recipe.name,
+                description: recipe.description,
+                image_url: recipe.image || '/placeholder-recipe.jpg',
+                prep_time: recipe.prepTime,
+                cook_time: recipe.cookTime,
+                total_time: recipe.totalTime,
+                servings: recipe.recipeYield,
+                difficulty: 'Medium',
+                cuisine: { name: recipe.recipeCuisine || 'International' },
+                meal_type: { name: recipe.recipeCategory || 'Main Course' },
+                ingredients: ingredients,
+                steps: instructions.map((instruction: string, index: number) => ({
+                  step_number: index + 1,
+                  text: instruction
+                })),
+                equipment: [],
+                tags: [],
+                source: 'ai_generated',
+                is_saveable: true // Mark as saveable
+              }
+            })
+            
+            // Display AI generated recipes as global recipes
+            setGlobalRecipes(formattedRecipes)
+            setUserRecipes([])
+            
+            // Clear session storage
+            sessionStorage.removeItem('aiGeneratedRecipes')
+            sessionStorage.removeItem('aiSearchQuery')
+            sessionStorage.removeItem('aiSearchSource')
+            console.log('🔍 DEBUG: Cleared session storage after displaying AI generated recipes')
+          } else {
+            console.log('🔍 DEBUG: No pre-computed results, falling back to searchRecipeTitles')
+            // Fallback to the old method if no pre-computed results
+            searchRecipeTitles(aiSearchQuery)
+          }
+        } else {
+          console.log('🔍 DEBUG: Ingredient search - using parseSearchQuery')
+          // For ingredient searches, use the existing ingredient parsing logic
+          parseSearchQuery(aiSearchQuery)
+        }
+        
+        // Don't clear session storage yet - let the fallback logic use it if needed
+        console.log('🔍 DEBUG: Keeping aiSearchQuery in sessionStorage for potential fallback')
+      } else {
+        console.log('🔍 DEBUG: No aiSearchQuery found in sessionStorage')
+      }
+    } else {
+      console.log('🔍 DEBUG: Not an AI search')
+    }
+  }, [ingredients]) // Run when ingredients are loaded
 
   const loadInitialData = async () => {
     try {
@@ -147,17 +289,34 @@ export default function RecipeFinderPage() {
 
       // Load all ingredients - simpler and more reliable
       // Previous optimization attempt caused issues with .in() operator limits
-      const { data: ingredientsData, error: ingredientsError } = await supabase
-        .from('ingredients')
-        .select(`
-          *,
-          category:ingredient_categories(name)
-        `)
-        .order('name')
+      // Load all ingredients using pagination to bypass any default limits
+      let allIngredientsData: any[] = []
+      let from = 0
+      const pageSize = 1000
+      let hasMore = true
       
-      if (ingredientsError) {
-        console.error('Error loading ingredients:', ingredientsError)
+      while (hasMore) {
+        const { data: pageData, error: pageError } = await supabase
+          .from('ingredients')
+          .select('*')
+          .order('name')
+          .range(from, from + pageSize - 1)
+        
+        if (pageError) {
+          console.error('Error loading ingredients page:', pageError)
+          break
+        }
+        
+        if (pageData && pageData.length > 0) {
+          allIngredientsData = [...allIngredientsData, ...pageData]
+          from += pageSize
+          hasMore = pageData.length === pageSize
+        } else {
+          hasMore = false
+        }
       }
+      
+      const ingredientsData = allIngredientsData
       
       const allIngredients = (ingredientsData || []).filter(ing => 
         ing && 
@@ -168,10 +327,67 @@ export default function RecipeFinderPage() {
       )
 
       console.log(`Loaded ${allIngredients.length} ingredients total`)
+      console.log('First ingredient:', allIngredients[0]?.name)
+      console.log('Last ingredient:', allIngredients[allIngredients.length - 1]?.name)
+      
+      // Check for ingredients starting with Q, R, S, T, U, V, W, X, Y, Z
+      const laterIngredients = allIngredients.filter(ing => 
+        ing.name && /^[Q-Z]/i.test(ing.name)
+      )
+      console.log(`Ingredients starting with Q-Z: ${laterIngredients.length}`)
+      if (laterIngredients.length > 0) {
+        console.log('Sample later ingredients:', laterIngredients.slice(0, 5).map(ing => ing.name))
+      }
 
       setCuisines(cuisinesData || [])
       setMealTypes(mealTypesData || [])
       setIngredients(allIngredients)
+
+      // Pre-check pantry ingredients if user has them
+      if (profileData && profileData.pantry_ingredients && profileData.pantry_ingredients.length > 0) {
+        console.log('🔍 DEBUG: Loading pantry ingredients:', profileData.pantry_ingredients)
+        
+        // Group pantry ingredients by category
+        const pantryProteins: number[] = []
+        const pantryVegetables: number[] = []
+        const pantryFruits: number[] = []
+        const pantryGrains: number[] = []
+        const pantryDairy: number[] = []
+        const pantrySpices: number[] = []
+
+        allIngredients.forEach(ingredient => {
+          if (profileData.pantry_ingredients?.includes(ingredient.ingredient_id)) {
+            switch (ingredient.category_id) {
+              case 1: pantryProteins.push(ingredient.ingredient_id); break
+              case 2: pantryVegetables.push(ingredient.ingredient_id); break
+              case 3: pantryFruits.push(ingredient.ingredient_id); break
+              case 4: pantryGrains.push(ingredient.ingredient_id); break
+              case 7: pantryDairy.push(ingredient.ingredient_id); break
+              case 6: pantrySpices.push(ingredient.ingredient_id); break
+            }
+          }
+        })
+
+        // Update filters with pantry ingredients
+        setFilters(prev => ({
+          ...prev,
+          proteins: pantryProteins,
+          vegetables: pantryVegetables,
+          fruits: pantryFruits,
+          grains: pantryGrains,
+          dairy: pantryDairy,
+          spices: pantrySpices
+        }))
+
+        console.log('🔍 DEBUG: Set pantry filters:', {
+          proteins: pantryProteins,
+          vegetables: pantryVegetables,
+          fruits: pantryFruits,
+          grains: pantryGrains,
+          dairy: pantryDairy,
+          spices: pantrySpices
+        })
+      }
 
       // Don't load any recipes initially - wait for user to select ingredients
     } catch (error) {
@@ -180,23 +396,195 @@ export default function RecipeFinderPage() {
   }
 
 
-  const parseSearchQuery = (query: string) => {
-    if (!query.trim()) return
+  const searchRecipeTitles = async (query: string) => {
+    console.log('🔍 DEBUG: searchRecipeTitles called with:', query)
+    
+    try {
+      setLoading(true)
+      
+      // Clean the query for title search
+      const cleanQuery = query
+        .toLowerCase()
+        .replace(/give me recipes? for/gi, '')
+        .replace(/recipes? for/gi, '')
+        .replace(/how to make/gi, '')
+        .replace(/how to cook/gi, '')
+        .trim()
+      
+      console.log('🔍 DEBUG: Cleaned query for title search:', cleanQuery)
+      
+      // Search user recipes by title using ilike for better compatibility
+      const { data: userRecipes, error: userError } = await supabase
+        .from('user_recipes')
+        .select(`
+          *,
+          cuisine:cuisines(name),
+          meal_type:meal_types(name)
+        `)
+        .ilike('title', `%${cleanQuery}%`)
+        .eq('user_id', (await getCurrentUser())?.id)
+        .limit(20)
+      
+      if (userError) {
+        console.error('Error searching user recipes by title:', userError)
+      }
+      
+      // Search global recipes by title using ilike for better compatibility
+      const { data: globalRecipes, error: globalError } = await supabase
+        .from('global_recipes')
+        .select(`
+          *,
+          cuisine:cuisines(name),
+          meal_type:meal_types(name)
+        `)
+        .ilike('title', `%${cleanQuery}%`)
+        .eq('is_published', true)
+        .limit(20)
+      
+      if (globalError) {
+        console.error('Error searching global recipes by title:', globalError)
+      }
+      
+      const userRecipesData = (userRecipes || []).map(recipe => ({ ...recipe, source: 'user' }))
+      const globalRecipesData = (globalRecipes || []).map(recipe => ({ ...recipe, source: 'global' }))
+      
+      console.log('🔍 DEBUG: Found user recipes by title:', userRecipesData.length)
+      console.log('🔍 DEBUG: Found global recipes by title:', globalRecipesData.length)
+      
+      // Set the results
+      setUserRecipes(userRecipesData)
+      setGlobalRecipes(globalRecipesData)
+      
+      // If no results found, trigger OpenAI fallback
+      if (userRecipesData.length === 0 && globalRecipesData.length === 0) {
+        console.log('🔍 DEBUG: No recipe title matches found, triggering OpenAI fallback')
+        await generateRecipesWithOpenAI(query)
+      } else {
+        // Clear session storage since we found results
+        sessionStorage.removeItem('aiSearchQuery')
+        sessionStorage.removeItem('aiSearchSource')
+        console.log('🔍 DEBUG: Cleared session storage after finding recipe title matches')
+      }
+      
+    } catch (error) {
+      console.error('Error in searchRecipeTitles:', error)
+      // Fallback to OpenAI on error
+      await generateRecipesWithOpenAI(query)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    // Extract ingredient names from natural language
-    const ingredientNames = query
-      .toLowerCase()
+  const parseSearchQuery = (query: string) => {
+    console.log('🔍 DEBUG: parseSearchQuery called with:', query)
+    if (!query.trim()) {
+      console.log('🔍 DEBUG: Empty query, returning')
+      return
+    }
+
+    // Use a more sophisticated approach inspired by Detailed Ingredient Analysis
+    let cleanQuery = query.toLowerCase()
+    console.log('🔍 DEBUG: Initial cleanQuery:', cleanQuery)
+    
+    // Remove common question words and phrases (more comprehensive)
+    cleanQuery = cleanQuery
+      .replace(/give me recipes? for/gi, '')
+      .replace(/what can i make with/gi, '')
+      .replace(/what can i cook with/gi, '')
+      .replace(/what can i do with/gi, '')
       .replace(/find a recipe that uses?/gi, '')
       .replace(/recipe that uses?/gi, '')
-      .replace(/uses?/gi, '')
+      .replace(/recipes? with/gi, '')
+      .replace(/how to make/gi, '')
+      .replace(/how to cook/gi, '')
+      .replace(/using/gi, '')
       .replace(/with/gi, '')
       .replace(/and/gi, ',')
       .replace(/or/gi, ',')
-      .split(',')
-      .map(name => name.trim())
+      .replace(/,\s*,/g, ',') // Remove double commas
+      .trim()
+    
+    console.log('🔍 DEBUG: After question word removal:', cleanQuery)
+    
+    // Handle recipe names like "spaghetti alla vongole" by splitting on common separators
+    let ingredientNames: string[] = []
+    
+    // First, try to split by commas
+    if (cleanQuery.includes(',')) {
+      ingredientNames = cleanQuery.split(',')
+    } else {
+      // For single recipe names, try to extract key ingredients
+      // Handle common recipe name patterns
+      if (cleanQuery.includes(' alla ') || cleanQuery.includes(' al ')) {
+        // Italian recipes like "spaghetti alla vongole" -> ["spaghetti", "vongole"]
+        const parts = cleanQuery.split(/\s+(?:alla|al|con|with)\s+/)
+        ingredientNames = parts
+      } else if (cleanQuery.includes(' with ')) {
+        // English recipes like "chicken with rice" -> ["chicken", "rice"]
+        ingredientNames = cleanQuery.split(/\s+with\s+/)
+      } else if (cleanQuery.includes(' and ')) {
+        // Recipes like "chicken and rice" -> ["chicken", "rice"]
+        ingredientNames = cleanQuery.split(/\s+and\s+/)
+      } else {
+        // Single ingredient or recipe name
+        ingredientNames = [cleanQuery]
+      }
+    }
+    
+    // Clean up each ingredient using Detailed Ingredient Analysis approach
+    const cleanedIngredients = ingredientNames
+      .map(name => {
+        console.log('🔍 DEBUG: Processing ingredient name:', name)
+        // Clean each ingredient name like the Detailed Ingredient Analysis does
+        const cleaned = name
+          .trim()
+          // Remove measurements and numbers
+          .replace(/\b\d+([/-]\d+)?(\s*(inch|inches|cm|centimeter|centimeters|mm))?\b/g, '')
+          // Remove volume units
+          .replace(/\b(cup|cups|c|tablespoon|tablespoons|tbsp|tbs|tb|teaspoon|teaspoons|tsp|ts|fluid\s*ounce|fluid\s*ounces|fl\.?\s*oz|pint|pints|pt|quart|quarts|qt|gallon|gallons|gal|milliliter|milliliters|millilitre|millilitres|ml|liter|liters|litre|litres|l|deciliter|deciliters|dl)\b/gi, '')
+          // Remove weight units
+          .replace(/\b(pound|pounds|lb|lbs|ounce|ounces|oz|gram|grams|gramme|grammes|g|kilogram|kilograms|kg|milligram|milligrams|mg)\b/gi, '')
+          // Remove portion/count units
+          .replace(/\b(clove|cloves|stalk|stalks|stick|sticks|piece|pieces|chunk|chunks|strip|strips|wedge|wedges|slice|slices|head|heads|bunch|bunches|sprig|sprigs|leaf|leaves|bulb|bulbs|can|cans|jar|jars|package|packages|pkg|box|boxes|bag|bags|container|containers)\b/gi, '')
+          // Remove cutting/prep styles
+          .replace(/\b(diced|chopped|peeled|minced|sliced|grated|shredded|crushed|mashed|pureed|ground|crumbled|julienned|ribboned|cubed|halved|quartered|sectioned|segmented|torn|broken)\b/gi, '')
+          // Remove size descriptors
+          .replace(/\b(large|medium|small|mini|baby|jumbo|giant|extra-large|x-large|xl|extra-small|x-small|xs|bite-sized|bite-size)\b/gi, '')
+          // Remove color descriptors
+          .replace(/\b(red|green|yellow|orange|purple|white|black|brown|golden|dark|light|pale)\b/gi, '')
+          // Remove cooking states
+          .replace(/\b(fresh|freshly|dried|frozen|defrosted|thawed|bottled|packaged|jarred|smoked|cured|aged)\b/gi, '')
+          // Remove cooking methods
+          .replace(/\b(raw|cooked|uncooked|precooked|blanched|parboiled|steamed|boiled|simmered|poached|roasted|baked|grilled|broiled|fried|sauteed|sautéed|pan-fried|deep-fried|stir-fried|braised|stewed|caramelized)\b/gi, '')
+          // Remove quality/source descriptors
+          .replace(/\b(organic|non-organic|natural|wild|farm-raised|free-range|grass-fed|hormone-free|antibiotic-free|gmo-free|non-gmo|gluten-free|low-sodium|no-salt|unsalted|salted|sweetened|unsweetened|sugar-free)\b/gi, '')
+          // Remove conjunctions and articles
+          .replace(/\b(and|or|with|without|plus|a|an|the|of|from|for|on|at|by)\b/gi, '')
+          // Remove parenthetical content
+          .replace(/\([^)]*\)/g, '')
+          // Remove bracket content
+          .replace(/\[[^\]]*\]/g, '')
+          // Remove question marks and other punctuation
+          .replace(/[,\-–—&/?!]/g, ' ')
+          // Collapse multiple spaces into one
+          .replace(/\s+/g, ' ')
+          // Final trim
+          .trim()
+        
+        console.log('🔍 DEBUG: Cleaned ingredient:', name, '→', cleaned)
+        return cleaned
+      })
       .filter(name => name.length > 0)
+      .filter(name => !['a', 'an', 'the', 'some', 'any'].includes(name)) // Remove articles
 
-    console.log('Parsed ingredient names:', ingredientNames)
+    console.log('🔍 DEBUG: Final parsed ingredient names:', cleanedIngredients)
+    
+    // Debug: Check if we have common ingredients
+    const commonIngredients = ['chicken', 'rice', 'beef', 'pork', 'fish', 'pasta', 'bread']
+    const foundCommon = ingredients.filter(ing => 
+      commonIngredients.some(common => ing.name.toLowerCase().includes(common))
+    )
+    console.log('🔍 DEBUG: Common ingredients found in database:', foundCommon.map(i => i.name))
 
     // Find matching ingredients in the database (optimized)
     const matchedIngredients: { [key: string]: number[] } = {
@@ -208,17 +596,119 @@ export default function RecipeFinderPage() {
       spices: []
     }
 
-    // Use a more efficient matching approach
-    ingredientNames.forEach(searchName => {
+    // Use a more flexible matching approach
+    console.log('🔍 DEBUG: Starting ingredient matching with', cleanedIngredients.length, 'search terms')
+    console.log('🔍 DEBUG: Total ingredients in database:', ingredients.length)
+    
+    cleanedIngredients.forEach(searchName => {
+      console.log('🔍 DEBUG: Searching for ingredient:', searchName)
+      
       const foundIngredients = ingredients.filter(ingredient => {
-        if (!ingredient || !ingredient.name || !ingredient.category_id || !ingredient.ingredient_id) return false
+        if (!ingredient || !ingredient.name || !ingredient.category_id || !ingredient.ingredient_id) {
+          console.log('🔍 DEBUG: Skipping invalid ingredient:', ingredient)
+          return false
+        }
+        
         const ingredientName = ingredient.name.toLowerCase()
-        return ingredientName.includes(searchName) || searchName.includes(ingredientName)
+        const searchTerm = searchName.toLowerCase()
+        
+        // More precise matching with confidence scoring
+        let confidence = 0
+        let matchType = ''
+        
+        // Exact match (highest confidence)
+        if (ingredientName === searchTerm) {
+          confidence = 1.0
+          matchType = 'exact'
+        }
+        // Word boundary match (high confidence) - ingredient contains the search term as a complete word
+        else if (new RegExp(`\\b${searchTerm}\\b`).test(ingredientName)) {
+          confidence = 0.9
+          matchType = 'word_boundary'
+        }
+        // Starts with match (good confidence) - ingredient starts with the search term
+        else if (ingredientName.startsWith(searchTerm)) {
+          confidence = 0.8
+          matchType = 'starts_with'
+        }
+        // Ends with match (good confidence) - ingredient ends with the search term
+        else if (ingredientName.endsWith(searchTerm)) {
+          confidence = 0.8
+          matchType = 'ends_with'
+        }
+        // Contains match (medium confidence) - but only if search term is at least 3 characters
+        else if (searchTerm.length >= 3 && ingredientName.includes(searchTerm)) {
+          confidence = 0.6
+          matchType = 'contains'
+        }
+        // Plural/singular match (medium confidence)
+        else if (searchTerm.endsWith('s') && ingredientName === searchTerm.slice(0, -1)) {
+          confidence = 0.7
+          matchType = 'singular'
+        }
+        else if (ingredientName.endsWith('s') && searchTerm === ingredientName.slice(0, -1)) {
+          confidence = 0.7
+          matchType = 'plural'
+        }
+        // Partial word match (low confidence) - only for longer search terms
+        else if (searchTerm.length >= 4 && ingredientName.split(' ').some((word: string) => word.includes(searchTerm))) {
+          confidence = 0.4
+          matchType = 'partial_word'
+        }
+        
+        // Only accept matches with confidence >= 0.6 (medium confidence or higher)
+        let matches = confidence >= 0.6
+        
+        // Additional filtering to prevent false positives
+        if (matches) {
+          // For very short search terms (1-2 characters), require higher confidence
+          if (searchTerm.length <= 2 && confidence < 0.8) {
+            matches = false
+          }
+          
+          // For compound ingredients, make sure the match is meaningful
+          if (ingredientName.includes(' ') && matchType === 'contains') {
+            // If it's a compound ingredient and we're doing a contains match,
+            // make sure the search term is a significant portion of the ingredient
+            const searchTermRatio = searchTerm.length / ingredientName.length
+            if (searchTermRatio < 0.3) { // Search term should be at least 30% of ingredient name
+              matches = false
+            }
+          }
+          
+          // Reject matches that are clearly unrelated (e.g., "spaghetti squash" for "spaghetti alla vongole")
+          if (matchType === 'contains' && ingredientName.includes(' ') && searchTerm.length >= 4) {
+            // Check if the ingredient contains other major words that suggest it's a different type
+            const ingredientWords = ingredientName.split(' ')
+            const hasOtherMajorWords = ingredientWords.some((word: string) => 
+              word.length >= 4 && word !== searchTerm && 
+              !['fresh', 'dried', 'cooked', 'raw', 'organic', 'large', 'small', 'medium'].includes(word)
+            )
+            if (hasOtherMajorWords) {
+              // This might be a false positive, require higher confidence
+              if (confidence < 0.8) {
+                matches = false
+              }
+            }
+          }
+        }
+        
+        if (matches) {
+          console.log('🔍 DEBUG: MATCH FOUND:', ingredientName, 'matches', searchTerm, {
+            confidence: confidence.toFixed(2),
+            matchType
+          })
+        }
+        
+        return matches
       })
+
+      console.log(`🔍 DEBUG: Found ${foundIngredients.length} matches for "${searchName}":`, foundIngredients.map(i => i.name))
 
       foundIngredients.forEach(ingredient => {
         if (ingredient && ingredient.category_id && ingredient.ingredient_id) {
           const categoryKey = getCategoryKey(ingredient.category_id)
+          console.log('🔍 DEBUG: Adding ingredient to category:', ingredient.name, '→', categoryKey)
           if (categoryKey && !matchedIngredients[categoryKey].includes(ingredient.ingredient_id)) {
             matchedIngredients[categoryKey].push(ingredient.ingredient_id)
           }
@@ -226,15 +716,19 @@ export default function RecipeFinderPage() {
       })
     })
 
-    console.log('Matched ingredients:', matchedIngredients)
+    console.log('🔍 DEBUG: Final matched ingredients by category:', matchedIngredients)
 
     // Update filters with matched ingredients (batch update)
     setFilters(prev => {
+      console.log('🔍 DEBUG: Previous filters:', prev)
       const newFilters = { ...prev }
       Object.keys(matchedIngredients).forEach(category => {
         const categoryKey = category as keyof typeof matchedIngredients
-        ;(newFilters as any)[categoryKey] = [...(prev as any)[categoryKey], ...matchedIngredients[categoryKey]]
+        const newCategoryIngredients = [...(prev as any)[categoryKey], ...matchedIngredients[categoryKey]]
+        ;(newFilters as any)[categoryKey] = newCategoryIngredients
+        console.log(`🔍 DEBUG: Updated ${categoryKey}:`, newCategoryIngredients)
       })
+      console.log('🔍 DEBUG: New filters:', newFilters)
       return newFilters
     })
 
@@ -254,11 +748,12 @@ export default function RecipeFinderPage() {
   }
 
   const searchRecipes = async () => {
+    console.log('🔍 DEBUG: searchRecipes() called')
     setLoading(true)
     try {
       // Check if search query contains natural language ingredient search
       if (searchQuery.trim() && searchQuery.toLowerCase().includes('recipe')) {
-        console.log('Detected natural language search:', searchQuery)
+        console.log('🔍 DEBUG: Detected natural language search:', searchQuery)
         parseSearchQuery(searchQuery)
         // Clear the search query after processing
         setSearchQuery('')
@@ -302,15 +797,18 @@ export default function RecipeFinderPage() {
         ...filters.spices
       ]
 
+      console.log('🔍 DEBUG: All selected ingredients:', allSelectedIngredients)
+
       // If no ingredients selected, clear recipes
       if (allSelectedIngredients.length === 0) {
+        console.log('🔍 DEBUG: No ingredients selected, clearing recipes and returning')
         setUserRecipes([])
         setGlobalRecipes([])
         return
       }
 
-      console.log('Searching for ingredients:', allSelectedIngredients)
-      console.log('Starting ingredient search...', new Date().toISOString())
+      console.log('🔍 DEBUG: Searching for ingredients:', allSelectedIngredients)
+      console.log('🔍 DEBUG: Starting ingredient search...', new Date().toISOString())
 
       // Step 1: Find recipes that contain any of the selected ingredients
       // Search user recipes through user_recipe_ingredients_detail
@@ -379,15 +877,22 @@ export default function RecipeFinderPage() {
         if (filters.difficulty) {
           userQuery = userQuery.eq('difficulty', filters.difficulty)
         }
-        if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
+        // Only do full-text search if it's not an AI search query (which contains question words)
+        if (searchQuery.trim() && 
+            !searchQuery.toLowerCase().includes('recipe') && 
+            !searchQuery.toLowerCase().includes('what can i make') &&
+            !searchQuery.toLowerCase().includes('what can i cook') &&
+            !searchQuery.toLowerCase().includes('how to')) {
           userQuery = userQuery.textSearch('title', searchQuery.trim())
         }
 
+        console.log('🔍 DEBUG: About to fetch user recipes with query')
         const { data: userRecipes, error: userRecipesError } = await userQuery
 
         if (userRecipesError) {
-          console.error('Error fetching user recipes:', userRecipesError)
+          console.error('🔍 DEBUG: Error fetching user recipes:', userRecipesError)
         } else {
+          console.log('🔍 DEBUG: Successfully fetched user recipes:', userRecipes?.length || 0)
           userRecipesData = (userRecipes || []).map(recipe => ({ ...recipe, source: 'user' }))
         }
       }
@@ -414,15 +919,22 @@ export default function RecipeFinderPage() {
         if (filters.difficulty) {
           globalQuery = globalQuery.eq('difficulty', filters.difficulty)
         }
-        if (searchQuery.trim() && !searchQuery.toLowerCase().includes('recipe')) {
+        // Only do full-text search if it's not an AI search query (which contains question words)
+        if (searchQuery.trim() && 
+            !searchQuery.toLowerCase().includes('recipe') && 
+            !searchQuery.toLowerCase().includes('what can i make') &&
+            !searchQuery.toLowerCase().includes('what can i cook') &&
+            !searchQuery.toLowerCase().includes('how to')) {
           globalQuery = globalQuery.textSearch('title', searchQuery.trim())
         }
 
+        console.log('🔍 DEBUG: About to fetch global recipes with query')
         const { data: globalRecipes, error: globalRecipesError } = await globalQuery
 
         if (globalRecipesError) {
-          console.error('Error fetching global recipes:', globalRecipesError)
+          console.error('🔍 DEBUG: Error fetching global recipes:', globalRecipesError)
         } else {
+          console.log('🔍 DEBUG: Successfully fetched global recipes:', globalRecipes?.length || 0)
           globalRecipesData = (globalRecipes || []).map(recipe => ({ ...recipe, source: 'global' }))
         }
       }
@@ -521,6 +1033,33 @@ export default function RecipeFinderPage() {
 
       setUserRecipes(filteredUserRecipes)
       setGlobalRecipes(filteredGlobalRecipes)
+
+      // If no results found and this was an AI search, try OpenAI generation
+      if (filteredUserRecipes.length === 0 && filteredGlobalRecipes.length === 0 && searchQuery.trim()) {
+        console.log('🔍 DEBUG: No database results found, checking if this was an AI search...')
+        console.log('🔍 DEBUG: searchQuery:', searchQuery)
+        const urlParams = new URLSearchParams(window.location.search)
+        console.log('🔍 DEBUG: URL params:', Object.fromEntries(urlParams.entries()))
+        console.log('🔍 DEBUG: aiSearch param:', urlParams.get('aiSearch'))
+        
+        if (urlParams.get('aiSearch') === 'true') {
+          console.log('🔍 DEBUG: AI search with no database results, generating recipes with OpenAI...')
+          await generateRecipesWithOpenAI(searchQuery)
+          // Clear session storage after using it for fallback
+          sessionStorage.removeItem('aiSearchQuery')
+          console.log('🔍 DEBUG: Cleared aiSearchQuery from sessionStorage after OpenAI fallback')
+        } else {
+          console.log('🔍 DEBUG: Not an AI search, no fallback to OpenAI')
+        }
+      } else {
+        console.log('🔍 DEBUG: Found database results or no search query, no OpenAI fallback needed')
+        console.log('🔍 DEBUG: User recipes:', filteredUserRecipes.length, 'Global recipes:', filteredGlobalRecipes.length)
+        // Clear session storage if we found database results
+        if (filteredUserRecipes.length > 0 || filteredGlobalRecipes.length > 0) {
+          sessionStorage.removeItem('aiSearchQuery')
+          console.log('🔍 DEBUG: Cleared aiSearchQuery from sessionStorage after finding database results')
+        }
+      }
     } catch (error) {
       console.error('Error searching recipes:', error)
     } finally {
@@ -528,20 +1067,123 @@ export default function RecipeFinderPage() {
     }
   }
 
+  const generateRecipesWithOpenAI = async (query: string) => {
+    try {
+      console.log('Generating recipes with OpenAI for query:', query)
+      
+      const response = await fetch('/api/ai/generate-recipes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate recipes')
+      }
+
+      if (data.recipes && data.recipes.length > 0) {
+        // Format the generated recipes for display
+        const formattedRecipes = data.recipes.map((recipe: any) => {
+          // Parse instructions from JSON-LD format
+          const instructions = recipe.recipeInstructions?.map((step: any) => {
+            if (typeof step === 'string') {
+              return step
+            } else if (step && step.text) {
+              return step.text
+            }
+            return step
+          }) || []
+
+          // Parse ingredients from JSON-LD format
+          const ingredients = recipe.recipeIngredient?.map((ing: string) => ({
+            ingredient: { name: ing, category_id: 1 },
+            raw_name: ing
+          })) || []
+
+          return {
+            recipe_id: `ai_${Date.now()}_${Math.random()}`,
+            title: recipe.name,
+            description: recipe.description,
+            image_url: recipe.image || '/placeholder-recipe.jpg',
+            prep_time: recipe.prepTime,
+            cook_time: recipe.cookTime,
+            total_time: recipe.totalTime,
+            servings: recipe.recipeYield,
+            difficulty: 'Medium',
+            cuisine: { name: recipe.recipeCuisine || 'International' },
+            meal_type: { name: recipe.recipeCategory || 'Main Course' },
+            ingredients: ingredients,
+            instructions: instructions,
+            nutrition: recipe.nutrition,
+            rating: recipe.aggregateRating?.ratingValue || '4.5',
+            source: 'AI Generated',
+            matchPercentage: 100,
+            ingredientMatches: 1,
+            totalScore: 100
+          }
+        })
+        
+        setAiRecipes(formattedRecipes)
+        setGlobalRecipes([])
+        setUserRecipes([])
+        
+        // Store AI recipes in session storage for detail page access
+        sessionStorage.setItem('aiRecipes', JSON.stringify(formattedRecipes))
+        
+        console.log('Generated and displayed', formattedRecipes.length, 'AI recipes')
+      }
+    } catch (error) {
+      console.error('Error generating recipes with OpenAI:', error)
+    }
+  }
+
+
   const addToCookbook = async (recipeId: number) => {
     try {
       const user = await getCurrentUser()
       if (!user) return
 
-      const recipe = [...userRecipes, ...globalRecipes].find(r => r.recipe_id === recipeId)
+      const recipe = [...userRecipes, ...globalRecipes, ...aiRecipes].find(r => r.recipe_id === recipeId)
       if (!recipe) return
 
-      // Create user recipe from global recipe
+      // Check if this is an AI-generated recipe
+      const isAiGenerated = recipe.source === 'ai_generated' || recipe.recipe_id?.toString().startsWith('ai_')
+
+      // Helper function to convert PT format to human readable
+      const convertPTTime = (ptTime?: string) => {
+        if (!ptTime) return null
+        if (ptTime.startsWith('PT')) {
+          const timeStr = ptTime.replace('PT', '')
+          let hours = 0
+          let minutes = 0
+          
+          const hourMatch = timeStr.match(/(\d+)H/)
+          if (hourMatch) hours = parseInt(hourMatch[1])
+          
+          const minuteMatch = timeStr.match(/(\d+)M/)
+          if (minuteMatch) minutes = parseInt(minuteMatch[1])
+          
+          if (hours > 0 && minutes > 0) {
+            return `${hours}h ${minutes}m`
+          } else if (hours > 0) {
+            return `${hours}h`
+          } else if (minutes > 0) {
+            return `${minutes}m`
+          }
+        }
+        return ptTime // Return as-is if not PT format
+      }
+
+      // Create user recipe
       const { data: userRecipe, error: recipeError } = await supabase
         .from('user_recipes')
         .insert({
           user_id: user.id,
-          recipe_id: recipeId, // Reference to global recipe
+          recipe_id: isAiGenerated ? null : recipeId, // AI recipes don't reference global recipes
           title: recipe.title,
           description: recipe.description,
           image_url: recipe.image_url,
@@ -549,11 +1191,11 @@ export default function RecipeFinderPage() {
           meal_type_id: (recipe as any).meal_type_id,
           servings: recipe.servings,
           difficulty: recipe.difficulty,
-          prep_time: recipe.prep_time,
-          cook_time: recipe.cook_time,
-          total_time: recipe.total_time,
-          source_name: 'Global Cookbook',
-          source_url: `/finder`
+          prep_time: isAiGenerated ? convertPTTime(recipe.prep_time) : recipe.prep_time,
+          cook_time: isAiGenerated ? convertPTTime(recipe.cook_time) : recipe.cook_time,
+          total_time: isAiGenerated ? convertPTTime(recipe.total_time) : recipe.total_time,
+          source_name: isAiGenerated ? 'AI Generated' : 'Global Cookbook',
+          source_url: isAiGenerated ? null : `/finder`
         })
         .select()
         .single()
@@ -563,18 +1205,59 @@ export default function RecipeFinderPage() {
         return
       }
 
-      // Copy ingredients from global_recipe_ingredients
-      const { data: globalIngredients } = await supabase
-        .from('global_recipe_ingredients')
-        .select(`
-          id,
-          amount,
-          unit,
-          ingredients!inner(ingredient_id, name)
-        `)
-        .eq('recipe_id', recipeId)
+      // Handle ingredients differently for AI vs global recipes
+      if (isAiGenerated) {
+        // For AI-generated recipes, use the ingredients from the recipe object
+        if (recipe.ingredients && recipe.ingredients.length > 0) {
+          const ingredientInserts = recipe.ingredients.map((ingredient: any) => {
+            let rawName = ''
+            let amount = ''
+            let unit = ''
+            
+            if (typeof ingredient === 'string') {
+              rawName = ingredient
+            } else if (ingredient.name) {
+              rawName = ingredient.name
+              amount = ingredient.amount || ''
+              unit = ingredient.unit || ''
+            } else if (ingredient.raw_name) {
+              rawName = ingredient.raw_name
+              amount = ingredient.amount || ''
+              unit = ingredient.unit || ''
+            } else {
+              rawName = String(ingredient)
+            }
+            
+            return {
+              user_recipe_id: userRecipe.user_recipe_id,
+              raw_name: rawName,
+              amount: amount,
+              unit: unit,
+              ingredient_id: null // AI recipes don't have ingredient mapping
+            }
+          })
 
-      if (globalIngredients && globalIngredients.length > 0) {
+          const { error: ingredientsError } = await supabase
+            .from('user_recipe_ingredients')
+            .insert(ingredientInserts)
+
+          if (ingredientsError) {
+            console.error('Error saving AI ingredients:', ingredientsError)
+          }
+        }
+      } else {
+        // For global recipes, copy ingredients from global_recipe_ingredients
+        const { data: globalIngredients } = await supabase
+          .from('global_recipe_ingredients')
+          .select(`
+            id,
+            amount,
+            unit,
+            ingredients!inner(ingredient_id, name)
+          `)
+          .eq('recipe_id', recipeId)
+
+        if (globalIngredients && globalIngredients.length > 0) {
         // Create a map to track global_ingredient_id → user_ingredient_id
         const ingredientIdMap = new Map()
         
@@ -634,25 +1317,58 @@ export default function RecipeFinderPage() {
             }
           }
         }
+        }
       }
 
-      // Copy steps
-      const { data: stepsData } = await supabase
-        .from('global_recipe_steps')
-        .select('step_number, text')
-        .eq('recipe_id', recipeId)
-        .order('step_number')
+      // Handle steps/instructions differently for AI vs global recipes
+      if (isAiGenerated) {
+        // For AI-generated recipes, use the instructions from the recipe object
+        if (recipe.instructions && recipe.instructions.length > 0) {
+          const stepInserts = recipe.instructions.map((instruction: any, index: number) => {
+            let stepText = ''
+            
+            if (typeof instruction === 'string') {
+              stepText = instruction
+            } else if (instruction.text) {
+              stepText = instruction.text
+            } else {
+              stepText = String(instruction)
+            }
+            
+            return {
+              user_recipe_id: userRecipe.user_recipe_id,
+              step_number: index + 1,
+              text: stepText
+            }
+          })
 
-      if (stepsData && stepsData.length > 0) {
-        const steps = stepsData.map(step => ({
-          user_recipe_id: userRecipe.user_recipe_id,
-          step_number: step.step_number,
-          text: step.text
-        }))
+          const { error: stepsError } = await supabase
+            .from('user_recipe_steps')
+            .insert(stepInserts)
 
-        await supabase
-          .from('user_recipe_steps')
-          .insert(steps)
+          if (stepsError) {
+            console.error('Error saving AI instructions:', stepsError)
+          }
+        }
+      } else {
+        // For global recipes, copy steps from global_recipe_steps
+        const { data: stepsData } = await supabase
+          .from('global_recipe_steps')
+          .select('step_number, text')
+          .eq('recipe_id', recipeId)
+          .order('step_number')
+
+        if (stepsData && stepsData.length > 0) {
+          const steps = stepsData.map(step => ({
+            user_recipe_id: userRecipe.user_recipe_id,
+            step_number: step.step_number,
+            text: step.text
+          }))
+
+          await supabase
+            .from('user_recipe_steps')
+            .insert(steps)
+        }
       }
 
       // Update the added count in the UI
@@ -1120,6 +1836,7 @@ export default function RecipeFinderPage() {
                       key={`user-${recipe.user_recipe_id || recipe.recipe_id}`}
                       recipe={recipe as any}
                       onAddToCookbook={addToCookbook}
+                      showAddButton={false}
                     />
                   ))}
                 </div>
@@ -1146,8 +1863,28 @@ export default function RecipeFinderPage() {
               </div>
             )}
 
+            {/* AI Search Results Section */}
+            {aiRecipes.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                  <Sparkles className="w-5 h-5 mr-2 text-purple-600" />
+                  AI Search Results ({aiRecipes.length})
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {aiRecipes.map((recipe) => (
+                    <RecipeCard
+                      key={`ai-${recipe.recipe_id}`}
+                      recipe={recipe as any}
+                      onAddToCookbook={addToCookbook}
+                      isAiGenerated={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* No Results */}
-            {userRecipes.length === 0 && globalRecipes.length === 0 && !loading && (
+            {userRecipes.length === 0 && globalRecipes.length === 0 && aiRecipes.length === 0 && !loading && (
               <Card className="text-center py-12">
                 <CardContent>
                   <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
