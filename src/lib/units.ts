@@ -140,7 +140,7 @@ function decimalToFraction(decimal: number): string | null {
   let b = decimal
   
   do {
-    let a = Math.floor(b)
+    const a = Math.floor(b)
     let aux = h1
     h1 = a * h1 + h2
     h2 = aux

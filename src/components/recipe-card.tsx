@@ -43,26 +43,31 @@ interface RecipeCardProps {
     added_count?: number
     ingredientMatches?: number
     matchPercentage?: number
+    source?: string
   }
   onAddToCookbook?: (recipeId: number) => void
   showAddButton?: boolean
   openInNewWindow?: boolean
+  isAiGenerated?: boolean
 }
 
 export default function RecipeCard({ 
   recipe, 
   onAddToCookbook, 
   showAddButton = true,
-  openInNewWindow = false
+  openInNewWindow = false,
+  isAiGenerated = false
 }: RecipeCardProps) {
   const formatTime = (timeStr?: string) => {
     if (!timeStr) return ''
     return timeStr.replace('PT', '').replace('H', 'h ').replace('M', 'm').trim()
   }
 
-  const recipeUrl = recipe.recipe_id 
-    ? `/global-recipe/${recipe.recipe_id}` 
-    : `/recipe/${recipe.user_recipe_id}`;
+  const recipeUrl = isAiGenerated 
+    ? `/ai-recipe/${recipe.recipe_id}` 
+    : recipe.recipe_id 
+      ? `/global-recipe/${recipe.recipe_id}` 
+      : `/recipe/${recipe.user_recipe_id}`;
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Don't navigate if clicking the button

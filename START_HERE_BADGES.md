@@ -337,3 +337,4 @@ The badge system is fully implemented and ready to enhance user engagement in Re
 
 Start with Step 1 above and you'll have badges running in 30 minutes!
 
+

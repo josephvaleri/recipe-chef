@@ -142,3 +142,4 @@ BEGIN
   RAISE NOTICE 'Badge system RLS policies and permissions configured successfully';
 END $$;
 
+

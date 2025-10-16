@@ -69,7 +69,7 @@ export function parseIngredient(ingredientText: string): ParsedIngredient {
   }
   
   // Remove leading/trailing punctuation and whitespace
-  let text = original.replace(/^[•▢\-\s]+/, '').trim()
+  const text = original.replace(/^[•▢\-\s]+/, '').trim()
   
   // Pattern 1: Try to match a number (including fractions, decimals, ranges) at the start
   // Examples: "1", "1/2", "1.5", "1-2", "1 1/2"
@@ -140,5 +140,6 @@ function escapeRegex(str: string): string {
 export function parseIngredients(ingredientTexts: string[]): ParsedIngredient[] {
   return ingredientTexts.map(parseIngredient)
 }
+
 
 

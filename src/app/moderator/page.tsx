@@ -97,7 +97,10 @@ export default function ModeratorPage() {
         return
       }
 
-      // Create global recipe
+      // Create global recipe with user's name as source
+      const submitterName = candidate.submitter?.full_name || 'Anonymous User'
+      const sourceName = recipeData.sourceName || candidate.source || `Submitted by ${submitterName}`
+      
       const { data: globalRecipe, error: recipeError } = await supabase
         .from('global_recipes')
         .insert({
@@ -108,7 +111,7 @@ export default function ModeratorPage() {
           difficulty: recipeData.difficulty || 'Easy',
           prep_time: recipeData.prepTime || null,
           cook_time: recipeData.cookTime || null,
-          source_name: recipeData.sourceName || candidate.source || 'User Submission',
+          source_name: sourceName,
           source_url: recipeData.sourceUrl || null,
           created_by: candidate.submitted_by,
           is_published: true

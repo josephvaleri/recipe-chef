@@ -9,6 +9,7 @@ import Link from 'next/link'
 
 export function Footer() {
   const [profile, setProfile] = useState<any>(null)
+  const [currentYear] = useState(() => new Date().getFullYear())
 
   useEffect(() => {
     const getProfile = async () => {
@@ -126,7 +127,8 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-orange-200 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="text-sm text-orange-600">
-            © {new Date().getFullYear()} Recipe Chef. All rights reserved.
+            © {currentYear} Recipe Chef. All rights reserved.
+            <span className="ml-2 text-xs text-orange-500">v1.2.0</span>
           </div>
           <div className="flex items-center space-x-4">
             <Link href="/privacy" className="text-sm text-orange-700 hover:text-orange-900 transition-colors">

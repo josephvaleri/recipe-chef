@@ -358,3 +358,4 @@ The Badge System is **production-ready** and includes:
 
 **Next**: Run migrations, add toast provider, wire events, enjoy badges! 🏆
 
+

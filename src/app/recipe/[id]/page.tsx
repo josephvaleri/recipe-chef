@@ -12,6 +12,7 @@ import { scaleAmount } from '@/lib/utils'
 import { sanitizeText, sanitizeHTML } from '@/lib/sanitize'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { RecipeTimer } from '@/components/recipe-timer'
+import { ShareRecipeModal } from '@/components/community/ShareRecipeModal'
 import { 
   ChefHat, 
   Clock, 
@@ -29,7 +30,8 @@ import {
   CheckCircle,
   AlertCircle,
   Globe,
-  Plus
+  Plus,
+  Share2
 } from 'lucide-react'
 
 interface RecipeData {
@@ -95,6 +97,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
   const [ingredientsSaved, setIngredientsSaved] = useState(false)
   const [showGlobalCookbookDialog, setShowGlobalCookbookDialog] = useState(false)
   const [addingToGlobalCookbook, setAddingToGlobalCookbook] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -711,6 +714,14 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
               <Button 
                 variant="outline" 
                 size="sm" 
+                onClick={() => setShowShareDialog(true)}
+                title="Share this recipe with groups"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
                 onClick={() => setShowGlobalCookbookDialog(true)}
                 disabled={!ingredientsSaved}
                 title={ingredientsSaved ? "Submit to Global Cookbook for Review" : "Detailed ingredients must be analyzed first"}
@@ -1270,6 +1281,20 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Recipe Modal */}
+      {recipe && (
+        <ShareRecipeModal
+          isOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+          recipeId={recipe.user_recipe_id}
+          recipeTitle={recipe.title}
+          onRecipeShared={() => {
+            // Could add any additional logic here if needed
+            console.log("Recipe shared successfully");
+          }}
+        />
       )}
     </div>
   )

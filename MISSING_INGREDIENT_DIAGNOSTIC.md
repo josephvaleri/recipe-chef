@@ -139,3 +139,4 @@ Two SQL scripts have been created for you:
 Run these against your Supabase database to resolve the issue.
 
 
+

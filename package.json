@@ -18,7 +18,9 @@
     "cap:open:android": "npx cap open android",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
-    "cap:assets": "npx capacitor-assets generate --platform ios --platform android"
+    "cap:assets": "npx capacitor-assets generate --platform ios --platform android",
+    "dev:fast": "next dev --turbopack --port 3004",
+    "dev:analyze": "ANALYZE=true next dev --turbopack"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

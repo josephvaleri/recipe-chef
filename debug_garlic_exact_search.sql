@@ -34,3 +34,4 @@ FROM public.ingredients
 WHERE ingredient_id = 8;
 
 
+

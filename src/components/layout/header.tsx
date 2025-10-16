@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { supabase } from '@/lib/supabase'
 import { getCurrentProfile, canManageGlobalContent, isAdmin } from '@/lib/auth'
-import { User, LogOut, ChefHat, BookOpen, Calendar, Shield, Menu, X, Search, ShoppingCart, Trophy } from 'lucide-react'
+import { User, LogOut, ChefHat, BookOpen, Calendar, Shield, Menu, X, Search, ShoppingCart, Trophy, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -170,6 +170,14 @@ export function Header() {
                 >
                   <User className="w-4 h-4 text-orange-700" />
                   <span className="text-orange-700">My Profile</span>
+                </Link>
+                <Link 
+                  href="/community"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-orange-50 transition-colors"
+                >
+                  <Users className="w-4 h-4 text-orange-700" />
+                  <span className="text-orange-700">My Community</span>
                 </Link>
                 <Link 
                   href="/badges"

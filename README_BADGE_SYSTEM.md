@@ -345,3 +345,4 @@ See **BADGE_EVENT_INTEGRATION_GUIDE.md** for detailed troubleshooting.
 **Built with ❤️ for Recipe Chef**  
 16 badges • Progressive tiers • Real-time awards • Anti-gaming • Secure
 
+

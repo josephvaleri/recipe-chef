@@ -247,7 +247,7 @@ async function processBatch(ingredients: string[], supabase: any) {
       if (!found) {
         // Check two_word_ingredients table if not found in main ingredients table
         console.log(`processBatch: Searching two_word_ingredients for "${searchQuery}"`)
-        let { data: twoWordMatches, error: twoWordError } = await supabase
+        const { data: twoWordMatches, error: twoWordError } = await supabase
           .from('two_word_ingredients')
           .select('ingredient_name')
           .ilike('ingredient_name', searchQuery)
@@ -471,7 +471,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   
   // STEP 1: Two-word lookup FIRST (before aggressive cleaning)
   // Light cleaning for two-word lookup - preserve descriptive words
-  let lightCleaned = text.toLowerCase()
+  const lightCleaned = text.toLowerCase()
     .replace(/[.;]/g, '') // Remove periods and semicolons
     .replace(/\d+\/\d+/g, '') // Remove fractions
     .replace(/\d+/g, '') // Remove numbers  
@@ -580,7 +580,7 @@ async function parseIngredientText(text: string, supabase: any): Promise<string[
   
   // STEP 2: Enhanced cleaning for single words and fallbacks
   // Enhanced cleaning - remove measurements, quantities, and descriptive words
-  let cleanedText = text
+  const cleanedText = text
     .replace(/[.;]/g, '') // Remove periods and semicolons
     .replace(/\b\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')
     .replace(/\b\d+\.?\d*\s*-\s*\d+\.?\d*\s*(cup|cups|tbsp|tablespoon|tablespoons|tsp|teaspoon|teaspoons|oz|ounce|ounces|lb|pound|pounds|kg|kilogram|kilograms|g|gram|grams|ml|milliliter|milliliters|l|liter|liters|clove|cloves|stalk|stalks|piece|pieces|bottle|bottles|can|cans|jar|jars|box|boxes|bag|bags|package|packages)\b/gi, '')

@@ -15,6 +15,7 @@ create table if not exists public.profiles (
   has_ai_subscription boolean not null default false,
   trial_started_at timestamptz,
   trial_ends_at timestamptz,
+  pantry_ingredients integer[] default '{}',
   created_at timestamptz not null default now()
 );
 
@@ -394,13 +395,8 @@ create policy "Users can view own profile" on public.profiles
 create policy "Users can update own profile" on public.profiles
   for update using (auth.uid() = user_id);
 
-create policy "Admins can view all profiles" on public.profiles
-  for select using (
-    exists (
-      select 1 from public.profiles
-      where user_id = auth.uid() and role in ('admin', 'moderator')
-    )
-  );
+-- Note: Admin policy removed to prevent infinite recursion
+-- Admins will need to use service role or direct database access for admin functions
 
 -- User recipes policies (owner only)
 create policy "Users can view own recipes" on public.user_recipes

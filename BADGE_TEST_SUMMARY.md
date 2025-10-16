@@ -346,3 +346,4 @@ npm run test:e2e -- badges
 
 For detailed testing instructions, see `tests/BADGE_TESTING_GUIDE.md`.
 
+

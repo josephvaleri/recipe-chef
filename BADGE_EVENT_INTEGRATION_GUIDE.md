@@ -468,3 +468,4 @@ SELECT * FROM public.award_badges_for_user('YOUR_USER_ID');
 
 For questions or issues, refer to `/feature-badges-implementation.md` for full specification.
 
+

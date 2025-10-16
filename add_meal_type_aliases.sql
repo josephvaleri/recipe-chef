@@ -139,3 +139,4 @@ JOIN meal_types mt ON mta.meal_type_id = mt.meal_type_id
 ORDER BY mt.name, mta.alias;
 
 
+

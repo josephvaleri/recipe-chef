@@ -365,3 +365,4 @@ COMMENT ON FUNCTION public.upsert_user_badge IS 'Calculates the best tier for a 
 COMMENT ON FUNCTION public.award_badges_for_user IS 'Calculates all badge progress for a user and syncs profiles.badges JSON';
 COMMENT ON FUNCTION public.award_badges_for_all_users IS 'Awards badges for all users (for nightly/retroactive runs)';
 
+

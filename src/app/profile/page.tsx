@@ -41,6 +41,15 @@ interface UserProfile {
   preferred_units?: 'us' | 'metric'
   interface_language?: string
   
+  // Community fields
+  avatar_url?: string
+  avatar_choice?: string
+  house_specialties?: number[]
+  user_tag?: string
+  instagram_handle?: string
+  youtube_url?: string
+  is_verified_chef?: boolean
+  
   // Diet & Constraints
   diet_type?: string
   allergens?: Array<{allergen: string, severity: string}>
@@ -377,6 +386,100 @@ export default function ProfilePage() {
                       onChange={(e) => updateField('profile_photo_url', e.target.value)}
                       placeholder="https://..."
                     />
+                  </div>
+
+                  {/* Community Fields */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Community Profile</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="user_tag">User Tag</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">@</span>
+                          <Input
+                            id="user_tag"
+                            value={profile.user_tag?.replace('@', '') || ''}
+                            onChange={(e) => updateField('user_tag', e.target.value ? `@${e.target.value}` : '')}
+                            placeholder="yourusername"
+                            className="pl-8"
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Your unique community handle (will be prefixed with @)
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="avatar_choice">Avatar Choice</Label>
+                        <select
+                          id="avatar_choice"
+                          value={profile.avatar_choice || ''}
+                          onChange={(e) => updateField('avatar_choice', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                          <option value="">Select an avatar</option>
+                          <option value="chef-hat">Chef Hat</option>
+                          <option value="cooking-pot">Cooking Pot</option>
+                          <option value="whisk">Whisk</option>
+                          <option value="knife">Chef Knife</option>
+                          <option value="spatula">Spatula</option>
+                          <option value="custom">Custom Upload</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <Label htmlFor="instagram_handle">Instagram Handle</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">@</span>
+                          <Input
+                            id="instagram_handle"
+                            value={profile.instagram_handle || ''}
+                            onChange={(e) => updateField('instagram_handle', e.target.value)}
+                            placeholder="yourusername"
+                            className="pl-8"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="youtube_url">YouTube Channel URL</Label>
+                        <Input
+                          id="youtube_url"
+                          value={profile.youtube_url || ''}
+                          onChange={(e) => updateField('youtube_url', e.target.value)}
+                          placeholder="https://youtube.com/@yourchannel"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <Label>House Specialties</Label>
+                      <p className="text-sm text-gray-500 mb-2">
+                        Select up to 3 of your best recipes to showcase (coming soon)
+                      </p>
+                      <div className="p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <p className="text-sm text-gray-500 text-center">
+                          Recipe selection will be available after you create some recipes
+                        </p>
+                      </div>
+                    </div>
+
+                    {profile.is_verified_chef && (
+                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">✓</span>
+                          </div>
+                          <span className="text-green-800 font-medium">Verified Chef</span>
+                        </div>
+                        <p className="text-sm text-green-700 mt-1">
+                          Your chef credentials have been verified by our team
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

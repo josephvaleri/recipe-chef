@@ -363,7 +363,7 @@ function normalizeRecipeData(data: any, url: string): RecipeData {
     if (!duration.startsWith('PT') && !duration.startsWith('P')) return duration
     
     // Parse ISO 8601 duration (e.g., PT15M, PT1H30M, P1D)
-    let result = duration
+    const result = duration
       .replace(/^PT/, '') // Remove PT prefix
       .replace(/^P/, '')  // Remove P prefix
       .replace(/(\d+)D/g, '$1 days ') // Days

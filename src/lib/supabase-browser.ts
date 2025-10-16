@@ -15,3 +15,4 @@ export function createClient() {
 // Export a singleton instance for convenience
 export const supabaseBrowser = createClient()
 
+

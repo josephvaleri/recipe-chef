@@ -188,3 +188,4 @@ BEGIN
   RAISE NOTICE '→ Now run migrations 005, 006, and 007 (see individual files for complete functions)';
 END $$;
 
+

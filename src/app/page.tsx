@@ -12,11 +12,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { TrialBanner } from '@/components/trial-banner'
 import { RouteGuard } from '@/components/route-guard'
+import TopBanner from '@/components/home/TopBanner'
+import UserFeedPreviewWrapper from '@/components/home/UserFeedPreviewWrapper'
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [aiQuery, setAiQuery] = useState('')
+  const [aiAnswer, setAiAnswer] = useState('')
+  const [isProcessingAI, setIsProcessingAI] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const router = useRouter()
@@ -55,13 +59,63 @@ export default function Home() {
       recognition.onstart = () => setIsListening(true)
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript
-        setSearchQuery(transcript)
+        setAiQuery(transcript)
         setIsListening(false)
+        // Automatically process the voice input
+        handleAIQuery(transcript)
       }
       recognition.onerror = () => setIsListening(false)
       recognition.onend = () => setIsListening(false)
 
       recognition.start()
+    }
+  }
+
+  const handleAIQuery = async (query?: string) => {
+    const question = query || aiQuery.trim()
+    if (!question) return
+
+    setIsProcessingAI(true)
+    setAiAnswer('')
+
+    try {
+      const response = await fetch('/api/ai/route-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process question')
+      }
+
+      // Handle different response types
+      if (data.type === 'cooking_question') {
+        setAiAnswer(data.answer)
+      } else if (data.type === 'recipe_name_search' || data.type === 'ingredient_search') {
+        // Store search data in session storage for recipe finder
+        if (data.results) {
+          sessionStorage.setItem('recipeNameResults', JSON.stringify(data.results))
+        }
+        sessionStorage.setItem('aiSearchQuery', question)
+        sessionStorage.setItem('aiSearchSource', data.source)
+        
+        // Redirect to recipe finder
+        router.push('/finder?aiSearch=true')
+      } else if (data.type === 'not_food_related') {
+        setAiAnswer(data.message)
+      } else {
+        setAiAnswer('I\'m not sure how to help with that. Please ask about recipes or cooking!')
+      }
+    } catch (error) {
+      console.error('Error processing AI query:', error)
+      setAiAnswer('Sorry, I couldn\'t process your question right now. Please try again.')
+    } finally {
+      setIsProcessingAI(false)
     }
   }
 
@@ -406,6 +460,9 @@ export default function Home() {
     <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
+          {/* Top Banner */}
+          <TopBanner />
+          
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-orange-900 mb-2">
@@ -422,48 +479,89 @@ export default function Home() {
               {/* Chef Tony Avatar Card */}
               <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
                 <div className="text-center">
-                  <ChefOuiOui className="mx-auto" />
+                  <ChefOuiOui 
+                    className="mx-auto" 
+                    questionBox={
+                      <div className="mt-6 p-4 bg-white rounded-lg border-2 border-orange-200">
+                        <div className="space-y-4">
+                          <Textarea
+                            placeholder="Ask Chef Tony anything about recipes... (e.g., 'What can I make with chicken?', 'Quick pasta recipes', 'How do I make bread?')"
+                            value={aiQuery}
+                            onChange={(e) => setAiQuery(e.target.value)}
+                            className="min-h-[120px] resize-none border-orange-300 focus:border-orange-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleAIQuery()
+                              }
+                            }}
+                          />
+                          
+                          <div className="flex justify-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={handleVoiceSearch}
+                              className={isListening ? 'bg-red-100 text-red-600' : ''}
+                            >
+                              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                            </Button>
+                            <Button
+                              onClick={() => handleAIQuery()}
+                              disabled={!aiQuery.trim() || isProcessingAI}
+                              className="bg-orange-600 hover:bg-orange-700 px-8"
+                            >
+                              {isProcessingAI ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <Send className="w-4 h-4 mr-2" />
+                                  Ask Chef Tony!
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  />
                 </div>
               </Card>
 
-              {/* Search Input Card */}
-              <RouteGuard requireAuth={true} requireAI={true}>
-                <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200">
-                  <div className="space-y-4">
-                    <Textarea
-                      placeholder="Ask Chef Tony anything about recipes... (e.g., 'What can I make with chicken?', 'Quick pasta recipes', 'How do I make bread?')"
-                      value={aiQuery}
-                      onChange={(e) => setAiQuery(e.target.value)}
-                      className="min-h-[120px] resize-none border-orange-300 focus:border-orange-500"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault()
-                          // Handle AI query submission
-                        }
-                      }}
-                    />
-                    
-                    <div className="flex justify-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={handleVoiceSearch}
-                        className={isListening ? 'bg-red-100 text-red-600' : ''}
-                      >
-                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </Button>
-                      <Button
-                        disabled={!aiQuery.trim()}
-                        className="bg-orange-600 hover:bg-orange-700 px-8"
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        Ask Chef Tony!
-                      </Button>
+            </div>
+
+            {/* AI Answer Display */}
+            {aiAnswer && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="w-full"
+              >
+                <Card className="p-6 bg-white/90 backdrop-blur-sm border-orange-200">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-2xl">👨‍🍳</span>
+                      <h3 className="text-lg font-semibold text-orange-900">Chef Tony's Answer</h3>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAiAnswer('')}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{aiAnswer}</p>
                   </div>
                 </Card>
-              </RouteGuard>
-            </div>
+              </motion.div>
+            )}
 
             {/* Right Column: Quick Actions */}
             <div className="flex flex-col">
@@ -501,44 +599,21 @@ export default function Home() {
                     })}
                   </div>
 
-                      {/* Trial Banner */}
-                      <RouteGuard requireAuth={true} requireAI={false} showTrialBanner={true}>
-                        <div className="mt-6 p-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg text-white">
-                          <div className="text-center">
-                            <h3 className="font-bold text-lg mb-2">Upgrade to Premium</h3>
-                            <p className="text-orange-100 text-sm mb-3">
-                              Get AI-powered recipe search and advanced meal planning
-                            </p>
-                            <Button
-                              variant="secondary"
-                              className="bg-white text-orange-600 hover:bg-orange-50"
-                              onClick={() => router.push('/pricing')}
-                            >
-                              View Pricing
-                            </Button>
-                          </div>
-                        </div>
-                      </RouteGuard>
+                      {/* User Feed Preview */}
+                      <div className="mt-6">
+                        <UserFeedPreviewWrapper />
+                      </div>
 
-                      {/* Earn Badges CTA */}
-                      <div className="mt-4 p-4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg text-white">
-                        <div className="text-center">
-                          <div className="flex justify-center mb-2">
-                            <Trophy className="w-6 h-6" />
-                          </div>
-                          <h3 className="font-bold text-lg mb-2">Earn Badges!</h3>
-                          <p className="text-orange-100 text-sm mb-3">
-                            Celebrate your culinary journey with achievements
-                          </p>
-                          <Button
-                            variant="secondary"
-                            className="bg-white text-orange-600 hover:bg-orange-50"
-                            onClick={() => router.push('/earn-badges')}
-                          >
-                            <Trophy className="w-4 h-4 mr-2" />
-                            Learn How
-                          </Button>
-                        </div>
+                      {/* Earn Badges Button */}
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+                          onClick={() => router.push('/badges/learn')}
+                        >
+                          <Trophy className="w-4 h-4 mr-2" />
+                          Learn How to Earn Badges
+                        </Button>
                       </div>
                 </div>
               </Card>

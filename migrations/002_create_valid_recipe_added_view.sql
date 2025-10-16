@@ -46,3 +46,4 @@ WHERE
 
 COMMENT ON VIEW public.valid_recipe_added_events IS 'Filters recipe_added events to prevent gaming: requires name, ingredients, substantial content, and 5-minute cooldown between additions';
 
+

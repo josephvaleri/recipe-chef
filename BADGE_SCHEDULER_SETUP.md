@@ -441,3 +441,4 @@ The badge award system is designed to run automatically every night to:
 
 Choose the scheduler option that best fits your infrastructure and monitor execution regularly.
 
+

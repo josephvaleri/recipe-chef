@@ -117,3 +117,4 @@ ON CONFLICT (badge_code, tier) DO UPDATE SET
 -- Add helpful comment
 COMMENT ON TABLE public.badge_tiers IS 'Progressive thresholds: Bronze (beginner), Silver (intermediate), Gold (advanced), Platinum/Diamond (expert)';
 
+

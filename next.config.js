@@ -40,13 +40,54 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   // Remove X-Powered-By header for security
   poweredByHeader: false,
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
+  // Optimize bundle splitting
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          // Vendor chunk for large libraries
+          vendor: {
+            name: 'vendor',
+            chunks: 'all',
+            test: /node_modules\/(react|react-dom|framer-motion|@radix-ui|@supabase)/,
+            priority: 20,
+          },
+          // UI components chunk
+          ui: {
+            name: 'ui',
+            chunks: 'all',
+            test: /node_modules\/(@radix-ui|lucide-react)/,
+            priority: 15,
+          },
+          // Supabase chunk
+          supabase: {
+            name: 'supabase',
+            chunks: 'all',
+            test: /node_modules\/(@supabase)/,
+            priority: 10,
+          },
+          // Common chunk for shared code
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            priority: 5,
+            reuseExistingChunk: true,
+          },
         },
+      }
+    }
+    return config
+  },
+  // Modern Turbopack configuration
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
@@ -57,7 +98,16 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+    // Optimize images for better performance
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  // Enable compression
+  compress: true,
   async headers() {
     return [
       {
@@ -109,6 +159,10 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()'
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
           }
         ],
       },
@@ -116,4 +170,27 @@ const nextConfig = {
   },
 }
 
-module.exports = withPWA(nextConfig)
+module.exports = withPWA({
+  ...nextConfig,
+  // Development optimizations
+  ...(process.env.NODE_ENV === 'development' && {
+    // Faster builds in development
+    experimental: {
+      ...nextConfig.experimental,
+      // Enable faster refresh
+      optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    },
+    // Reduce bundle analysis in dev
+    webpack: (config, { dev }) => {
+      if (dev) {
+        // Faster source maps in development
+        config.devtool = 'eval-cheap-module-source-map'
+        // Reduce bundle size analysis
+        config.optimization.removeAvailableModules = false
+        config.optimization.removeEmptyChunks = false
+        config.optimization.splitChunks = false
+      }
+      return config
+    }
+  }),
+})

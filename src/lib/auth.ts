@@ -10,6 +10,7 @@ export interface Profile {
   has_ai_subscription: boolean
   trial_started_at?: string
   trial_ends_at?: string
+  pantry_ingredients?: number[]
   created_at: string
 }
 

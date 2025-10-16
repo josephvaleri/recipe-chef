@@ -44,3 +44,4 @@ COMMENT ON TABLE public.user_badges IS 'Tracks the highest tier earned for each 
 COMMENT ON COLUMN public.badges.icon IS 'Lucide icon name (e.g., chef-hat, trophy, star)';
 COMMENT ON COLUMN public.badge_tiers.threshold IS 'Minimum count required to earn this tier';
 
+

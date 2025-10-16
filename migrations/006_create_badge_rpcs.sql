@@ -192,3 +192,4 @@ COMMENT ON FUNCTION public.log_event_and_award IS 'Client RPC: Log event and imm
 COMMENT ON FUNCTION public.admin_log_event_and_award IS 'Admin RPC: Log event for any user (requires admin role)';
 COMMENT ON FUNCTION public.get_badge_progress IS 'Client RPC: Get current progress counts for badges';
 
+
