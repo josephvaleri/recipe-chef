@@ -91,7 +91,7 @@ export default function MyCookbookPage() {
                   .eq('user_id', user.id)
                   .eq('recipe_scope', 'user')
                   .eq('recipe_key', recipe.user_recipe_id)
-                  .single()
+                  .maybeSingle()
 
                 return {
                   ...recipe,

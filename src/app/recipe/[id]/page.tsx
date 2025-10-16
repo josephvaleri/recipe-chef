@@ -185,7 +185,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
         .eq('user_id', user.id)
         .eq('recipe_scope', 'user')
         .eq('recipe_key', recipeId)
-        .single()
+        .maybeSingle()
 
       console.log('Loaded ingredients:', ingredientsData)
       

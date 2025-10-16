@@ -13,50 +13,100 @@ interface OuiOuiLine {
 
 interface ChefOuiOuiProps {
   className?: string
+  questionBox?: React.ReactNode
 }
 
-export function ChefOuiOui({ className }: ChefOuiOuiProps) {
+export function ChefOuiOui({ className, questionBox }: ChefOuiOuiProps) {
   const [greeting, setGreeting] = useState<string>('')
   const [joke, setJoke] = useState<string>('')
   const [tip, setTip] = useState<string>('')
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    loadOuiOuiLines()
+    // Load static content immediately for fast LCP
+    setIsLoaded(true)
+    
+    // Load dynamic content after initial render
+    const timer = setTimeout(() => {
+      loadOuiOuiLines()
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const loadOuiOuiLines = async () => {
     try {
       console.log('Loading Chef Tony lines...')
       
-      // Load greeting
-      const { data: greetingData, error: greetingError } = await supabase.rpc('get_random_ouioui_line', {
-        p_type: 'greeting',
-        p_locale: 'en'
-      })
-      console.log('Greeting data:', greetingData, 'Error:', greetingError)
-      if (greetingData) setGreeting(greetingData)
-
-      // Load joke
-      const { data: jokeData, error: jokeError } = await supabase.rpc('get_random_ouioui_line', {
-        p_type: 'joke',
-        p_locale: 'en'
-      })
-      console.log('Joke data:', jokeData, 'Error:', jokeError)
-      if (jokeData) setJoke(jokeData)
-
-      // Load tip
-      const { data: tipData, error: tipError } = await supabase.rpc('get_random_ouioui_line', {
-        p_type: 'tip',
-        p_locale: 'en'
-      })
-      console.log('Tip data:', tipData, 'Error:', tipError)
-      if (tipData) setTip(tipData)
-
+      // Load static content immediately for fast display
+      const greetings = [
+        "Bonjour! Welcome to Recipe Chef!",
+        "Salut! Ready to cook something amazing?",
+        "Bonsoir! Time to discover new flavors!",
+        "Coucou! Let's make magic in the kitchen!",
+        "Hello there, mon ami! What shall we cook today?",
+        "Bon appétit awaits! Welcome to your culinary journey!"
+      ]
+      
+      const jokes = [
+        "Why don't eggs tell jokes? They'd crack each other up!",
+        "What do you call a fake noodle? An impasta!",
+        "Why did the chef break up with the refrigerator? It was too cold!",
+        "What's a chef's favorite type of music? Heavy metal!",
+        "Why don't chefs ever get lonely? Because they always have their whisk!",
+        "What do you call a chef who's also a magician? A saucery!"
+      ]
+      
+      const tips = [
+        "Always taste your food while cooking - your palate is your best guide!",
+        "Keep your knives sharp - a dull knife is more dangerous than a sharp one!",
+        "Mise en place - prepare all ingredients before you start cooking!",
+        "Don't be afraid to experiment with flavors - cooking is an art!",
+        "Clean as you go - it makes cooking much more enjoyable!",
+        "Trust your instincts - if it smells good, it probably tastes good too!"
+      ]
+      
+      // Set static content immediately for fast loading
+      setGreeting(greetings[Math.floor(Math.random() * greetings.length)])
+      setJoke(jokes[Math.floor(Math.random() * jokes.length)])
+      setTip(tips[Math.floor(Math.random() * tips.length)])
       setIsLoaded(true)
+      
+      console.log('Chef Tony lines loaded instantly with static content!')
+      
+      // Try to load from database in the background (non-blocking)
+      setTimeout(async () => {
+        try {
+          const [greetingResult, jokeResult, tipResult] = await Promise.allSettled([
+            supabase.rpc('get_random_ouioui_line', { p_line_type: 'greeting', p_locale: 'en' }),
+            supabase.rpc('get_random_ouioui_line', { p_line_type: 'joke', p_locale: 'en' }),
+            supabase.rpc('get_random_ouioui_line', { p_line_type: 'tip', p_locale: 'en' })
+          ])
+
+          // Update with database content if successful
+          if (greetingResult.status === 'fulfilled' && greetingResult.value.data) {
+            console.log('Updating greeting from database:', greetingResult.value.data)
+            setGreeting(greetingResult.value.data)
+          }
+          
+          if (jokeResult.status === 'fulfilled' && jokeResult.value.data) {
+            console.log('Updating joke from database:', jokeResult.value.data)
+            setJoke(jokeResult.value.data)
+          }
+          
+          if (tipResult.status === 'fulfilled' && tipResult.value.data) {
+            console.log('Updating tip from database:', tipResult.value.data)
+            setTip(tipResult.value.data)
+          }
+          
+        } catch (dbError) {
+          console.log('Background database load failed, keeping static content:', dbError)
+        }
+      }, 100) // Small delay to let the UI render first
+      
     } catch (error) {
       console.error('Error loading OuiOui lines:', error)
-      // Fallback messages
+      // Final fallback messages
       setGreeting("Bonjour! Welcome to Recipe Chef!")
       setJoke("Why don't eggs tell jokes? They'd crack each other up!")
       setTip("Always taste your food while cooking - your palate is your best guide!")
@@ -83,7 +133,7 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
         }}
       >
         {/* Chef Tony Avatar */}
-        <div className="relative w-48 h-48 rounded-full overflow-hidden shadow-lg">
+        <div className="relative w-48 h-48 rounded-full overflow-hidden shadow-lg bg-gray-100">
           <Image
             src="/chef_tony_avatar.png"
             alt="Chef Tony"
@@ -91,6 +141,8 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
             className="object-cover"
             priority
             sizes="(max-width: 768px) 192px, 192px"
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
           />
           {/* Blink Animation - Eyelid Mask */}
           <motion.div
@@ -110,14 +162,13 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
         
       </motion.div>
 
-      {/* Speech Bubble */}
-      {isLoaded && (
-        <motion.div
-          className="bg-white rounded-lg shadow-lg p-4 max-w-xs relative border-2 border-orange-200"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-        >
+      {/* Speech Bubble - Reserve space to prevent CLS */}
+      <motion.div
+        className="bg-white rounded-lg shadow-lg p-4 max-w-xs relative border-2 border-orange-200 min-h-[80px]"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: isLoaded ? 1 : 0, scale: isLoaded ? 1 : 0.8 }}
+        transition={{ delay: 0.5 }}
+      >
           {/* Speech bubble tail */}
           <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-orange-200" />
           
@@ -133,6 +184,16 @@ export function ChefOuiOui({ className }: ChefOuiOuiProps) {
               </p>
             )}
           </div>
+        </motion.div>
+
+      {/* Question Box - positioned above Chef's Tip */}
+      {questionBox && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+        >
+          {questionBox}
         </motion.div>
       )}
 

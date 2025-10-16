@@ -180,7 +180,7 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
         .from('global_recipe_ratings')
         .select('rating')
         .eq('recipe_id', recipeId)
-        .single()
+        .maybeSingle()
 
       const recipe: RecipeData = {
         ...recipeData,
