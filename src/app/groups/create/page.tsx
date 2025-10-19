@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { RouteGuard } from "@/components/route-guard";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft,
   Users,
@@ -152,7 +152,7 @@ export default function CreateGroupPage() {
   };
 
   return (
-    <RouteGuard requireAuth={true}>
+    <div>
       <div className="p-4 md:p-6 max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -405,6 +405,6 @@ export default function CreateGroupPage() {
           </Card>
         )}
       </div>
-    </RouteGuard>
+    </div>
   );
 }

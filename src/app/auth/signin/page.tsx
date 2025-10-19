@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,13 +10,15 @@ import { ChefOuiOui } from '@/components/chef-ouioui'
 import { supabase } from '@/lib/supabase'
 import { ChefHat, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
-export default function SignInPage() {
+function SignInForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo') || '/'
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +34,7 @@ export default function SignInPage() {
       if (error) {
         setError(error.message)
       } else {
-        router.push('/')
+        router.push(redirectTo)
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -197,5 +199,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   )
 }

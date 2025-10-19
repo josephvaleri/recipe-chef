@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:web": "next dev --turbopack -p 3000",
-    "build": "next build --turbopack",
+    "build": "next build",
     "build:web": "next build --turbopack",
     "build:mobile": "mv src/middleware.ts src/middleware.web.ts 2>/dev/null || true && NEXT_CONFIG_FILE=next.config.mobile.js next build && node scripts/export-mobile.js && mv src/middleware.web.ts src/middleware.ts 2>/dev/null || true",
     "export:mobile": "npm run build:mobile",
