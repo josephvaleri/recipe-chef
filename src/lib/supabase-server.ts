@@ -51,6 +51,12 @@ export function createServerClientFromRequest(request: NextRequest) {
         })
       },
     },
+    auth: {
+      // Ensure proper session handling
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
+    }
   })
 }
 

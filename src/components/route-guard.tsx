@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, useRef, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getCurrentProfile, Profile, isTrialExpired, canUseAI } from '@/lib/auth'
@@ -42,36 +42,42 @@ export function RouteGuard({
   })
   
   const router = useRouter()
+  const guardId = useRef(`RouteGuard-${Math.random().toString(36).substr(2, 9)}`)
+  const isLoadingRef = useRef(false)
+
+  console.log(`[${guardId.current}] RouteGuard render - isLoading: ${state.isLoading}, user: ${!!state.user}, profile: ${!!state.profile}`)
 
   useEffect(() => {
-    checkAuthAndPermissions()
+    console.log(`[${guardId.current}] useEffect INITIALIZE - doing simple auth check`)
     
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setState(prev => ({
-          ...prev,
-          user: null,
-          profile: null,
-          isAuthorized: false,
-          showPaywall: false
-        }))
-      } else if (event === 'SIGNED_IN' && session?.user) {
-        await checkAuthAndPermissions()
-      }
-    })
+    // Just do a simple initial check - no complex auth state listening
+    checkAuthAndPermissions()
 
-    return () => subscription.unsubscribe()
+    return () => {
+      console.log(`[${guardId.current}] useEffect CLEANUP - no cleanup needed`)
+    }
   }, [])
 
   const checkAuthAndPermissions = async () => {
+    console.log(`[${guardId.current}] checkAuthAndPermissions called - isLoadingRef: ${isLoadingRef.current}`)
+    
+    // Prevent multiple simultaneous calls
+    if (isLoadingRef.current) {
+      console.log(`[${guardId.current}] Already checking auth, skipping...`)
+      return
+    }
+    
+    isLoadingRef.current = true
     try {
+      console.log(`[${guardId.current}] Setting loading to true`)
       setState(prev => ({ ...prev, isLoading: true }))
 
       // Check if user is authenticated
+      console.log(`[${guardId.current}] Getting current user`)
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user && requireAuth) {
+        console.log(`[${guardId.current}] No user and auth required, redirecting to signin`)
         setState(prev => ({
           ...prev,
           isLoading: false,
@@ -83,6 +89,7 @@ export function RouteGuard({
       }
 
       if (!user && !requireAuth) {
+        console.log(`[${guardId.current}] No user and auth not required, allowing access`)
         setState(prev => ({
           ...prev,
           isLoading: false,
@@ -96,6 +103,7 @@ export function RouteGuard({
       }
 
       // Get user profile
+      console.log(`[${guardId.current}] Getting current profile for user:`, user.id)
       const profile = await getCurrentProfile()
       
       if (!profile) {
@@ -155,13 +163,16 @@ export function RouteGuard({
       }))
 
     } catch (error) {
-      console.error('Route guard error:', error)
+      console.error(`[${guardId.current}] Route guard error:`, error)
       setState(prev => ({
         ...prev,
         isLoading: false,
         isAuthorized: false,
         showPaywall: false
       }))
+    } finally {
+      console.log(`[${guardId.current}] Resetting loading ref`)
+      isLoadingRef.current = false
     }
   }
 

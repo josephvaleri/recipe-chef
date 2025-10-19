@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { RouteGuard } from "@/components/route-guard";
 import CommunityLayoutsPreview from "@/components/community/CommunityLayoutsPreview";
 import { supabase } from "@/lib/supabase";
 
@@ -97,24 +96,6 @@ export default function CommunityPage() {
 
   if (loading) {
     return (
-      <RouteGuard requireAuth={true}>
-        <div className="p-4 md:p-6 max-w-7xl mx-auto">
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-orange-900 mb-2">My Community</h1>
-            <p className="text-orange-700">
-              Global wins + your groups — all in one place.
-            </p>
-          </div>
-          <div className="text-center py-8">
-            <div className="text-orange-600">Loading community data...</div>
-          </div>
-        </div>
-      </RouteGuard>
-    );
-  }
-
-  return (
-    <RouteGuard requireAuth={true}>
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-orange-900 mb-2">My Community</h1>
@@ -122,11 +103,25 @@ export default function CommunityPage() {
             Global wins + your groups — all in one place.
           </p>
         </div>
-        <CommunityLayoutsPreview
-          globalRecipes={globalRecipes}
-          myGroups={myGroups}
-        />
+        <div className="text-center py-8">
+          <div className="text-orange-600">Loading community data...</div>
+        </div>
       </div>
-    </RouteGuard>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-orange-900 mb-2">My Community</h1>
+        <p className="text-orange-700">
+          Global wins + your groups — all in one place.
+        </p>
+      </div>
+      <CommunityLayoutsPreview
+        globalRecipes={globalRecipes}
+        myGroups={myGroups}
+      />
+    </div>
   );
 }

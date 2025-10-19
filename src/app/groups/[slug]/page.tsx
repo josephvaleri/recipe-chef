@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { RouteGuard } from "@/components/route-guard";
 import { supabase } from "@/lib/supabase";
 import { isGroupOwner } from "@/lib/community/group-management";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -333,19 +332,19 @@ export default function GroupPage() {
 
   if (loading) {
     return (
-      <RouteGuard requireAuth={true}>
+      <div>
         <div className="p-4 md:p-6 max-w-7xl mx-auto">
           <div className="text-center py-8">
             <div className="text-orange-600">Loading group...</div>
           </div>
         </div>
-      </RouteGuard>
+      </div>
     );
   }
 
   if (!group) {
     return (
-      <RouteGuard requireAuth={true}>
+      <div>
         <div className="p-4 md:p-6 max-w-7xl mx-auto">
           <Card>
             <CardContent className="text-center py-8">
@@ -363,12 +362,12 @@ export default function GroupPage() {
             </CardContent>
           </Card>
         </div>
-      </RouteGuard>
+      </div>
     );
   }
 
   return (
-    <RouteGuard requireAuth={true}>
+    <div>
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -684,6 +683,6 @@ export default function GroupPage() {
           </>
         )}
       </div>
-    </RouteGuard>
+    </div>
   );
 }

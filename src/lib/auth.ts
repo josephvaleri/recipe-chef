@@ -20,9 +20,16 @@ export async function getCurrentUser(): Promise<User | null> {
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {
+  const callId = `getCurrentProfile-${Math.random().toString(36).substr(2, 9)}`
+  console.log(`[${callId}] getCurrentProfile called`)
+  
   const user = await getCurrentUser()
-  if (!user) return null
+  if (!user) {
+    console.log(`[${callId}] No user found, returning null`)
+    return null
+  }
 
+  console.log(`[${callId}] User found: ${user.id}, querying profiles table`)
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -30,10 +37,11 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     .single()
 
   if (error) {
-    console.error('Error fetching profile:', error)
+    console.error(`[${callId}] Error fetching profile:`, error)
     return null
   }
 
+  console.log(`[${callId}] Profile fetched successfully:`, data?.user_id)
   return data
 }
 

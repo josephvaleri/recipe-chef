@@ -69,6 +69,9 @@ export default function RecipeFinderPage() {
   const [globalRecipes, setGlobalRecipes] = useState<GlobalRecipe[]>([])
   const [aiRecipes, setAiRecipes] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiLoadingProgress, setAiLoadingProgress] = useState(0)
+  const [aiLoadingMessage, setAiLoadingMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<FilterState>({
     proteins: [],
@@ -1071,6 +1074,30 @@ export default function RecipeFinderPage() {
     try {
       console.log('Generating recipes with OpenAI for query:', query)
       
+      // Start AI loading with progress simulation
+      setAiLoading(true)
+      setAiLoadingProgress(0)
+      setAiLoadingMessage('Chef Tony is thinking...')
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setAiLoadingProgress(prev => {
+          if (prev < 90) {
+            const messages = [
+              'Chef Tony is thinking...',
+              'Searching our recipe database...',
+              'Analyzing ingredients...',
+              'Crafting perfect recipes...',
+              'Adding final touches...'
+            ]
+            const messageIndex = Math.floor((prev / 90) * messages.length)
+            setAiLoadingMessage(messages[messageIndex] || messages[messages.length - 1])
+            return prev + Math.random() * 15
+          }
+          return prev
+        })
+      }, 500)
+      
       const response = await fetch('/api/ai/generate-recipes', {
         method: 'POST',
         headers: {
@@ -1078,6 +1105,11 @@ export default function RecipeFinderPage() {
         },
         body: JSON.stringify({ query }),
       })
+
+      // Clear progress interval
+      clearInterval(progressInterval)
+      setAiLoadingProgress(100)
+      setAiLoadingMessage('Almost ready...')
 
       const data = await response.json()
 
@@ -1138,6 +1170,13 @@ export default function RecipeFinderPage() {
       }
     } catch (error) {
       console.error('Error generating recipes with OpenAI:', error)
+    } finally {
+      // End loading state
+      setTimeout(() => {
+        setAiLoading(false)
+        setAiLoadingProgress(0)
+        setAiLoadingMessage('')
+      }, 500)
     }
   }
 
@@ -1816,10 +1855,13 @@ export default function RecipeFinderPage() {
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {loading ? 'Searching...' : `${userRecipes.length + globalRecipes.length} Recipes Found`}
+                {loading ? 'Searching...' : 
+                 aiLoading ? 'Chef Tony is working...' : 
+                 `${userRecipes.length + globalRecipes.length + aiRecipes.length} Recipes Found`}
               </h2>
               <p className="text-gray-600">
-                Discover amazing recipes from your cookbook and our global collection
+                {aiLoading ? 'AI is crafting personalized recipes just for you' : 
+                 'Discover amazing recipes from your cookbook and our global collection'}
               </p>
             </div>
 
@@ -1883,8 +1925,56 @@ export default function RecipeFinderPage() {
               </div>
             )}
 
+            {/* AI Loading Indicator */}
+            {aiLoading && (
+              <Card className="text-center py-12 bg-gradient-to-br from-orange-50 to-amber-50 border-orange-200">
+                <CardContent>
+                  <div className="flex flex-col items-center space-y-6">
+                    {/* Spinning Chef Hat */}
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center animate-spin">
+                        <ChefHat className="w-10 h-10 text-white" />
+                      </div>
+                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full opacity-20 animate-ping"></div>
+                    </div>
+                    
+                    {/* Loading Message */}
+                    <div className="text-center">
+                      <h3 className="text-xl font-semibold text-orange-900 mb-2">
+                        {aiLoadingMessage}
+                      </h3>
+                      <p className="text-orange-700 text-sm">
+                        Chef Tony is crafting the perfect recipes for you...
+                      </p>
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full max-w-md">
+                      <div className="flex justify-between text-sm text-orange-600 mb-2">
+                        <span>Progress</span>
+                        <span>{Math.round(aiLoadingProgress)}%</span>
+                      </div>
+                      <div className="w-full bg-orange-200 rounded-full h-3 overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${aiLoadingProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    {/* Fun cooking tips while loading */}
+                    <div className="text-center max-w-md">
+                      <p className="text-orange-600 text-sm italic">
+                        💡 Did you know? The secret to great cooking is patience and love!
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* No Results */}
-            {userRecipes.length === 0 && globalRecipes.length === 0 && aiRecipes.length === 0 && !loading && (
+            {userRecipes.length === 0 && globalRecipes.length === 0 && aiRecipes.length === 0 && !loading && !aiLoading && (
               <Card className="text-center py-12">
                 <CardContent>
                   <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />

@@ -9,9 +9,13 @@ import Link from 'next/link'
 
 export function Footer() {
   const [profile, setProfile] = useState<any>(null)
-  const [currentYear] = useState(() => new Date().getFullYear())
+  const [mounted, setMounted] = useState(false)
+  const [currentYear, setCurrentYear] = useState(2024) // Default year to prevent hydration mismatch
 
   useEffect(() => {
+    setMounted(true)
+    setCurrentYear(new Date().getFullYear())
+
     const getProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
@@ -26,13 +30,13 @@ export function Footer() {
 
     getProfile()
 
-    // Listen for auth changes
+    // Listen for auth changes - simplified to prevent conflicts
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        getCurrentProfile().then(setProfile)
-      } else {
+      // Only update state, don't trigger additional API calls
+      if (!session?.user) {
         setProfile(null)
       }
+      // Don't call getCurrentProfile() here to prevent race conditions
     })
 
     return () => subscription.unsubscribe()

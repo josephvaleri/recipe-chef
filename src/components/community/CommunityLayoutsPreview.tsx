@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Hash, Search, Users, Plus, ExternalLink, Calendar, Columns, Grid3X3, List, Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import MyFeed from "./MyFeed";
+import Discovery from "./Discovery";
 
 type GlobalRecipeItem = {
   user_recipe_id: number;
@@ -80,55 +82,12 @@ export default function CommunityLayoutsPreview({
     );
   }
 
-  function GlobalAcceptedList() {
-    return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Global Cookbook — Accepted
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {globalRecipes.length === 0 ? (
-            <div className="text-sm text-muted-foreground text-center py-4">
-              No recent acceptances yet. Be the first to contribute!
-            </div>
-          ) : (
-            globalRecipes.map((r) => (
-              <motion.div
-                key={r.user_recipe_id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex items-center justify-between p-3 rounded-lg border border-orange-100 hover:border-orange-200 transition-colors"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-orange-900">
-                    {r.title ?? "Untitled recipe"}
-                  </div>
-                  <div className="text-xs text-orange-600 flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Accepted {r.accepted_at ? new Date(r.accepted_at).toLocaleDateString() : "recently"}
-                    {r.author_name && (
-                      <>
-                        <span>•</span>
-                        <span>by {r.author_name}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href={`/recipe/${r.user_recipe_id}`}>
-                    <ExternalLink className="h-3 w-3" />
-                  </Link>
-                </Button>
-              </motion.div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-    );
+  function MyFeedSection() {
+    return <MyFeed />;
+  }
+
+  function DiscoverySection() {
+    return <Discovery />;
   }
 
   function MyGroupsList() {
@@ -278,10 +237,10 @@ export default function CommunityLayoutsPreview({
           <MyGroupsList />
         </main>
         
-        {/* Right Column: Global Cookbook and My Badges - UPDATED LAYOUT */}
+        {/* Right Column: My Feed and Discovery - UPDATED LAYOUT */}
         <aside className="lg:col-span-3 space-y-4">
-          <GlobalAcceptedList />
-          <MyBadgesPanel />
+          <MyFeedSection />
+          <DiscoverySection />
         </aside>
       </div>
     );
@@ -296,7 +255,8 @@ export default function CommunityLayoutsPreview({
           <MyBadgesPanel />
         </div>
         <div className="space-y-4">
-          <GlobalAcceptedList />
+          <MyFeedSection />
+          <DiscoverySection />
           <EditorsTableCard />
           <TopBadgeWinnersCard />
           <RecipeOfMonthCard />
@@ -309,7 +269,8 @@ export default function CommunityLayoutsPreview({
   function GridHub() {
     return (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <GlobalAcceptedList />
+        <MyFeedSection />
+        <DiscoverySection />
         <TopicsPanel />
         <MyGroupsList />
         <MyBadgesPanel />

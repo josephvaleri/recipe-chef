@@ -16,28 +16,30 @@ export function Header() {
   const router = useRouter()
 
   useEffect(() => {
-    const getUserAndProfile = async () => {
+    // Simple auth check
+    const checkAuth = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        setUser(user)
-        if (user) {
+        const { data: { session } } = await supabase.auth.getSession()
+        setUser(session?.user ?? null)
+        if (session?.user) {
           const userProfile = await getCurrentProfile()
           setProfile(userProfile)
         }
       } catch (error) {
-        console.error('Error fetching user or profile:', error)
+        console.error('Error checking auth:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    getUserAndProfile()
+    checkAuth()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Header auth change:', event, session?.user?.id)
       setUser(session?.user ?? null)
       if (session?.user) {
-        getCurrentProfile().then(setProfile)
+        getCurrentProfile().then(setProfile).catch(console.error)
       } else {
         setProfile(null)
       }

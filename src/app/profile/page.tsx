@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { RouteGuard } from '@/components/route-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,8 +24,14 @@ import {
   Users,
   Loader2,
   Save,
-  ArrowLeft
+  ArrowLeft,
+  Shield,
+  Eye,
+  EyeOff,
+  Map,
+  Bot
 } from 'lucide-react'
+import GPTAuthHelper from '@/components/GPTAuthHelper'
 import { toast } from 'sonner'
 
 interface UserProfile {
@@ -83,6 +88,14 @@ interface UserProfile {
   privacy_share_collections?: boolean
   privacy_anonymous_reviews?: boolean
   
+  // Community Privacy (Phase 2)
+  visibility?: 'NO_VISIBILITY' | 'FRIENDS_ONLY' | 'FRIENDS_AND_FOLLOWERS' | 'ANYONE'
+  geo_opt_in?: boolean
+  lat?: number
+  lng?: number
+  diet?: string
+  favorite_cuisine?: string
+  
   // Subscription
   subscription_status?: string
 }
@@ -109,25 +122,106 @@ const CUISINES = [
   'Middle Eastern', 'Mediterranean', 'American', 'Cajun/Creole'
 ]
 
+function getVisibilityExplanation(visibility: string): string {
+  switch (visibility) {
+    case 'NO_VISIBILITY':
+      return 'Your profile and content are completely private. Only you can see your information.'
+    case 'FRIENDS_ONLY':
+      return 'Only your friends can see your profile and content. Others will see you as "Anonymous".'
+    case 'FRIENDS_AND_FOLLOWERS':
+      return 'Your friends and followers can see your profile and content. Others will see you as "Anonymous".'
+    case 'ANYONE':
+      return 'Anyone can see your profile and content. This is the most open setting.'
+    default:
+      return 'Privacy setting not recognized.'
+  }
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('identity')
+  const [retryCount, setRetryCount] = useState(0)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  const loadingRef = useRef(false)
+  const componentId = useRef(`ProfilePage-${Math.random().toString(36).substr(2, 9)}`)
+
+  // Debug logging
+  console.log(`[${componentId.current}] ProfilePage render - mounted: ${mounted}, loading: ${loading}, profile: ${!!profile}`)
 
   useEffect(() => {
-    loadProfile()
-  }, [])
+    console.log(`[${componentId.current}] useEffect INITIALIZE - starting component initialization`)
+    let isMounted = true
+    let initTimeoutId: NodeJS.Timeout | null = null
 
-  const loadProfile = async () => {
+    const initializeComponent = async () => {
+      console.log(`[${componentId.current}] initializeComponent called - isMounted: ${isMounted}`)
+      if (!isMounted) return
+      
+      console.log(`[${componentId.current}] Setting mounted to true`)
+      setMounted(true)
+      
+      // Add a small delay to prevent race conditions with other components
+      initTimeoutId = setTimeout(async () => {
+        console.log(`[${componentId.current}] Init timeout triggered - isMounted: ${isMounted}`)
+        if (isMounted) {
+          console.log(`[${componentId.current}] Calling loadProfile from init timeout`)
+          await loadProfile()
+        } else {
+          console.log(`[${componentId.current}] Component unmounted, skipping loadProfile`)
+        }
+      }, 100)
+    }
+
+    // Initialize component
+    console.log(`[${componentId.current}] Calling initializeComponent`)
+    initializeComponent()
+
+    // Cleanup function
+    return () => {
+      console.log(`[${componentId.current}] useEffect CLEANUP - component unmounting`)
+      isMounted = false
+      
+      if (initTimeoutId) {
+        console.log(`[${componentId.current}] Clearing init timeout`)
+        clearTimeout(initTimeoutId)
+      }
+      
+      // Reset loading state
+      console.log(`[${componentId.current}] Resetting loading state`)
+      loadingRef.current = false
+      setLoading(false)
+    }
+  }, []) // Empty dependency array to prevent re-initialization
+
+  const loadProfile = async (isRetry = false) => {
+    console.log(`[${componentId.current}] loadProfile called - isRetry: ${isRetry}, loadingRef.current: ${loadingRef.current}`)
+    
+    // Prevent multiple simultaneous loads
+    if (loadingRef.current) {
+      console.log(`[${componentId.current}] Profile already loading, skipping...`)
+      return
+    }
+
+    console.log(`[${componentId.current}] Starting profile load - setting loading states`)
+    loadingRef.current = true
+    setLoading(true)
+    
     try {
+      console.log(`[${componentId.current}] Loading profile...`, isRetry ? '(retry)' : '')
+      
+      console.log(`[${componentId.current}] Calling getCurrentUser()`)
       const user = await getCurrentUser()
       if (!user) {
+        console.log(`[${componentId.current}] No user found, redirecting to signin`)
         router.push('/auth/signin')
         return
       }
 
+      console.log(`[${componentId.current}] User found:`, user.id)
+      console.log(`[${componentId.current}] Querying profiles table`)
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -135,11 +229,13 @@ export default function ProfilePage() {
         .single()
 
       if (error) {
-        console.error('Error loading profile:', error)
-        toast.error('Failed to load profile')
-        return
+        console.error(`[${componentId.current}] Error loading profile:`, error)
+        throw error
       }
 
+      console.log(`[${componentId.current}] Profile loaded successfully:`, data?.user_id)
+      
+      console.log(`[${componentId.current}] Setting profile state`)
       setProfile(data || {
         user_id: user.id,
         allergens: [],
@@ -152,10 +248,19 @@ export default function ProfilePage() {
         privacy_share_collections: false,
         privacy_anonymous_reviews: true
       })
+      setRetryCount(0) // Reset retry count on success
+      console.log(`[${componentId.current}] Profile load completed successfully`)
     } catch (error) {
-      console.error('Error:', error)
-      toast.error('Failed to load profile')
+      console.error(`[${componentId.current}] Error in loadProfile:`, error)
+      if (isRetry) {
+        toast.error('Failed to load profile. Please try again.')
+      } else {
+        toast.error('Failed to load profile')
+      }
+      setRetryCount(prev => prev + 1)
     } finally {
+      console.log(`[${componentId.current}] Setting loading to false`)
+      loadingRef.current = false
       setLoading(false)
     }
   }
@@ -236,10 +341,38 @@ export default function ProfilePage() {
     })
   }
 
+  // Prevent hydration mismatch by showing consistent loading state
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-orange-700 mb-4">Loading your profile...</p>
+        </div>
+      </div>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-orange-700 mb-4">Loading your profile...</p>
+          {retryCount > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-orange-600">Having trouble loading? Try again.</p>
+              <Button 
+                onClick={() => loadProfile(true)} 
+                variant="outline" 
+                size="sm"
+                disabled={loadingRef.current}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     )
   }
@@ -247,8 +380,7 @@ export default function ProfilePage() {
   if (!profile) return null
 
   return (
-    <RouteGuard requireAuth={true}>
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-orange-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -286,12 +418,14 @@ export default function ProfilePage() {
         {/* Main Content */}
         <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 lg:grid-cols-6">
+            <TabsList className="grid w-full grid-cols-8 lg:grid-cols-8">
               <TabsTrigger value="identity">Identity</TabsTrigger>
               <TabsTrigger value="diet">Diet</TabsTrigger>
               <TabsTrigger value="taste">Taste</TabsTrigger>
               <TabsTrigger value="cooking">Cooking</TabsTrigger>
               <TabsTrigger value="equipment">Equipment</TabsTrigger>
+              <TabsTrigger value="privacy">Privacy</TabsTrigger>
+              <TabsTrigger value="gpt">GPT</TabsTrigger>
               <TabsTrigger value="account">Account</TabsTrigger>
             </TabsList>
 
@@ -801,6 +935,175 @@ export default function ProfilePage() {
               </Card>
             </TabsContent>
 
+            {/* Privacy & Location */}
+            <TabsContent value="privacy" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Shield className="w-5 h-5 text-orange-500" />
+                    <span>Privacy & Location</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Control who can see your profile and content
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="visibility">Profile Visibility</Label>
+                    <select
+                      id="visibility"
+                      value={profile.visibility || 'ANYONE'}
+                      onChange={(e) => updateField('visibility', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="ANYONE">Anyone - Public profile</option>
+                      <option value="FRIENDS_AND_FOLLOWERS">Friends & Followers</option>
+                      <option value="FRIENDS_ONLY">Friends Only</option>
+                      <option value="NO_VISIBILITY">No Visibility - Private</option>
+                    </select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {getVisibilityExplanation(profile.visibility || 'ANYONE')}
+                    </p>
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Location Sharing</h3>
+                    
+                    <div className="space-y-4">
+                      <label className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={profile.geo_opt_in || false}
+                          onChange={(e) => updateField('geo_opt_in', e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <Map className="w-4 h-4 text-orange-500" />
+                            <span className="font-medium">Enable "Near Me" Discovery</span>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Allow other users to find you based on your location for local cooking communities
+                          </p>
+                        </div>
+                      </label>
+
+                      {profile.geo_opt_in && (
+                        <div className="ml-7 space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="lat">Latitude</Label>
+                              <Input
+                                id="lat"
+                                type="number"
+                                step="any"
+                                value={profile.lat || ''}
+                                onChange={(e) => updateField('lat', parseFloat(e.target.value) || undefined)}
+                                placeholder="e.g., 40.7128"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="lng">Longitude</Label>
+                              <Input
+                                id="lng"
+                                type="number"
+                                step="any"
+                                value={profile.lng || ''}
+                                onChange={(e) => updateField('lng', parseFloat(e.target.value) || undefined)}
+                                placeholder="e.g., -74.0060"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            You can find your coordinates using Google Maps or other mapping services. 
+                            This helps other users discover you in the "Near Me" feature.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Discovery Preferences</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="diet">Diet Type</Label>
+                        <select
+                          id="diet"
+                          value={profile.diet || ''}
+                          onChange={(e) => updateField('diet', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                          <option value="">Select diet</option>
+                          <option value="omnivore">Omnivore</option>
+                          <option value="vegetarian">Vegetarian</option>
+                          <option value="vegan">Vegan</option>
+                          <option value="pescatarian">Pescatarian</option>
+                          <option value="keto">Keto</option>
+                          <option value="paleo">Paleo</option>
+                          <option value="halal">Halal</option>
+                          <option value="kosher">Kosher</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="skill_level">Skill Level</Label>
+                        <select
+                          id="skill_level"
+                          value={profile.skill_level || ''}
+                          onChange={(e) => updateField('skill_level', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                          <option value="">Select skill level</option>
+                          <option value="beginner">Beginner</option>
+                          <option value="home_cook">Home Cook</option>
+                          <option value="advanced">Advanced</option>
+                          <option value="professional">Professional</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="favorite_cuisine">Favorite Cuisine</Label>
+                        <select
+                          id="favorite_cuisine"
+                          value={profile.favorite_cuisine || ''}
+                          onChange={(e) => updateField('favorite_cuisine', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        >
+                          <option value="">Select cuisine</option>
+                          {CUISINES.map(cuisine => (
+                            <option key={cuisine} value={cuisine}>{cuisine}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      These preferences help us suggest people with similar interests in the "People Like You" discovery feature.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* GPT Authentication */}
+            <TabsContent value="gpt" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Bot className="w-5 h-5 text-orange-500" />
+                    <span>RecipeChef Importer GPT</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Get authentication details to import recipes directly from ChatGPT into your RecipeChef account
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <GPTAuthHelper />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             {/* Account & Payment */}
             <TabsContent value="account" className="space-y-6">
               <Card>
@@ -854,7 +1157,7 @@ export default function ProfilePage() {
                       <label className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={profile.privacy_anonymous_reviews || true}
+                          checked={profile.privacy_anonymous_reviews !== false}
                           onChange={(e) => updateField('privacy_anonymous_reviews', e.target.checked)}
                           className="w-4 h-4"
                         />
@@ -908,7 +1211,6 @@ export default function ProfilePage() {
           </div>
         </main>
       </div>
-    </RouteGuard>
   )
 }
 

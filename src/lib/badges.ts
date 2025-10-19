@@ -22,7 +22,8 @@ export type UserEventType =
   | 'recipe_added_to_other_user'
   | 'recipe_accepted_global'
   | 'unit_conversion_used'
-  | 'bug_report_confirmed';
+  | 'bug_report_confirmed'
+  | 'friend_referred';
 
 export interface RecipeAddedMeta {
   name: string;
@@ -53,12 +54,18 @@ export interface RecipeAddedToOtherUserMeta {
   original_owner_id: string;
 }
 
+export interface FriendReferredMeta {
+  referred_user_id: string;
+  referral_method?: string; // 'invite_link', 'direct_share', etc.
+}
+
 export type EventMeta =
   | RecipeAddedMeta
   | RecipeCookedMeta
   | RatingLeftMeta
   | AIQueryMeta
   | RecipeAddedToOtherUserMeta
+  | FriendReferredMeta
   | Record<string, any>;
 
 export interface BadgeAward {
@@ -103,6 +110,7 @@ export interface BadgeProgress {
   conversion_wizard: number;
   chef_tony_apprentice: number;
   cuisine_explorer: number;
+  friends_referred: number;
 }
 
 // ==========================================

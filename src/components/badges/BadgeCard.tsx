@@ -24,6 +24,7 @@ import {
   Calculator,
   Cake,
   Trophy,
+  UserPlus,
   LucideIcon,
 } from 'lucide-react';
 import { Badge, BadgeTier } from '@/lib/badges';
@@ -48,6 +49,7 @@ const iconMap: Record<string, LucideIcon> = {
   calculator: Calculator,
   cake: Cake,
   trophy: Trophy,
+  'user-plus': UserPlus,
 };
 
 interface BadgeCardProps {
