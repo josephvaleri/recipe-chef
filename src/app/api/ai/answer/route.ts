@@ -73,6 +73,20 @@ ${context ? `Current recipe context:\n${context}` : ''}`
         result_source: 'openai'
       })
 
+    // Log badge event for AI query
+    try {
+      await supabase.rpc('log_event_and_award', {
+        p_type: 'ai_query',
+        p_meta: {
+          question_len: question.length,
+          meaningful: question.length >= 20
+        }
+      })
+    } catch (badgeError) {
+      console.error('Error logging AI query badge event:', badgeError)
+      // Don't fail the AI response if badge logging fails
+    }
+
     return NextResponse.json({ answer })
 
   } catch (error) {

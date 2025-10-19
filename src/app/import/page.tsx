@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { RouteGuard } from '@/components/route-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +11,8 @@ import { ArrowLeft, Download, Globe, AlertCircle, CheckCircle, ExternalLink, Che
 import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
+import { logEventAndAward } from '@/lib/badges'
+import { useBadgeToast } from '@/components/badges/BadgeToast'
 import JSZip from 'jszip'
 import * as pako from 'pako'
 
@@ -49,6 +50,7 @@ function ImportPageContent() {
   const [importMethod, setImportMethod] = useState<'url' | 'paprika'>('url')
   const [paprikaFile, setPaprikaFile] = useState<File | null>(null)
   const router = useRouter()
+  const { showBadgeAwards } = useBadgeToast()
 
   const handleSharedData = useCallback((data: { url?: string; title?: string; text?: string }) => {
     if (data.url) {
@@ -446,6 +448,33 @@ function ImportPageContent() {
           .insert(instructions)
       }
 
+      // Log badge event for recipe import
+      try {
+        const instructionsText = editedRecipe.instructions
+          ? editedRecipe.instructions.join(' ')
+          : ''
+        
+        const result = await logEventAndAward(
+          'recipe_added',
+          {
+            name: editedRecipe.title,
+            has_ingredients: editedRecipe.ingredients && editedRecipe.ingredients.length > 0,
+            instructions_len: instructionsText.length,
+            has_photo: !!editedRecipe.image,
+            source_url: importResult.recipe.sourceUrl || url,
+            imported: true // This is an imported recipe
+          },
+          recipeData.user_recipe_id
+        )
+        
+        if (result?.awards && result.awards.length > 0) {
+          showBadgeAwards(result.awards)
+        }
+      } catch (badgeError) {
+        console.error('Error logging badge event:', badgeError)
+        // Don't fail recipe save if badge logging fails
+      }
+
       // Redirect to the new recipe
       router.push(`/recipe/${recipeData.user_recipe_id}`)
 
@@ -464,7 +493,7 @@ function ImportPageContent() {
   }
 
   return (
-    <RouteGuard requireAuth={true} className="min-h-screen">
+    <div className="min-h-screen">
       <SearchParamsHandler onSharedData={handleSharedData} />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -972,7 +1001,7 @@ function ImportPageContent() {
           </div>
         </div>
       </div>
-    </RouteGuard>
+    </div>
   )
 }
 

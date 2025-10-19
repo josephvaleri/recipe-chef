@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { RouteGuard } from '@/components/route-guard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -473,7 +472,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
   if (!recipe || !editedRecipe) return null
 
   return (
-    <RouteGuard requireAuth={true}>
+    <div>
       <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
@@ -810,6 +809,6 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
         </div>
         </div>
       </div>
-    </RouteGuard>
+    </div>
   )
 }

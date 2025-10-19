@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { RouteGuard } from '@/components/route-guard'
 import { supabase } from '@/lib/supabase'
 import { isAdmin } from '@/lib/auth'
 import { Plus, Edit, Trash2, Save, X, ChefHat, Utensils, Package, Tag, Settings } from 'lucide-react'
@@ -239,7 +238,7 @@ export default function AdminReferencePage() {
   ] as const
 
   return (
-    <RouteGuard requireAuth={true}>
+    <div>
       <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
@@ -384,6 +383,6 @@ export default function AdminReferencePage() {
           </div>
         </div>
       </div>
-    </RouteGuard>
+    </div>
   )
 }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { RouteGuard } from '@/components/route-guard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -259,7 +258,7 @@ export default function ModeratorPage() {
   }
 
   return (
-    <RouteGuard requireAuth={true}>
+    <div>
       <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
         <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
@@ -528,6 +527,6 @@ export default function ModeratorPage() {
         </div>
         </div>
       </div>
-    </RouteGuard>
+    </div>
   )
 }

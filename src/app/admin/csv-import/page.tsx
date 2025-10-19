@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { RouteGuard } from '@/components/route-guard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -318,7 +317,7 @@ export default function CSVImportPage() {
   }
 
   return (
-    <RouteGuard requireAuth={true} className="min-h-screen">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8" style={{ backgroundColor: '#C6DBEF' }}>
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -509,6 +508,6 @@ export default function CSVImportPage() {
           </div>
         </div>
       </div>
-    </RouteGuard>
+    </div>
   )
 }
