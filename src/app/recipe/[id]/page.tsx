@@ -13,6 +13,7 @@ import { sanitizeText, sanitizeHTML } from '@/lib/sanitize'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { RecipeTimer } from '@/components/recipe-timer'
 import { ShareRecipeModal } from '@/components/community/ShareRecipeModal'
+import RecipeVoting from '@/components/community/RecipeVoting'
 import { 
   ChefHat, 
   Clock, 
@@ -602,13 +603,24 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${recipe.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        window.URL.revokeObjectURL(url)
+        
+        // Open PDF in new tab for printing
+        const printWindow = window.open(url, '_blank')
+        
+        // Wait for the PDF to load, then trigger print
+        if (printWindow) {
+          printWindow.onload = () => {
+            printWindow.print()
+          }
+        }
+        
+        // Clean up the URL after a delay
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url)
+        }, 1000)
+      } else {
+        const errorText = await response.text()
+        console.error('PDF API Error:', errorText)
       }
     } catch (error) {
       console.error('Error generating PDF:', error)
@@ -711,6 +723,11 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
             </div>
             
             <div className="flex items-center space-x-2">
+              <RecipeVoting 
+                recipeId={recipe.user_recipe_id} 
+                size="sm"
+                className="mr-2"
+              />
               <Button 
                 variant="outline" 
                 size="sm" 

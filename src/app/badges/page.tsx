@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Trophy, Award, Target, TrendingUp } from 'lucide-react';
+import { Trophy, Award, Target, TrendingUp, Star, Sparkles } from 'lucide-react';
 import { BadgeCard } from '@/components/badges/BadgeCard';
 import {
   getBadges,
@@ -135,6 +135,58 @@ export default function BadgesPage() {
               </p>
             </div>
           </div>
+
+          {/* Recently Awarded Badges */}
+          {earnedBadges.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border-2 border-amber-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-5 h-5 text-amber-600" />
+                  <h2 className="text-lg font-semibold text-amber-900">Your Recent Achievements</h2>
+                </div>
+                
+                <div className="flex flex-wrap gap-3">
+                  {earnedBadges
+                    .sort((a, b) => new Date(b.userBadge.awarded_at).getTime() - new Date(a.userBadge.awarded_at).getTime())
+                    .slice(0, 5)
+                    .map(({ badge, userBadge, currentTier }) => (
+                      <div
+                        key={`${badge.badge_code}-${userBadge.awarded_at}`}
+                        className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 border border-amber-200 shadow-sm"
+                      >
+                        <div className="relative">
+                          <Trophy className="w-5 h-5 text-amber-600" />
+                          {currentTier && currentTier.tier > 1 && (
+                            <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                              {currentTier.tier}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900 capitalize">
+                            {badge.badge_code.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-xs text-amber-600">
+                            {currentTier ? currentTier.label : 'Earned'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 ml-auto">
+                          {new Date(userBadge.awarded_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                
+                {earnedBadges.length > 5 && (
+                  <div className="text-center mt-3">
+                    <span className="text-sm text-amber-700">
+                      And {earnedBadges.length - 5} more badges earned!
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">

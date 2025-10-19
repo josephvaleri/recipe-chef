@@ -14,10 +14,17 @@ import {
   Target, 
   User,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Heart,
+  UserPlus,
+  Search,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useShareRecipe } from "@/lib/queries/community";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 interface Group {
   group_id: number;
@@ -27,6 +34,19 @@ interface Group {
   description: string | null;
   member_count: number;
   is_member: boolean;
+}
+
+interface Friend {
+  user_id: string;
+  display_name: string;
+  full_name: string;
+  avatar_url?: string;
+  is_visible: boolean;
+}
+
+interface ShareScope {
+  type: 'FRIENDS' | 'FOLLOWERS' | 'BOTH' | 'SPECIFIC';
+  recipients: string[];
 }
 
 interface ShareRecipeModalProps {
@@ -50,11 +70,28 @@ export function ShareRecipeModal({
   const [message, setMessage] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [sharing, setSharing] = useState(false);
+  
+  // Friends/Followers sharing state
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [followers, setFollowers] = useState<Friend[]>([]);
+  const [shareScope, setShareScope] = useState<ShareScope>({ type: 'FRIENDS', recipients: [] });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [activeTab, setActiveTab] = useState('groups');
+  
+  // Email sharing state
+  const [emailRecipients, setEmailRecipients] = useState<string>('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailMessage, setEmailMessage] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  
+  const { shareRecipe, loading: sharingRecipe } = useShareRecipe();
 
   useEffect(() => {
     if (isOpen) {
       loadUserGroups();
       getCurrentUser();
+      loadFriendsAndFollowers();
     }
   }, [isOpen]);
 
@@ -136,6 +173,75 @@ export function ShareRecipeModal({
     }
   };
 
+  const loadFriendsAndFollowers = async () => {
+    try {
+      setLoadingFriends(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
+      // Load friends
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('user_friends')
+        .select(`
+          friend_id,
+          profiles!user_friends_friend_id_fkey(
+            user_id,
+            display_name,
+            full_name,
+            avatar_url,
+            visibility
+          )
+        `)
+        .eq('user_id', user.id);
+
+      if (friendsError) {
+        console.error('Error loading friends:', friendsError);
+      } else {
+        const friendsList = (friendsData || []).map((item: any) => ({
+          user_id: item.friend_id,
+          display_name: item.profiles?.display_name || item.profiles?.full_name || 'Anonymous',
+          full_name: item.profiles?.full_name || 'Anonymous',
+          avatar_url: item.profiles?.avatar_url,
+          is_visible: item.profiles?.visibility !== 'NO_VISIBILITY'
+        }));
+        setFriends(friendsList);
+      }
+
+      // Load followers
+      const { data: followersData, error: followersError } = await supabase
+        .from('user_follows')
+        .select(`
+          follower_id,
+          profiles!user_follows_follower_id_fkey(
+            user_id,
+            display_name,
+            full_name,
+            avatar_url,
+            visibility
+          )
+        `)
+        .eq('followee_id', user.id);
+
+      if (followersError) {
+        console.error('Error loading followers:', followersError);
+      } else {
+        const followersList = (followersData || []).map((item: any) => ({
+          user_id: item.follower_id,
+          display_name: item.profiles?.display_name || item.profiles?.full_name || 'Anonymous',
+          full_name: item.profiles?.full_name || 'Anonymous',
+          avatar_url: item.profiles?.avatar_url,
+          is_visible: item.profiles?.visibility !== 'NO_VISIBILITY'
+        }));
+        setFollowers(followersList);
+      }
+    } catch (error) {
+      console.error('Error loading friends and followers:', error);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
   const handleGroupToggle = (groupId: number) => {
     setSelectedGroups(prev => 
       prev.includes(groupId) 
@@ -144,48 +250,145 @@ export function ShareRecipeModal({
     );
   };
 
-  const handleShare = async () => {
-    if (selectedGroups.length === 0) {
-      toast.error("Please select at least one group to share with");
+  const handleEmailShare = async () => {
+    if (!emailRecipients.trim()) {
+      toast.error("Please enter at least one email address");
       return;
     }
 
-    if (!currentUser) {
-      toast.error("You must be logged in to share recipes");
+    if (!emailSubject.trim()) {
+      toast.error("Please enter a subject for your email");
       return;
     }
 
     try {
-      setSharing(true);
+      setSendingEmail(true);
 
-      // Share the recipe with each selected group
-      const sharePromises = selectedGroups.map(groupId => 
-        supabase
-          .from("shared_recipes")
-          .insert({
-            group_id: groupId,
-            recipe_id: recipeId,
-            shared_by_id: currentUser.id,
-            message: message.trim() || null,
-            share_type: "group",
-            recipients: []
-          })
-      );
+      const response = await fetch('/api/share/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipeId,
+          recipients: emailRecipients.split(',').map(email => email.trim()),
+          subject: emailSubject,
+          message: emailMessage,
+          recipeTitle
+        }),
+      });
 
-      await Promise.all(sharePromises);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send email');
+      }
 
-      toast.success(`Recipe shared with ${selectedGroups.length} group${selectedGroups.length > 1 ? 's' : ''}`);
+      const result = await response.json();
+      toast.success(`Recipe sent to ${result.sentCount} recipient${result.sentCount > 1 ? 's' : ''}`);
       onRecipeShared?.();
       onClose();
       
       // Reset form
-      setSelectedGroups([]);
-      setMessage("");
+      setEmailRecipients('');
+      setEmailSubject('');
+      setEmailMessage('');
     } catch (error) {
-      console.error("Error sharing recipe:", error);
-      toast.error("Failed to share recipe");
+      console.error("Error sending email:", error);
+      toast.error("Failed to send recipe via email");
     } finally {
-      setSharing(false);
+      setSendingEmail(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (activeTab === 'email') {
+      await handleEmailShare();
+      return;
+    }
+    
+    if (activeTab === 'groups') {
+      // Original group sharing logic
+      if (selectedGroups.length === 0) {
+        toast.error("Please select at least one group to share with");
+        return;
+      }
+
+      if (!currentUser) {
+        toast.error("You must be logged in to share recipes");
+        return;
+      }
+
+      try {
+        setSharing(true);
+
+        // Share the recipe with each selected group
+        const sharePromises = selectedGroups.map(groupId => 
+          supabase
+            .from("shared_recipes")
+            .insert({
+              group_id: groupId,
+              recipe_id: recipeId,
+              shared_by_id: currentUser.id,
+              message: message.trim() || null,
+              share_type: "group",
+              recipients: []
+            })
+        );
+
+        await Promise.all(sharePromises);
+
+        toast.success(`Recipe shared with ${selectedGroups.length} group${selectedGroups.length > 1 ? 's' : ''}`);
+        onRecipeShared?.();
+        onClose();
+        
+        // Reset form
+        setSelectedGroups([]);
+        setMessage("");
+      } catch (error) {
+        console.error("Error sharing recipe:", error);
+        toast.error("Failed to share recipe");
+      } finally {
+        setSharing(false);
+      }
+    } else {
+      // Friends/Followers sharing logic
+      if (shareScope.type === 'SPECIFIC' && shareScope.recipients.length === 0) {
+        toast.error("Please select at least one person to share with");
+        return;
+      }
+
+      try {
+        setSharing(true);
+
+        // Use the new share recipe hook
+        await shareRecipe({
+          recipeId,
+          recipients: shareScope.type === 'SPECIFIC' ? shareScope.recipients : [],
+          scope: shareScope.type === 'SPECIFIC' ? undefined : shareScope.type,
+          note: message.trim() || undefined
+        });
+
+        const recipientCount = shareScope.type === 'SPECIFIC' 
+          ? shareScope.recipients.length 
+          : shareScope.type === 'BOTH' 
+            ? friends.length + followers.length
+            : shareScope.type === 'FRIENDS' 
+              ? friends.length 
+              : followers.length;
+
+        toast.success(`Recipe shared with ${recipientCount} ${shareScope.type.toLowerCase()}`);
+        onRecipeShared?.();
+        onClose();
+        
+        // Reset form
+        setShareScope({ type: 'FRIENDS', recipients: [] });
+        setMessage("");
+      } catch (error) {
+        console.error("Error sharing recipe:", error);
+        toast.error("Failed to share recipe");
+      } finally {
+        setSharing(false);
+      }
     }
   };
 
@@ -240,14 +443,23 @@ export function ShareRecipeModal({
             />
           </div>
 
-          {/* Group Selection */}
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base font-medium">Select Groups</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose which groups to share this recipe with
-              </p>
-            </div>
+          {/* Tabs for Groups vs Friends/Followers vs Email */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="groups">Groups</TabsTrigger>
+              <TabsTrigger value="people">Friends & Followers</TabsTrigger>
+              <TabsTrigger value="email">Email</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="groups" className="space-y-4">
+              {/* Group Selection */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Select Groups</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Choose which groups to share this recipe with
+                  </p>
+                </div>
 
             {groups.length === 0 && !loading ? (
               <div className="text-center py-8">
@@ -304,19 +516,183 @@ export function ShareRecipeModal({
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Selection Summary */}
-          {selectedGroups.length > 0 && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-800">
-                <CheckCircle className="w-4 h-4" />
-                <span className="font-medium">
-                  {selectedGroups.length} group{selectedGroups.length > 1 ? 's' : ''} selected
-                </span>
               </div>
-            </div>
-          )}
+            </TabsContent>
+
+            <TabsContent value="people" className="space-y-4">
+              {/* Share Scope Selection */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Share With</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Choose who to share this recipe with
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    variant={shareScope.type === 'FRIENDS' ? 'default' : 'outline'}
+                    onClick={() => setShareScope({ type: 'FRIENDS', recipients: [] })}
+                    className="flex items-center gap-2"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Friends ({friends.length})
+                  </Button>
+                  <Button
+                    variant={shareScope.type === 'FOLLOWERS' ? 'default' : 'outline'}
+                    onClick={() => setShareScope({ type: 'FOLLOWERS', recipients: [] })}
+                    className="flex items-center gap-2"
+                  >
+                    <Heart className="w-4 h-4" />
+                    Followers ({followers.length})
+                  </Button>
+                  <Button
+                    variant={shareScope.type === 'BOTH' ? 'default' : 'outline'}
+                    onClick={() => setShareScope({ type: 'BOTH', recipients: [] })}
+                    className="flex items-center gap-2 col-span-2"
+                  >
+                    <Users className="w-4 h-4" />
+                    Both Friends & Followers ({friends.length + followers.length})
+                  </Button>
+                </div>
+
+                {/* Specific People Selection */}
+                {shareScope.type === 'SPECIFIC' && (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search friends and followers..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-2">
+                      {[...friends, ...followers]
+                        .filter(person => 
+                          person.display_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          person.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((person) => (
+                          <div
+                            key={person.user_id}
+                            className="flex items-center space-x-3 p-2 rounded-lg border hover:bg-gray-50 transition-colors"
+                          >
+                            <Checkbox
+                              id={`person-${person.user_id}`}
+                              checked={shareScope.recipients.includes(person.user_id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setShareScope(prev => ({
+                                    ...prev,
+                                    recipients: [...prev.recipients, person.user_id]
+                                  }));
+                                } else {
+                                  setShareScope(prev => ({
+                                    ...prev,
+                                    recipients: prev.recipients.filter(id => id !== person.user_id)
+                                  }));
+                                }
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <label
+                                  htmlFor={`person-${person.user_id}`}
+                                  className="font-medium cursor-pointer truncate"
+                                >
+                                  {person.display_name}
+                                </label>
+                                {!person.is_visible && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Anonymous
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Selection Summary */}
+              {shareScope.type !== 'SPECIFIC' && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="font-medium">
+                      Will share with {shareScope.type.toLowerCase()}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {shareScope.type === 'SPECIFIC' && shareScope.recipients.length > 0 && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-800">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="font-medium">
+                      {shareScope.recipients.length} person{shareScope.recipients.length > 1 ? 's' : ''} selected
+                    </span>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="email" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Email Recipients</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enter email addresses separated by commas
+                  </p>
+                  <Input
+                    type="email"
+                    placeholder="friend@example.com, family@example.com"
+                    value={emailRecipients}
+                    onChange={(e) => setEmailRecipients(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="email-subject">Email Subject</Label>
+                  <Input
+                    id="email-subject"
+                    placeholder={`Check out this recipe: ${recipeTitle}`}
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="email-message">Personal Message (Optional)</Label>
+                  <Textarea
+                    id="email-message"
+                    placeholder="Add a personal message to go with the recipe..."
+                    value={emailMessage}
+                    onChange={(e) => setEmailMessage(e.target.value)}
+                    rows={3}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-blue-800">
+                    <Mail className="w-4 h-4" />
+                    <span className="text-sm">
+                      The recipe will be sent as a PDF attachment from your account via Passionworksstudio.com
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t">
@@ -325,18 +701,27 @@ export function ShareRecipeModal({
           </Button>
           <Button 
             onClick={handleShare} 
-            disabled={selectedGroups.length === 0 || sharing}
+            disabled={
+              (activeTab === 'groups' && selectedGroups.length === 0) ||
+              (activeTab === 'people' && shareScope.type === 'SPECIFIC' && shareScope.recipients.length === 0) ||
+              (activeTab === 'email' && (!emailRecipients.trim() || !emailSubject.trim())) ||
+              sharing || sendingEmail
+            }
             className="bg-orange-600 hover:bg-orange-700"
           >
-            {sharing ? (
+            {(sharing || sendingEmail) ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Sharing...
+                {activeTab === 'email' ? 'Sending...' : 'Sharing...'}
               </>
             ) : (
               <>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share Recipe
+                {activeTab === 'email' ? (
+                  <Mail className="w-4 h-4 mr-2" />
+                ) : (
+                  <Share2 className="w-4 h-4 mr-2" />
+                )}
+                {activeTab === 'email' ? 'Send Recipe' : 'Share Recipe'}
               </>
             )}
           </Button>

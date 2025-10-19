@@ -11,9 +11,9 @@ import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { TrialBanner } from '@/components/trial-banner'
-import { RouteGuard } from '@/components/route-guard'
 import TopBanner from '@/components/home/TopBanner'
 import UserFeedPreviewWrapper from '@/components/home/UserFeedPreviewWrapper'
+import MyFeed from '@/components/community/MyFeed'
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -599,9 +599,9 @@ export default function Home() {
                     })}
                   </div>
 
-                      {/* User Feed Preview */}
+                      {/* My Feed */}
                       <div className="mt-6">
-                        <UserFeedPreviewWrapper />
+                        <MyFeed />
                       </div>
 
                       {/* Earn Badges Button */}

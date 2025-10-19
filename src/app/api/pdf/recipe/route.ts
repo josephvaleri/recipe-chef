@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase-server'
 import { generateRecipePDF } from '@/lib/pdf'
-import ReactPDF from '@react-pdf/renderer'
+import { renderToBuffer } from '@react-pdf/renderer'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
+    const supabase = await createServerClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
@@ -116,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     // Generate PDF
     const pdfDoc = generateRecipePDF(recipeForPDF)
-    const pdfBuffer = await ReactPDF.renderToBuffer(pdfDoc)
+    const pdfBuffer = await renderToBuffer(pdfDoc)
 
     return new NextResponse(pdfBuffer as any, {
       headers: {
