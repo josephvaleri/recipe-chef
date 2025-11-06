@@ -156,7 +156,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.paddle.com https://checkout.paddle.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.paddle.com https://checkout.paddle.com https://*.sentry.io https://*.ingest.sentry.io",
               "frame-src https://cdn.paddle.com https://checkout.paddle.com",
               "object-src 'none'",
               "base-uri 'self'",

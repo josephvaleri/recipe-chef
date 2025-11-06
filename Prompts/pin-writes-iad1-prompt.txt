@@ -1,0 +1,407 @@
+
+TITLE: Pin Supabase write routes to Vercel iad1 (N. Virginia) and standardize on @supabase/ssr
+
+ROLE: You are an expert Next.js 15 + TypeScript + Supabase engineer. We are working in a repo that contains the API routes at:
+/Users/josephvaleri/recipe-chef/src/app/api/
+
+OBJECTIVE
+- Ensure every WRITE route (POST/PUT/PATCH/DELETE, plus any mutating GET) executes in Vercel region iad1 (AWS us-east-1).
+- Prefer Edge runtime for writes and set preferredRegion=['iad1'].
+- Use Node runtime ONLY when a route depends on Node-only APIs (fs/path/child_process/sharp/zlib/stream/nodemailer/crypto.createHmac/etc.).
+- Standardize ALL server-side Supabase calls to use @supabase/ssr via a shared factory.
+- Disable caching for write routes (dynamic='force-dynamic' and revalidate=0).
+- Do NOT do DB writes in Middleware.
+
+SCOPE
+- Root API directory (recursive): /Users/josephvaleri/recipe-chef/src/app/api
+- Treat these as the known route files (from user list):
+  ./admin/cleanup-cache/route.ts
+  ./admin/global-recipes/bulk-upload/route.ts
+  ./ai/answer/route.ts
+  ./ai/generate-recipes/route.ts
+  ./ai/route-question/route.ts
+  ./ai/search-recipe-names/route.ts
+  ./badges/events/route.ts
+  ./badges/route.ts
+  ./debug-auth/route.ts
+  ./discovery/near-me/route.ts
+  ./discovery/people-like-you/route.ts
+  ./discovery/search-profiles/route.ts
+  ./discovery/search/route.ts
+  ./follow/route.ts
+  ./friends/invite/route.ts
+  ./friends/respond/route.ts
+  ./global-cookbook/add-recipe/route.ts
+  ./import-paprika/route.ts
+  ./import-recipe/route.ts
+  ./ingredients/analyze/route.ts
+  ./ingredients/load/[recipeId]/route.ts
+  ./ingredients/save/route.ts
+  ./ingredients/search/route.ts
+  ./my-feed/route.ts
+  ./ouioui/random/route.ts
+  ./paddle/webhook/route.ts
+  ./pdf/recipe/route.ts
+  ./profile/privacy/route.ts
+  ./public/import-recipe-simple/route.ts
+  ./public/import-recipe-with-auth/route.ts
+  ./public/import-recipe/route.ts
+  ./public/import-text/route.ts
+  ./public/test/route.ts
+  ./recipes/share/route.ts
+  ./recipes/vote/route.ts
+  ./share/email/route.ts
+  ./shopping-list/generate/route.ts
+  ./shopping-list/push-alexa/route.ts
+  ./test-global-cookbook/route.ts
+
+GUARDRAILS
+- Use @supabase/ssr ONLY. Do NOT add @supabase/auth-helpers-*.
+- Keep diffs minimal; follow existing lint/format config (no wholesale reformat).
+- Do not introduce additional libraries.
+- Read-only routes can remain as-is; only apply no-cache + region pinning to write routes.
+
+----------------------------------------------------------------
+STEP 1 — Add shared helpers
+----------------------------------------------------------------
+
+Create (or update) src/lib/supabase/server.ts:
+
+```ts
+// src/lib/supabase/server.ts
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export function createSupabaseServer() {
+  const cookieStore = cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieStore.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+}
+```
+
+Ensure .env.local includes:
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+Create src/lib/route-config.ts:
+
+```ts
+// src/lib/route-config.ts
+export const EdgeWriteConfig = {
+  runtime: 'edge' as const,
+  preferredRegion: ['iad1'] as const,
+  dynamic: 'force-dynamic' as const,
+  revalidate: 0 as const,
+}
+
+export const NodeWriteConfig = {
+  runtime: 'nodejs' as const,
+  dynamic: 'force-dynamic' as const,
+  revalidate: 0 as const,
+}
+
+export function regionHeader() {
+  return { 'x-executed-region': (process as any).env.VERCEL_REGION ?? 'unknown' }
+}
+```
+
+Create a sanity-check route at src/app/api/whoami-region/route.ts:
+
+```ts
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+export async function GET() {
+  const region = (process as any).env.VERCEL_REGION ?? 'unknown'
+  return new Response(JSON.stringify({ region, ts: Date.now() }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  })
+}
+```
+
+Add or update vercel.json at the repo root (merge carefully if it exists):
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["iad1"],
+  "functionFailoverRegions": ["cle1"]
+}
+```
+
+----------------------------------------------------------------
+STEP 2 — Detect write routes and set runtime/region/caching
+----------------------------------------------------------------
+
+Classification rules:
+1) A route is WRITE if it exports POST, PUT, PATCH, or DELETE.
+2) A GET route is WRITE if it mutates (e.g., Supabase .insert/.update/.upsert/.delete or a comment/hint indicating mutation).
+3) Prefer Edge for writes. Choose Node ONLY if the file imports/uses Node-only modules/APIs: fs, path, child_process, zlib, stream, sharp, nodemailer, crypto.createHmac, etc. (Web Crypto crypto.subtle is fine on Edge).
+
+For each WRITE route:
+- EDGE WRITE (preferred): add these **top-level** exports at the top of the file:
+  ```ts
+  export const runtime = 'edge'
+  export const preferredRegion = ['iad1']
+  export const dynamic = 'force-dynamic'
+  export const revalidate = 0
+  ```
+
+- NODE WRITE (only if required by Node-only APIs): add
+  ```ts
+  export const runtime = 'nodejs'
+  export const dynamic = 'force-dynamic'
+  export const revalidate = 0
+  ```
+
+- Replace any direct Supabase client creation with the shared factory:
+  ```ts
+  import { createSupabaseServer } from '@/lib/supabase/server'
+  const supabase = createSupabaseServer()
+  ```
+
+- Add a region header in responses when practical:
+  ```ts
+  import { regionHeader } from '@/lib/route-config'
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'content-type': 'application/json', ...regionHeader() },
+  })
+  ```
+
+Read-only routes: leave unchanged unless they mutate; if they do, treat them as WRITE.
+
+----------------------------------------------------------------
+STEP 3 — Recommended runtime per route (initial guess)
+----------------------------------------------------------------
+
+NOTE: If any “Edge” listed here actually uses Node-only APIs, switch that route to Node and keep the rest as-is.
+
+Edge WRITE (default for writes):
+- ./admin/cleanup-cache/route.ts
+- ./ai/answer/route.ts   (if storing Q/A logs, treat as write)
+- ./ai/generate-recipes/route.ts
+- ./ai/route-question/route.ts
+- ./badges/events/route.ts
+- ./badges/route.ts
+- ./follow/route.ts
+- ./friends/invite/route.ts
+- ./friends/respond/route.ts
+- ./global-cookbook/add-recipe/route.ts
+- ./import-recipe/route.ts          (Edge if pure fetch/HTML parsing; Node if using Node-only libs)
+- ./ingredients/analyze/route.ts
+- ./ingredients/save/route.ts
+- ./profile/privacy/route.ts
+- ./public/import-recipe-simple/route.ts
+- ./public/import-recipe-with-auth/route.ts
+- ./public/import-recipe/route.ts
+- ./public/import-text/route.ts
+- ./recipes/share/route.ts
+- ./recipes/vote/route.ts
+- ./shopping-list/generate/route.ts
+- ./shopping-list/push-alexa/route.ts
+- ./test-global-cookbook/route.ts   (if it mutates)
+
+Node WRITE (Node-only libs likely):
+- ./admin/global-recipes/bulk-upload/route.ts  (bulk file parsing often Node)
+- ./import-paprika/route.ts                    (multipart/file parsing often Node)
+- ./paddle/webhook/route.ts                    (signature verification via Node crypto)
+- ./pdf/recipe/route.ts                        (PDF generation often Node)
+- ./share/email/route.ts                       (SMTP/nodemailer typical Node)
+
+Read-only (Edge, leave as-is unless they mutate):
+- ./ai/search-recipe-names/route.ts
+- ./debug-auth/route.ts
+- ./discovery/near-me/route.ts
+- ./discovery/people-like-you/route.ts
+- ./discovery/search-profiles/route.ts
+- ./discovery/search/route.ts
+- ./ingredients/load/[recipeId]/route.ts
+- ./ingredients/search/route.ts
+- ./my-feed/route.ts
+- ./ouioui/random/route.ts
+- ./public/test/route.ts
+
+----------------------------------------------------------------
+STEP 4 — Examples you can mirror
+----------------------------------------------------------------
+
+EXAMPLE A — Edge write route (recipes/vote)
+```ts
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+import { regionHeader } from '@/lib/route-config'
+import { createSupabaseServer } from '@/lib/supabase/server'
+
+export async function POST(req: Request) {
+  const supabase = createSupabaseServer()
+  const body = await req.json().catch(() => ({}))
+  const { recipe_id, value } = body
+
+  const { error } = await supabase
+    .from('recipe_votes')
+    .upsert({ recipe_id, value })
+
+  if (error) {
+    return new Response(JSON.stringify({ ok: false, error: error.message }), {
+      status: 500,
+      headers: { 'content-type': 'application/json', ...regionHeader() },
+    })
+  }
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'content-type': 'application/json', ...regionHeader() },
+  })
+}
+```
+
+EXAMPLE B — Node write route (paddle/webhook)
+```ts
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+import { regionHeader } from '@/lib/route-config'
+import { createSupabaseServer } from '@/lib/supabase/server'
+
+export async function POST(req: Request) {
+  // Keep the raw body for signature verification if required
+  const raw = await req.text()
+
+  // TODO: verify Paddle signature (Node crypto / library)
+  // const isValid = verifyPaddleSignature(raw, req.headers)
+  // if (!isValid) return new Response('invalid signature', { status: 400 })
+
+  const supabase = createSupabaseServer()
+  // TODO: parse event + write to DB
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'content-type': 'application/json', ...regionHeader() },
+  })
+}
+```
+
+EXAMPLE C — Node write route (pdf/recipe)
+```ts
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+// Generate/stream a PDF (pdfkit/sharp/etc.).
+// If you also log an audit entry, use createSupabaseServer() as above.
+```
+
+----------------------------------------------------------------
+STEP 5 — Optional local verification script
+----------------------------------------------------------------
+
+Create scripts/verify-write-regions.cjs and add an npm script "verify:regions".
+This script scans /src/app/api for route files and reports method presence and whether the route has the correct runtime/region/cache exports:
+
+```js
+// scripts/verify-write-regions.cjs
+const fs = require('fs')
+const path = require('path')
+
+const ROOT = process.cwd() // run from repo root
+const API_DIR = path.join(ROOT, 'src', 'app', 'api')
+
+const files = []
+function walk(p) {
+  if (!fs.existsSync(p)) return
+  const ents = fs.readdirSync(p, { withFileTypes: true })
+  for (const e of ents) {
+    const full = path.join(p, e.name)
+    if (e.isDirectory()) walk(full)
+    else if (/route\.(t|j)sx?$/.test(e.name)) files.push(full)
+  }
+}
+walk(API_DIR)
+
+function read(file) { return fs.readFileSync(file, 'utf8') }
+
+const report = files.map((file) => {
+  const code = read(file)
+  const methods = []
+  if (/export\s+async\s+function\s+POST\b/.test(code)) methods.push('POST')
+  if (/export\s+async\s+function\s+PUT\b/.test(code)) methods.push('PUT')
+  if (/export\s+async\s+function\s+PATCH\b/.test(code)) methods.push('PATCH')
+  if (/export\s+async\s+function\s+DELETE\b/.test(code)) methods.push('DELETE')
+  const hasGet = /export\s+async\s+function\s+GET\b/.test(code)
+  const mutPattern = /\.from\([\s\S]*?\)\s*\.(insert|update|upsert|delete)\b|\/\/\s*mutate|\/\*.*mutate.*\*\//i
+  const isMutatingGet = hasGet && mutPattern.test(code)
+
+  const write = methods.length > 0 || isMutatingGet
+  const usesNodeApis = /(from 'fs'|from "fs"|require\(['"]fs['"]\)|from 'path'|require\(['"]path['"]\)|child_process|zlib|stream|sharp|nodemailer|crypto\.createHash|crypto\.createHmac)/.test(code)
+  const runtimeEdge = write && !usesNodeApis
+
+  const hasPreferredRegion = /export\s+const\s+preferredRegion\s*=\s*\[['"`]iad1['"`]\]/.test(code)
+  const runtime =
+    /export\s+const\s+runtime\s*=\s*['"`]edge['"`]/.test(code) ? 'edge' :
+    /export\s+const\s+runtime\s*=\s*['"`]nodejs['"`]/.test(code) ? 'nodejs' : 'unspecified'
+
+  const dynamicNoCache = /export\s+const\s+dynamic\s*=\s*['"`]force-dynamic['"`]/.test(code)
+  const revalidateZero = /export\s+const\s+revalidate\s*=\s*0\b/.test(code)
+
+  return {
+    file: file.replace(ROOT + path.sep, ''),
+    write,
+    methods: methods.length ? methods : (isMutatingGet ? ['GET(mutating)'] : []),
+    runtimeDetected: runtimeEdge ? 'edge' : (write ? 'nodejs' : 'n/a'),
+    runtimeExport: runtime,
+    preferredRegion: hasPreferredRegion,
+    dynamicForce: dynamicNoCache,
+    revalidateZero
+  }
+})
+
+console.log(JSON.stringify({ apiDir: API_DIR.replace(ROOT + path.sep, ''), count: report.length, report }, null, 2))
+```
+
+package.json addition:
+```json
+{
+  "scripts": {
+    "verify:regions": "node scripts/verify-write-regions.cjs"
+  }
+}
+```
+
+Run: `npm run verify:regions`
+- For Edge WRITE routes, expect: runtimeExport: "edge", preferredRegion: true, dynamicForce: true, revalidateZero: true.
+- For Node WRITE routes, expect: runtimeExport: "nodejs", dynamicForce: true, revalidateZero: true. (preferredRegion not required due to vercel.json regions.)
+
+----------------------------------------------------------------
+ACCEPTANCE CRITERIA
+----------------------------------------------------------------
+- All WRITE routes (POST/PUT/PATCH/DELETE or mutating GET) either:
+  - Edge with: `runtime='edge'`, `preferredRegion=['iad1']`, `dynamic='force-dynamic'`, `revalidate=0`; or
+  - Node with: `runtime='nodejs'`, `dynamic='force-dynamic'`, `revalidate=0` AND repo root vercel.json includes `"regions": ["iad1"]`.
+- All server-side Supabase calls use `createSupabaseServer()` from src/lib/supabase/server.
+- No DB writes in Middleware.
+- /api/whoami-region returns JSON with "region": "iad1" in production.
+- Optional script `npm run verify:regions` summarizes correct configuration across all routes.

@@ -1,0 +1,375 @@
+Title: Degraded Mode Flag — Detailed Implementation Plan + Cursor-Ready Prompt (Next.js 15.5.4, Vercel, Supabase)
+
+## Objective
+Introduce a **single kill‑switch** (env flag) that lets you instantly shed non‑essential load during traffic spikes or third‑party outages. When enabled, the app:
+- Shows a banner to users.
+- Caps list sizes and disables expensive filters.
+- Defers AI/external calls to background jobs.
+- Tightens rate limits and increases cache TTLs.
+- Optionally 503s the heaviest endpoints.
+
+All changes are **reversible** by toggling one environment variable.
+
+---
+
+## High-Level Design
+- **Flag source:** `DEGRADED_MODE=0|1` read from `process.env` (Vercel env).
+- **Flag access:** a central helper `getRuntimeFlags()` that computes a policy object.
+- **Enforcement layers:**
+  1) **Middleware (Edge):** quickly block/selectively 503 routes.
+  2) **API handlers:** apply caps, skip heavy logic, enqueue instead of execute.
+  3) **UI components:** show banner; hide heavy UI affordances.
+  4) **Caching:** higher TTLs when degraded.
+  5) **Rate limiting:** stricter thresholds when degraded.
+
+- **Observability:** console/structured logs when degraded is toggled; health endpoint exposes current state.
+
+---
+
+## Step-by-Step Implementation
+
+### 0) Environment variables
+Add to `.env.local` (dev) and Vercel Project → Settings → Environment Variables (All Environments):
+```
+DEGRADED_MODE=0
+```
+To activate: set to `1` and redeploy (or trigger a runtime re-read if you only use env within request handlers).
+
+---
+
+### 1) Runtime flags helper (single source of truth)
+**File:** `app/lib/runtimeFlags.ts`
+```ts
+export type DegradedPolicy = {
+  enabled: boolean;
+  // UI
+  showBanner: boolean;
+  bannerMessage: string;
+  // API behavior caps
+  listDefaultLimit: number;   // e.g., 20
+  listMaxLimit: number;       // e.g., 50
+  disableExpensiveFilters: boolean;
+  deferAI: boolean;
+  // Rate limiting
+  writePerMinute: number;     // stricter when degraded
+  readPerMinute: number;
+  // Caching
+  revalidateSeconds: number;  // longer TTL
+  swrSeconds: number;         // stale-while-revalidate window
+  // Routing
+  blockedRoutePrefixes: string[];  // selectively 503 heavy routes
+};
+
+export function getRuntimeFlags(): DegradedPolicy {
+  const enabled = process.env.DEGRADED_MODE === "1";
+
+  if (!enabled) {
+    return {
+      enabled,
+      showBanner: false,
+      bannerMessage: "",
+      listDefaultLimit: 50,
+      listMaxLimit: 100,
+      disableExpensiveFilters: false,
+      deferAI: false,
+      writePerMinute: 300,
+      readPerMinute: 1200,
+      revalidateSeconds: 60,
+      swrSeconds: 300,
+      blockedRoutePrefixes: [],
+    };
+  }
+
+  // Degraded mode policy
+  return {
+    enabled,
+    showBanner: true,
+    bannerMessage: "High demand right now. We’ve temporarily limited some features to keep things fast.",
+    listDefaultLimit: 20,
+    listMaxLimit: 50,
+    disableExpensiveFilters: true,
+    deferAI: true,
+    writePerMinute: 120,
+    readPerMinute: 600,
+    revalidateSeconds: 300, // lengthen cache
+    swrSeconds: 900,
+    blockedRoutePrefixes: ["/api/expensive", "/api/ai/generate", "/api/reindex"],
+  };
+}
+```
+
+---
+
+### 2) Edge Middleware — route gating
+**File:** `middleware.ts`
+```ts
+import { NextResponse } from "next/server";
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"], // run on most routes
+};
+
+export default function middleware(req: Request) {
+  const url = new URL(req.url);
+  const degraded = process.env.DEGRADED_MODE === "1";
+
+  if (!degraded) return NextResponse.next();
+
+  // Lightweight gate: block heavy prefixes quickly
+  const blocked = ["/api/expensive", "/api/ai/generate", "/api/reindex"];
+  if (blocked.some((p) => url.pathname.startsWith(p))) {
+    return new NextResponse(
+      JSON.stringify({ message: "Temporarily limited due to high demand" }),
+      {
+        status: 503,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": "60",
+        },
+      }
+    );
+  }
+
+  // Optionally set a header so the UI can show a banner without extra request
+  const res = NextResponse.next();
+  res.headers.set("x-degraded-mode", "1");
+  return res;
+}
+```
+
+> If you’re already using rate limiting middleware, you can read the flag there and tighten thresholds.
+
+---
+
+### 3) Global UI Banner
+**File:** `app/components/DegradedBanner.tsx`
+```tsx
+"use client";
+import { useEffect, useState } from "react";
+
+export default function DegradedBanner() {
+  const [visible, setVisible] = useState(false);
+  const [message, setMessage] = useState("High demand, limiting some features to keep things fast.");
+
+  useEffect(() => {
+    // Prefer a server-provided signal: response header captured via a small client fetch or injected by layout
+    // As a simple approach, read a meta tag injected by layout when degraded is enabled.
+    const el = document.querySelector('meta[name="x-degraded-mode"]') as HTMLMetaElement | null;
+    if (el?.content === "1") setVisible(true);
+  }, []);
+
+  if (!visible) return null;
+  return (
+    <div className="w-full bg-amber-100 text-amber-900 text-sm px-4 py-2 text-center">
+      {message}
+    </div>
+  );
+}
+```
+
+**Inject meta when degraded** in your root layout:
+**File:** `app/layout.tsx`
+```tsx
+import { getRuntimeFlags } from "./lib/runtimeFlags";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const flags = getRuntimeFlags();
+  return (
+    <html lang="en">
+      <head>
+        {flags.enabled && <meta name="x-degraded-mode" content="1" />}
+      </head>
+      <body>
+        {flags.enabled && flags.showBanner && (
+          <div className="w-full bg-amber-100 text-amber-900 text-sm px-4 py-2 text-center">
+            {flags.bannerMessage}
+          </div>
+        )}
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+> If you prefer server components only, the layout-based banner (above) is enough—no client JS needed.
+
+---
+
+### 4) Apply API caps + cache TTLs
+**Example:** cached read endpoint
+**File:** `app/api/public/items/route.ts`
+```ts
+export const runtime = "edge";
+
+import { getRuntimeFlags } from "@/app/lib/runtimeFlags";
+
+export async function GET(req: Request) {
+  const flags = getRuntimeFlags();
+  const url = new URL(req.url);
+  const limit = Math.min(
+    Number(url.searchParams.get("limit") ?? flags.listDefaultLimit),
+    flags.listMaxLimit
+  );
+
+  // optional: strip expensive filters when degraded
+  if (flags.enabled && flags.disableExpensiveFilters) {
+    url.searchParams.delete("sort_by_complicated_score");
+    url.searchParams.delete("deep_text_search");
+  }
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/items?select=*&limit=${limit}`,
+    {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+      next: { tags: ["items:list"], revalidate: flags.revalidateSeconds },
+    }
+  );
+
+  if (!res.ok) {
+    return new Response(JSON.stringify({ error: "Failed to load items" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const body = await res.text();
+  return new Response(body, {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": `public, max-age=60, s-maxage=${flags.revalidateSeconds}, stale-while-revalidate=${flags.swrSeconds}`,
+      "X-Degraded-Mode": flags.enabled ? "1" : "0",
+    },
+  });
+}
+```
+
+**Example:** write endpoint that defers AI work when degraded
+**File:** `app/api/items/route.ts`
+```ts
+export const runtime = "nodejs";
+export const preferredRegion = ["iad1"];
+
+import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import { getRuntimeFlags } from "@/app/lib/runtimeFlags";
+
+export async function POST(req: Request) {
+  const flags = getRuntimeFlags();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
+
+  const payload = await req.json();
+  const { data, error } = await supabase.from("items").insert(payload).select("*").single();
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+
+  // Defer heavy post-processing (AI, thumbnails, emails) if degraded
+  if (flags.deferAI) {
+    // enqueue a background job here instead of doing it inline
+    // e.g., fetch(QSTASH_URL, { method: "POST", body: JSON.stringify({ type: "enrich", itemId: data.id }) })
+  } else {
+    // do normal inline enrichment
+  }
+
+  await revalidateTag("items:list");
+
+  return Response.json({ item: data }, { status: 201, headers: { "X-Degraded-Mode": flags.enabled ? "1" : "0" } });
+}
+```
+
+---
+
+### 5) Tighten rate limits when degraded (if using Upstash)
+**File:** `middleware.ts` (augment existing rate limit logic)
+```ts
+// pseudo-snippet inside your middleware where you rate limit
+const degraded = process.env.DEGRADED_MODE === "1";
+const maxWrites = degraded ? 120 : 300;
+const maxReads = degraded ? 600 : 1200;
+// use these values in your Ratelimit.fixedWindow() configs
+```
+
+---
+
+### 6) Health endpoint (for dashboards)
+**File:** `app/api/health/route.ts`
+```ts
+export const runtime = "edge";
+export async function GET() {
+  return Response.json({
+    ok: true,
+    degraded: process.env.DEGRADED_MODE === "1",
+    time: new Date().toISOString(),
+  });
+}
+```
+
+---
+
+### 7) Testing checklist
+- Set `DEGRADED_MODE=1` in `.env.local`; restart `dev`; confirm:
+  - Banner appears.
+  - `/api/public/items` caps `limit` and removes expensive filters.
+  - Blocked endpoints return 503 with `Retry-After`.
+  - Cache headers show longer `s-maxage`/`stale-while-revalidate`.
+- Toggle back to `0`; verify behavior returns to normal.
+
+---
+
+### 8) Rollout & rollback
+- **Rollout:** Set `DEGRADED_MODE=1` in Vercel env (or use `DEGRADED_MODE_PREVIEW` for staging), deploy. You can also read the flag from a config table in Supabase for runtime toggling without redeploy if needed.
+- **Rollback:** Set `DEGRADED_MODE=0` and redeploy. No persistent changes remain.
+
+---
+
+## Cursor-Ready Prompt (copy-paste as a single task)
+
+You are Cursor implementing a **Degraded Mode** kill-switch in a Next.js 15.5.4 app deployed on Vercel with Supabase (Postgres). Follow these directives EXACTLY:
+
+**Global Constraints**
+- Use **@supabase/ssr** for any server-side Supabase access.
+- Do not change RLS or DB schema.
+- Keep existing caching + tagging intact.
+- Writes run on **Node runtime** with `preferredRegion` pinned (use `["iad1"]` placeholder).
+- Reads that can be cached may run on **Edge**.
+
+**Tasks**
+1) Create `app/lib/runtimeFlags.ts` exporting `getRuntimeFlags()` and the `DegradedPolicy` type exactly as specified above. The function must read `process.env.DEGRADED_MODE` and return a policy with caps, caching TTLs, and route blocks.
+2) Add/modify `middleware.ts` to:
+   - Block the heavy route prefixes: `/api/expensive`, `/api/ai/generate`, `/api/reindex` with 503 if `DEGRADED_MODE=1`.
+   - Set header `x-degraded-mode: 1` on all responses when degraded.
+   - Keep the matcher broad but excluding static assets (see snippet above).
+3) Add a banner:
+   - In `app/layout.tsx`, call `getRuntimeFlags()` and, if `enabled`, inject `<meta name="x-degraded-mode" content="1" />` and render a top-of-page banner with the policy’s `bannerMessage`.
+   - Create `app/components/DegradedBanner.tsx` (optional if you prefer pure server layout) with the snippet above.
+4) Update `app/api/public/items/route.ts` to:
+   - Import `getRuntimeFlags()`.
+   - Enforce `limit` capping and removal of expensive filters when degraded.
+   - Use `next: { tags: ["items:list"], revalidate: flags.revalidateSeconds }` for cache hints.
+   - Return `Cache-Control` with `s-maxage=flags.revalidateSeconds` and `stale-while-revalidate=flags.swrSeconds`.
+5) Update `app/api/items/route.ts` (POST) to:
+   - Import `getRuntimeFlags()`.
+   - If `flags.deferAI` is true, **enqueue** heavy tasks instead of doing them inline. (Leave a TODO with a comment where to call your queue.)
+   - Call `revalidateTag("items:list")` after successful writes.
+6) Add `app/api/health/route.ts` (Edge) to return `{ ok: true, degraded, time }`.
+7) Ensure any existing rate limiting code reads `DEGRADED_MODE` and applies stricter thresholds as defined in `getRuntimeFlags()`.
+8) Create `/docs/degraded-mode.md` summarizing how to toggle, what changes under the hood, and rollback steps.
+
+**Validation**
+- Locally set `DEGRADED_MODE=1` in `.env.local`, restart dev server, verify:
+  - Banner shows in UI.
+  - `/api/public/items` caps list size and strips expensive filters.
+  - Blocked routes return 503 JSON with `Retry-After` header.
+  - Response headers include `x-degraded-mode: 1`.
+- Set `DEGRADED_MODE=0` and verify behavior returns to normal.
+
+**Rollback in PR Description**
+- Unset or set `DEGRADED_MODE=0` in Vercel environment and redeploy.
+- Optional: remove the middleware block list to permanently disable route gating.
+
+Keep diffs focused. Do not modify unrelated files or configs.

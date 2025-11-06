@@ -1,0 +1,200 @@
+Title: Implement Tagged Caching for GETs + Revalidate on Writes (Next.js 15.5.4, Vercel Edge, Supabase) — Cursor-Ready
+
+## Goal
+Cut read latency and DB load by caching GET responses at the Edge/CDN, and invalidate precisely after writes using cache **tags**. Keep writes close to Supabase (Node runtime with preferredRegion already set by you in Step #1).
+
+---
+
+## What this change does (in plain English)
+1) **Public GET endpoints** become **cacheable** for 2–10 minutes on the Vercel Edge Network.  
+2) **When you mutate `items`**, you call `revalidateTag("items:list")` so the next read gets a fresh version.  
+3) Easy rollback: set `revalidate = 0` or remove `dynamic = "force-static"` to disable caching.
+
+---
+
+## Step-by-step Instructions
+
+### 0) Prereqs & conventions
+- You are on Next.js 15.5.4 (App Router).  
+- All new public **read** endpoints live under `app/api/public/...` and run on **Edge**.  
+- All **write** endpoints run on **Node runtime** and already have `preferredRegion` set to match your Supabase region (you completed this).  
+- Respect your standard: **use @supabase/ssr method for Supabase integration in any new server code.**
+
+### 1) Create a cacheable GET route (Edge)
+**File:** `app/api/public/items/route.ts`
+```ts
+// runtime: Edge for best cache/CDN behavior
+export const runtime = "edge";
+export const revalidate = 120;                // 2 minutes ISR
+export const dynamic = "force-static";        // ensure this route is cacheable
+
+export async function GET() {
+  // NOTE: Using Supabase REST is fine for cacheable reads; you can swap to your own read API if needed.
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/items?select=*`,
+    {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+      next: { tags: ["items:list"], revalidate: 120 }, // tag + revalidate hint
+    }
+  );
+
+  if (!res.ok) {
+    // Cache should not store error responses by default; still return a clear error
+    return new Response(
+      JSON.stringify({ error: "Failed to load items", status: res.status }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const body = await res.text();
+  return new Response(body, {
+    headers: {
+      "Content-Type": "application/json",
+      // CDN and browser cache policy: adjust as you like
+      "Cache-Control": "public, max-age=60, s-maxage=600, stale-while-revalidate=300"
+    },
+  });
+}
+```
+
+### 2) Revalidate on writes (Node runtime)
+**Add `revalidateTag("items:list")` anywhere you create/update/delete an item.**  
+Below are two patterns—**POST** and **PUT**—that you can adapt to your actual write routes.
+
+**File:** `app/api/items/route.ts` (POST create)  
+```ts
+export const runtime = "nodejs"; // writes close to DB
+export const preferredRegion = ["iad1"]; // match your Supabase region
+
+import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr"; // per your standard
+
+export async function POST(req: Request) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
+
+  const payload = await req.json();
+  const { data, error } = await supabase.from("items").insert(payload).select("*").single();
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+
+  // Invalidate cached list(s)
+  await revalidateTag("items:list");
+
+  return Response.json({ item: data }, { status: 201 });
+}
+```
+
+**File:** `app/api/items/[id]/route.ts` (PUT update)  
+```ts
+export const runtime = "nodejs";
+export const preferredRegion = ["iad1"]; // match Supabase region
+
+import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
+
+  const payload = await req.json();
+  const { data, error } = await supabase
+    .from("items")
+    .update(payload)
+    .eq("id", params.id)
+    .select("*")
+    .single();
+
+  if (error) return Response.json({ error: error.message }, { status: 400 });
+
+  await revalidateTag("items:list");
+
+  return Response.json({ item: data });
+}
+```
+
+> If you also have detail endpoints like `/api/public/items/[id]`, give them their own tags, e.g., `items:detail:${id}`, and call `revalidateTag` for both the list and the detail tag after writes.
+
+### 3) (Optional) Tag cache in server components that fetch directly
+If you fetch in Server Components (not via an API route), you can **still** tag the cache:
+
+```ts
+const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/items?select=id,name`, {
+  headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+  next: { tags: ["items:list"], revalidate: 120 },
+});
+```
+
+### 4) Test locally
+- Start dev: `pnpm dev` (or `npm run dev`).
+- Hit `GET /api/public/items` twice—second response should be very fast.
+- Trigger a write (`POST /api/items` or `PUT /api/items/:id`), then hit `GET` again—content should refresh.
+
+### 5) Production validation
+- Deploy to Vercel.  
+- In Vercel dashboard, check **Edge Network** cache hits for `/api/public/items`.  
+- Verify p95 latency drop on that route; verify DB query count reduction in Supabase logs.
+
+### 6) Rollback (instant)
+- In `app/api/public/items/route.ts`: set `export const revalidate = 0;` **or** remove `export const dynamic = "force-static";`  
+- Deploy. Caching is effectively disabled.
+
+---
+
+## Cursor Prompt (copy-paste below into a single Cursor task)
+
+You are Cursor building features for a Next.js 15.5.4 app deployed on Vercel with Supabase (Postgres). Follow these requirements EXACTLY:
+
+**Global requirements**
+- Use the **@supabase/ssr** method for any new server-side Supabase usage.
+- Keep all **GET read** endpoints that should be cached under `app/api/public/*` using **Edge runtime**.
+- Keep **write** endpoints on **Node runtime** and set `preferredRegion` to the project’s Supabase region (use `["iad1"]` placeholder that we will adjust later).
+- Add cache **tags** to GET routes and call `revalidateTag("<tag>")` after writes.
+- Do not change RLS or DB schema in this task.
+
+**Changes to implement**
+1) Create `app/api/public/items/route.ts` with:
+   - `export const runtime = "edge";`
+   - `export const revalidate = 120;`
+   - `export const dynamic = "force-static";`
+   - A `GET()` that fetches `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/items?select=*` with header `apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!`
+   - Use `next: { tags: ["items:list"], revalidate: 120 }` on the fetch
+   - Return `Content-Type: application/json` and `Cache-Control: public, max-age=60, s-maxage=600, stale-while-revalidate=300`
+
+2) Update/create write routes:
+   - `app/api/items/route.ts` with `POST` to insert an item (Node runtime, preferredRegion set). After success, call `revalidateTag("items:list")` and return the created item.
+   - `app/api/items/[id]/route.ts` with `PUT` to update an item (Node runtime, preferredRegion set). After success, call `revalidateTag("items:list")` and return the updated item.
+   - Use `createServerClient` from **@supabase/ssr** and `cookies` from `next/headers` for both routes.
+
+3) Optional but recommended:
+   - Where server components fetch items directly, add `next: { tags: ["items:list"], revalidate: 120 }` to those fetch calls.
+
+4) Add basic error handling for non-OK fetch in the cached GET route so we don’t cache error payloads incorrectly.
+
+5) Provide a short README note in `/docs/caching.md` summarizing how to add tags to new list endpoints and how to call `revalidateTag` on writes.
+
+**Validation**
+- After implementation, run locally and confirm:
+  - First GET is normal; second GET is fast due to cache.
+  - After POST/PUT, the GET result reflects changes immediately.
+- Output a brief summary of modified files and where the tags are used.
+
+**Rollback instructions for Cursor to include in PR description**
+- To disable caching for a route: set `revalidate = 0` or remove `dynamic = "force-static"` and redeploy.
+
+Do not modify unrelated files. Do not change ESLint/TS config. Keep diffs focused.
+
+---
+
+## Notes / Tips
+- Use **distinct tags** for different lists (e.g., `["items:list", "items:popular"]`) if needed.
+- For item details routes, tag as `items:detail:${id}` and revalidate both list and detail tags after writes.
+- Keep cache TTLs short (60–300s) for high-churn lists; longer for stable content.
+- Combine this with rate limiting for writes and you’ll be very resilient during spikes.
