@@ -1,6 +1,12 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,7 +15,7 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     // Get the server-side Supabase client and check authentication
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -84,7 +90,7 @@ export async function POST(request: NextRequest) {
         userRecipes: userRecipesData,
         globalRecipes: globalRecipesData,
         totalResults: userRecipesData.length + globalRecipesData.length
-      })
+      }, { headers: regionHeader() })
     }
 
     // Step 4: Check cache first, then use OpenAI if no cache found
@@ -115,7 +121,7 @@ export async function POST(request: NextRequest) {
         recipes: cachedRecipes,
         query: recipeName,
         from_cache: true
-      })
+      }, { headers: regionHeader() })
     }
 
     console.log('No cache found, generating recipes with OpenAI...')
@@ -229,7 +235,7 @@ Rules:
       recipes: generatedRecipes,
       query: recipeName,
       from_cache: false
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error('Recipe name search error:', error)

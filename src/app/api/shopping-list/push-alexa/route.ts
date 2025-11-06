@@ -1,6 +1,12 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { regionHeader } from '@/lib/route-config';
 
 export async function POST(req: Request) {
   const user = await getCurrentUser()
@@ -39,7 +45,7 @@ export async function POST(req: Request) {
       success: true,
       message: 'Shopping list queued for Alexa push',
       fallback_text: listText
-    }, { status: 200 });
+    }, { status: 200, headers: regionHeader() });
   } catch (error) {
     console.error('Alexa push error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

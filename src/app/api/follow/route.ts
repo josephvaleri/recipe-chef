@@ -1,5 +1,11 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 import { z } from 'zod'
 
 const followSchema = z.object({
@@ -8,7 +14,7 @@ const followSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -50,7 +56,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to follow user' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: 'Successfully followed user' })
+    return NextResponse.json({ success: true, message: 'Successfully followed user' }, { headers: regionHeader() })
 
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -86,7 +92,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to unfollow user' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: 'Successfully unfollowed user' })
+    return NextResponse.json({ success: true, message: 'Successfully unfollowed user' }, { headers: regionHeader() })
 
   } catch (error) {
     if (error instanceof z.ZodError) {

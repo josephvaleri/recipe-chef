@@ -1,7 +1,13 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchHtml } from '@/lib/fetchHtml'
 import { parseRecipeFromHtml } from '@/lib/jsonld'
-import { createServerClientFromRequest, createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +22,7 @@ export async function POST(request: NextRequest) {
     let user
     
     try {
-      supabase = createServerClientFromRequest(request)
+      supabase = await createSupabaseServer()
       
       // Try to get session from cookie manually first
       const authCookie = request.cookies.get('sb-avlqlppqteqjfsnlitiz-auth-token')
@@ -132,7 +138,7 @@ export async function POST(request: NextRequest) {
     
     // Try to log the error if we can get the user
     try {
-      const supabase = await createServerClient()
+      const supabase = await createSupabaseServer()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         await supabase

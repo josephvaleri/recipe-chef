@@ -1,5 +1,10 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
+import { regionHeader } from '@/lib/route-config'
 import crypto from 'crypto'
 
 // Paddle webhook verification
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
         console.log('Unhandled event type:', event.event_type)
     }
 
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ received: true }, { headers: regionHeader() })
   } catch (error) {
     console.error('Paddle webhook error:', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })

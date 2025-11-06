@@ -1,5 +1,11 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClientFromRequest } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
@@ -9,7 +15,7 @@ export async function POST(request: NextRequest) {
     console.log(`[${requestId}] Friends invite API called`)
     
     // Step 1: Authentication
-    const authSupabase = createServerClientFromRequest(request)
+    const authSupabase = await createSupabaseServer()
     const { data: { user }, error: authError } = await authSupabase.auth.getUser()
     
     if (authError || !user) {
@@ -118,7 +124,7 @@ export async function POST(request: NextRequest) {
         display_name: inviteeProfile.display_name
       },
       request_id: requestId
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error(`[${requestId}] Unexpected error:`, error)

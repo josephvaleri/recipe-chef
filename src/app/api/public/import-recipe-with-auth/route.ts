@@ -1,7 +1,13 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchHtml } from '@/lib/fetchHtml'
 import { parseRecipeFromHtml } from '@/lib/jsonld'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Check if user wants to save to their account
     if (user_id && auth_token) {
       // Verify authentication
-      const supabase = createServerClient()
+      const supabase = await createSupabaseServer()
       
       // Set the session using the provided auth token
       const { data: { user }, error: authError } = await supabase.auth.getUser(auth_token)
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
         saved: true,
         recipeId: saveResult.recipeId,
         message: 'Recipe successfully imported and saved to your RecipeChef account!'
-      })
+      }, { headers: regionHeader() })
     } else {
       // No authentication provided - just parse and return the recipe
       const htmlData = await fetchHtml(url)
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest) {
         title: htmlData.title,
         saved: false,
         message: 'Recipe parsed successfully! To save it to your RecipeChef account, please sign in and provide your authentication details.'
-      })
+      }, { headers: regionHeader() })
     }
 
   } catch (error) {

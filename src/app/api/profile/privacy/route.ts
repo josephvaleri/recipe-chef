@@ -1,5 +1,11 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 import { z } from 'zod'
 
 const privacySchema = z.object({
@@ -14,7 +20,7 @@ const privacySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -52,7 +58,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -86,7 +92,7 @@ export async function PATCH(request: NextRequest) {
       success: true, 
       message: 'Privacy settings updated',
       profile: updatedProfile
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     if (error instanceof z.ZodError) {

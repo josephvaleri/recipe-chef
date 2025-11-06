@@ -1,12 +1,17 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 import { generateRecipePDF } from '@/lib/pdf'
 import { renderToBuffer } from '@react-pdf/renderer'
 import nodemailer from 'nodemailer'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -156,7 +161,7 @@ export async function POST(request: NextRequest) {
       sentCount: successful,
       failedCount: failed,
       message: `Recipe sent to ${successful} recipient${successful > 1 ? 's' : ''}${failed > 0 ? `, ${failed} failed` : ''}`
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error('Email sharing error:', error)

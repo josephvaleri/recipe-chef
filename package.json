@@ -20,7 +20,8 @@
     "cap:add:android": "npx cap add android",
     "cap:assets": "npx capacitor-assets generate --platform ios --platform android",
     "dev:fast": "next dev --turbopack --port 3004",
-    "dev:analyze": "ANALYZE=true next dev --turbopack"
+    "dev:analyze": "ANALYZE=true next dev --turbopack",
+    "verify:regions": "node scripts/verify-write-regions.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",

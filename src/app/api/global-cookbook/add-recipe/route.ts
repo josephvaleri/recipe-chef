@@ -1,5 +1,11 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 import { cookies } from 'next/headers'
 
 export async function GET() {
@@ -44,7 +50,7 @@ export async function POST(request: NextRequest) {
     console.log('Global cookbook API: Testing Supabase connection...')
     let supabase
     try {
-      supabase = await createServerClient()
+      supabase = await createSupabaseServer()
       console.log('Global cookbook API: Supabase client created successfully')
       
       // Debug: Check what cookies are available
@@ -235,7 +241,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     }
     console.log('Global cookbook API: Response being sent:', response)
-    return NextResponse.json(response)
+    return NextResponse.json(response, { headers: regionHeader() })
 
   } catch (error) {
     console.error('Global cookbook API: Unexpected error:', error)

@@ -1,5 +1,11 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the server-side Supabase client
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     console.log('Save API: User check result:', { user: !!user, error: authError })
@@ -83,7 +89,7 @@ export async function POST(request: NextRequest) {
       success: true,
       saved_count: insertedIngredients.length,
       message: 'Ingredients saved successfully'
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error('Save ingredients error:', error)

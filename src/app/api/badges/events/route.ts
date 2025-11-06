@@ -1,9 +1,15 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClientFromRequest } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerClientFromRequest(request)
+    const supabase = await createSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest) {
       success: true,
       event_id: data?.event_id,
       awards: data?.awards || []
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error('Badge events API error:', error)

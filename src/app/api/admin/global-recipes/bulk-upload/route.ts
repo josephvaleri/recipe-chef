@@ -1,6 +1,11 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { parsePaprikaFromStream } from '@/lib/paprika'
+import { regionHeader } from '@/lib/route-config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -262,7 +267,7 @@ export async function POST(request: NextRequest) {
       success: true,
       recipesProcessed,
       message: `Successfully processed ${recipesProcessed} recipes`
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error('Bulk upload error:', error)

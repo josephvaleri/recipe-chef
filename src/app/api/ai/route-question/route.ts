@@ -1,6 +1,12 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,7 +15,7 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     // Get the server-side Supabase client and check authentication
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -159,14 +165,14 @@ Make it more specific and detailed while keeping the user's intent. Add context 
       return NextResponse.json({
         type: 'cooking_question',
         answer: answer.choices[0]?.message?.content || 'Sorry, I couldn\'t process your question right now.'
-      })
+      }, { headers: regionHeader() })
     }
 
     // Fallback
     return NextResponse.json({
       type: 'unknown',
       message: 'I\'m not sure how to help with that. Please ask about recipes or cooking!'
-    })
+    }, { headers: regionHeader() })
 
   } catch (error) {
     console.error('AI routing error:', error)

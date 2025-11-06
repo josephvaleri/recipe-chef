@@ -4,7 +4,9 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import type { NormalizedRecipe } from '@/lib/paprika/types';
 import { parseIngredients as parseIngredientTexts } from '@/lib/parseIngredient';
 
-export const runtime = 'nodejs';
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 // Helper function to parse complex ingredient lines into individual ingredients
 function parseIngredients(ingredients: string[]): { displayText: string; individualIngredients: Array<{ name: string; amount: string; unit: string }> } {

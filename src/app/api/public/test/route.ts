@@ -1,4 +1,10 @@
+export const runtime = 'edge'
+export const preferredRegion = ['iad1']
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
+import { regionHeader } from '@/lib/route-config'
 
 export async function GET() {
   return NextResponse.json({ 
@@ -14,7 +20,7 @@ export async function POST(request: NextRequest) {
       message: 'POST request received',
       data: body,
       timestamp: new Date().toISOString()
-    })
+    }, { headers: regionHeader() })
   } catch (error) {
     return NextResponse.json({ 
       error: 'Invalid JSON',

@@ -1,11 +1,16 @@
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { regionHeader } from '@/lib/route-config'
 import { generateRecipePDF } from '@/lib/pdf'
 import { renderToBuffer } from '@react-pdf/renderer'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerClient()
+    const supabase = await createSupabaseServer()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -124,6 +129,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${recipeData.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf"`,
+        ...regionHeader(),
       },
     })
 
