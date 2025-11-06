@@ -1,7 +1,7 @@
 // runtime: Edge for best cache/CDN behavior
 export const runtime = "edge"
 export const revalidate = 120 // 2 minutes ISR
-export const dynamic = "force-static" // ensure this route is cacheable
+// Removed force-static as it's incompatible with edge runtime
 
 export async function GET() {
   // NOTE: Using Supabase REST is fine for cacheable reads; you can swap to your own read API if needed.
