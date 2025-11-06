@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication for Near Us</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+        .loading { color: #007bff; }
+        .error-text { color: #dc3545; }
+        .success-text { color: #28a745; }
+        .auth-debug { background: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Debug Authentication for Near Us Feature</h1>
+    
+    <div class="section info">
+        <h3>🎯 Focus: Authentication Issues</h3>
+        <p>This tool specifically debugs authentication problems that prevent the "Near Us" feature from working, even when user settings are correct.</p>
+    </div>
+
+    <div class="section">
+        <h3>1. Cookie & Session Analysis</h3>
+        <button onclick="analyzeCookies()">Analyze Authentication Cookies</button>
+        <div id="cookie-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. Supabase Client Auth Check</h3>
+        <button onclick="checkSupabaseAuth()">Check Supabase Client Auth</button>
+        <div id="supabase-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. API Route Auth Debug</h3>
+        <button onclick="debugAPIAuth()">Debug API Route Authentication</button>
+        <div id="api-auth-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. Database Function Auth Test</h3>
+        <button onclick="testDatabaseAuth()">Test Database Function Auth</button>
+        <div id="db-auth-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>5. Session Refresh Test</h3>
+        <button onclick="testSessionRefresh()">Test Session Refresh</button>
+        <div id="session-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>6. Complete Auth Diagnostic</h3>
+        <button onclick="runCompleteAuthDiagnostic()">Run Complete Auth Diagnostic</button>
+        <div id="complete-auth-result"></div>
+    </div>
+
+    <script>
+        // Load Supabase client (you'll need to include the actual Supabase script)
+        // For now, we'll work with fetch API and analyze the responses
+
+        function analyzeCookies() {
+            const resultDiv = document.getElementById('cookie-result');
+            resultDiv.innerHTML = '<div class="loading">Analyzing cookies...</div>';
+            
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [name, value] = cookie.trim().split('=');
+                acc[name] = value;
+                return acc;
+            }, {});
+            
+            let html = '<div class="auth-debug">';
+            html += '<h4>🍪 Cookie Analysis:</h4>';
+            
+            const authCookies = Object.keys(cookies).filter(name => 
+                name.includes('supabase') || name.includes('auth') || name.includes('sb-')
+            );
+            
+            if (authCookies.length === 0) {
+                html += '<div class="error">❌ No authentication cookies found!</div>';
+                html += '<p>This suggests the user is not properly authenticated.</p>';
+            } else {
+                html += '<div class="success">✅ Found authentication cookies:</div>';
+                authCookies.forEach(name => {
+                    const value = cookies[name];
+                    const isLong = value && value.length > 50;
+                    html += `<div>• ${name}: ${isLong ? value.substring(0, 50) + '...' : value}</div>`;
+                });
+            }
+            
+            html += '<h4>All Cookies:</h4>';
+            html += '<pre>' + JSON.stringify(cookies, null, 2) + '</pre>';
+            html += '</div>';
+            
+            resultDiv.innerHTML = html;
+        }
+
+        async function checkSupabaseAuth() {
+            const resultDiv = document.getElementById('supabase-result');
+            resultDiv.innerHTML = '<div class="loading">Checking Supabase client auth...</div>';
+            
+            try {
+                // Try to make a simple authenticated request
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                let html = '<div class="auth-debug">';
+                html += '<h4>🔐 Supabase Auth Check:</h4>';
+                html += `<div>• Response Status: ${response.status}</div>`;
+                html += `<div>• Response Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}</div>`;
+                
+                const data = await response.json();
+                html += `<div>• Response Data: <pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                
+                if (response.status === 401) {
+                    html += '<div class="error">❌ Authentication failed - User not authenticated</div>';
+                    html += '<p><strong>Possible causes:</strong></p>';
+                    html += '<ul>';
+                    html += '<li>Session expired</li>';
+                    html += '<li>Cookies not being sent properly</li>';
+                    html += '<li>Supabase client not properly initialized</li>';
+                    html += '<li>Server-side session handling issue</li>';
+                    html += '</ul>';
+                } else if (response.ok) {
+                    html += '<div class="success">✅ Authentication successful</div>';
+                } else {
+                    html += '<div class="warning">⚠️ Unexpected response status</div>';
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function debugAPIAuth() {
+            const resultDiv = document.getElementById('api-auth-result');
+            resultDiv.innerHTML = '<div class="loading">Debugging API route authentication...</div>';
+            
+            try {
+                // Test with different headers and methods
+                const tests = [
+                    { name: 'Basic Request', options: { credentials: 'include' } },
+                    { name: 'With Headers', options: { 
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    }},
+                    { name: 'POST Method', options: { 
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' }
+                    }}
+                ];
+                
+                let html = '<div class="auth-debug">';
+                html += '<h4>🔍 API Route Auth Debug:</h4>';
+                
+                for (const test of tests) {
+                    try {
+                        const response = await fetch('/api/discovery/near-me?radiusKm=50', test.options);
+                        const data = await response.json();
+                        
+                        html += `<div><strong>${test.name}:</strong></div>`;
+                        html += `<div>• Status: ${response.status}</div>`;
+                        html += `<div>• Auth Result: ${data.error || 'Success'}</div>`;
+                        html += '<br>';
+                    } catch (error) {
+                        html += `<div><strong>${test.name}:</strong> Error - ${error.message}</div>`;
+                    }
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testDatabaseAuth() {
+            const resultDiv = document.getElementById('db-auth-result');
+            resultDiv.innerHTML = '<div class="loading">Testing database function authentication...</div>';
+            
+            try {
+                // Make the actual API call and analyze the response
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                let html = '<div class="auth-debug">';
+                html += '<h4>🗄️ Database Function Auth Test:</h4>';
+                html += `<div>• API Status: ${response.status}</div>`;
+                
+                if (response.status === 401) {
+                    html += '<div class="error">❌ Database function not reached - Auth failed at API level</div>';
+                } else if (response.status === 500 && data.details) {
+                    html += '<div class="warning">⚠️ Database function reached but failed</div>';
+                    html += `<div>• Error Details: ${data.details}</div>`;
+                    
+                    if (data.details.includes('auth.uid()')) {
+                        html += '<div class="error">❌ Database function cannot access auth.uid() - Session not properly passed</div>';
+                    }
+                } else if (response.ok) {
+                    html += '<div class="success">✅ Database function working correctly</div>';
+                    html += `<div>• People found: ${data.people ? data.people.length : 0}</div>`;
+                }
+                
+                html += `<div>• Full Response: <pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+                html += '</div>';
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testSessionRefresh() {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.innerHTML = '<div class="loading">Testing session refresh...</div>';
+            
+            try {
+                // Try to refresh the session by making multiple requests
+                const requests = [];
+                for (let i = 0; i < 3; i++) {
+                    requests.push(
+                        fetch('/api/discovery/near-me?radiusKm=50', {
+                            credentials: 'include'
+                        }).then(async res => ({
+                            attempt: i + 1,
+                            status: res.status,
+                            data: await res.json()
+                        }))
+                    );
+                }
+                
+                const results = await Promise.all(requests);
+                
+                let html = '<div class="auth-debug">';
+                html += '<h4>🔄 Session Refresh Test:</h4>';
+                
+                results.forEach(result => {
+                    html += `<div>• Attempt ${result.attempt}: Status ${result.status}</div>`;
+                    if (result.status === 401) {
+                        html += '<div class="error">❌ Session expired or invalid</div>';
+                    } else if (result.status === 200) {
+                        html += '<div class="success">✅ Session valid</div>';
+                    }
+                });
+                
+                // Check if all requests have the same status
+                const allSame = results.every(r => r.status === results[0].status);
+                if (allSame) {
+                    html += '<div class="info">ℹ️ All requests returned the same status - session is consistent</div>';
+                } else {
+                    html += '<div class="warning">⚠️ Inconsistent responses - possible session issues</div>';
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function runCompleteAuthDiagnostic() {
+            const resultDiv = document.getElementById('complete-auth-result');
+            resultDiv.innerHTML = '<div class="loading">Running complete authentication diagnostic...</div>';
+            
+            // Run all tests
+            await analyzeCookies();
+            await checkSupabaseAuth();
+            await debugAPIAuth();
+            await testDatabaseAuth();
+            await testSessionRefresh();
+            
+            // Summary
+            let summary = '<div class="section info">';
+            summary += '<h3>📊 Authentication Diagnostic Summary</h3>';
+            summary += '<p><strong>Common Authentication Issues & Solutions:</strong></p>';
+            summary += '<ul>';
+            summary += '<li><strong>401 Unauthorized:</strong> User session expired or cookies not being sent</li>';
+            summary += '<li><strong>500 Database Error:</strong> Session not properly passed to database function</li>';
+            summary += '<li><strong>Missing Cookies:</strong> User needs to log in again</li>';
+            summary += '<li><strong>Inconsistent Responses:</strong> Session refresh issues</li>';
+            summary += '</ul>';
+            summary += '<p><strong>Quick Fixes to Try:</strong></p>';
+            summary += '<ol>';
+            summary += '<li>Log out and log back in</li>';
+            summary += '<li>Clear browser cookies and cache</li>';
+            summary += '<li>Check if session is expired in browser dev tools</li>';
+            summary += '<li>Verify Supabase client is properly initialized</li>';
+            summary += '</ol>';
+            summary += '</div>';
+            
+            resultDiv.innerHTML = summary;
+        }
+
+        // Auto-run basic check on page load
+        window.addEventListener('load', () => {
+            analyzeCookies();
+        });
+    </script>
+</body>
+</html>

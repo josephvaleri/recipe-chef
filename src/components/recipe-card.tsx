@@ -178,7 +178,8 @@ export default function RecipeCard({
             size="sm"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add to Cookbook
+            <span className="hidden sm:inline">Add to Cookbook</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         )}
       </CardContent>

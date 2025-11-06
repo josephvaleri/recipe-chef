@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import GPTAuthHelper from '@/components/GPTAuthHelper'
 import { toast } from 'sonner'
+import BackgroundWrapper from '@/components/layout/background-wrapper'
 
 interface UserProfile {
   user_id: string
@@ -344,18 +345,21 @@ export default function ProfilePage() {
   // Prevent hydration mismatch by showing consistent loading state
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-orange-700 mb-4">Loading your profile...</p>
+      <BackgroundWrapper backgroundImage="/background_12.png">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-orange-700 mb-4">Loading your profile...</p>
+          </div>
         </div>
-      </div>
+      </BackgroundWrapper>
     )
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
+      <BackgroundWrapper backgroundImage="/background_12.png">
+        <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500 mx-auto mb-4" />
           <p className="text-orange-700 mb-4">Loading your profile...</p>
@@ -373,14 +377,16 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </BackgroundWrapper>
     )
   }
 
   if (!profile) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <BackgroundWrapper backgroundImage="/background_12.png">
+      <div className="min-h-screen">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-orange-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -430,7 +436,7 @@ export default function ProfilePage() {
             </TabsList>
 
             {/* Identity & Basics */}
-            <TabsContent value="identity" className="space-y-6">
+            <TabsContent value="identity" className="space-y-6 bg-white/10 rounded-lg p-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -1211,6 +1217,7 @@ export default function ProfilePage() {
           </div>
         </main>
       </div>
+    </BackgroundWrapper>
   )
 }
 

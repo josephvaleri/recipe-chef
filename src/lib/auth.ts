@@ -15,8 +15,25 @@ export interface Profile {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  try {
+    console.log('getCurrentUser called')
+    
+    // First try to get the current session
+    const { data: { session } } = await supabase.auth.getSession()
+    console.log('getCurrentUser session:', session ? 'found' : 'not found')
+    if (session?.user) {
+      console.log('getCurrentUser returning session user:', session.user.id)
+      return session.user
+    }
+    
+    // If no session, try getUser() as fallback
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log('getCurrentUser getUser result:', user ? 'found' : 'not found')
+    return user
+  } catch (error) {
+    console.error('Error getting current user:', error)
+    return null
+  }
 }
 
 export async function getCurrentProfile(): Promise<Profile | null> {

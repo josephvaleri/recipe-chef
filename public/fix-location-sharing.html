@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Location Sharing for Near Me Feature</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; max-width: 800px; }
+        .step { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .code { background: #f8f9fa; padding: 10px; border-radius: 3px; font-family: monospace; }
+        ol { padding-left: 20px; }
+        li { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Location Sharing for "Near Me" Feature</h1>
+    
+    <div class="step error">
+        <h3>❌ Current Issue</h3>
+        <p>The "Near Me" feature is showing an error because location sharing is not properly configured in your profile.</p>
+    </div>
+
+    <div class="step info">
+        <h3>📋 What You Need to Do</h3>
+        <p>To use the "Near Me" feature, you need to:</p>
+        <ol>
+            <li><strong>Enable location sharing</strong> in your profile settings</li>
+            <li><strong>Set your location coordinates</strong> (latitude and longitude)</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>🔧 Step 1: Go to Your Profile</h3>
+        <p>Click the button below to go to your profile settings:</p>
+        <button onclick="goToProfile()">Go to Profile Settings</button>
+    </div>
+
+    <div class="step">
+        <h3>📍 Step 2: Enable Location Sharing</h3>
+        <p>In your profile settings, look for the "Privacy & Location" section and:</p>
+        <ol>
+            <li>Find the "Enable Near Me Discovery" toggle</li>
+            <li>Turn it ON (enable it)</li>
+        </ol>
+    </div>
+
+    <div class="step">
+        <h3>🗺️ Step 3: Set Your Location</h3>
+        <p>You need to add your latitude and longitude coordinates. Here are a few ways to get them:</p>
+        
+        <h4>Option A: Use Google Maps</h4>
+        <ol>
+            <li>Go to <a href="https://maps.google.com" target="_blank">Google Maps</a></li>
+            <li>Search for your city or address</li>
+            <li>Right-click on the map and select "What's here?"</li>
+            <li>Copy the coordinates that appear (they look like: 40.7128, -74.0060)</li>
+        </ol>
+
+        <h4>Option B: Use a Coordinate Finder</h4>
+        <ol>
+            <li>Go to <a href="https://www.latlong.net/" target="_blank">latlong.net</a></li>
+            <li>Search for your location</li>
+            <li>Copy the latitude and longitude values</li>
+        </ol>
+
+        <h4>Option C: Use Your Browser's Location</h4>
+        <button onclick="getCurrentLocation()">Get My Current Location</button>
+        <div id="location-result"></div>
+    </div>
+
+    <div class="step">
+        <h3>💾 Step 4: Save Your Settings</h3>
+        <p>After enabling location sharing and setting your coordinates:</p>
+        <ol>
+            <li>Click "Save" or "Update Profile"</li>
+            <li>Go back to the Community page</li>
+            <li>Try the "Near Me" tab again</li>
+        </ol>
+    </div>
+
+    <div class="step warning">
+        <h3>⚠️ Important Notes</h3>
+        <ul>
+            <li><strong>Privacy:</strong> Your exact location is only used to find nearby users. It's not shared publicly.</li>
+            <li><strong>Accuracy:</strong> You can use your city's coordinates - you don't need your exact address.</li>
+            <li><strong>Optional:</strong> This feature is completely optional. You can still use all other features without it.</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h3>🧪 Test the Fix</h3>
+        <p>After making the changes, test if it's working:</p>
+        <button onclick="testNearMe()">Test Near Me Feature</button>
+        <button onclick="goToCommunity()">Go to Community Page</button>
+    </div>
+
+    <script>
+        function goToProfile() {
+            window.location.href = '/profile';
+        }
+
+        function goToCommunity() {
+            window.location.href = '/community';
+        }
+
+        function getCurrentLocation() {
+            const resultDiv = document.getElementById('location-result');
+            resultDiv.innerHTML = '<div class="info">Getting your location...</div>';
+            
+            if (!navigator.geolocation) {
+                resultDiv.innerHTML = '<div class="error">Geolocation is not supported by this browser.</div>';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    let html = '<div class="success">✅ Location found!</div>';
+                    html += '<div class="code">';
+                    html += `Latitude: ${lat.toFixed(6)}<br>`;
+                    html += `Longitude: ${lng.toFixed(6)}<br>`;
+                    html += '</div>';
+                    html += '<p>Copy these coordinates to your profile settings.</p>';
+                    
+                    resultDiv.innerHTML = html;
+                },
+                function(error) {
+                    let errorMessage = 'Unable to get your location. ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += 'Please allow location access and try again.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += 'Location information is unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += 'Location request timed out.';
+                            break;
+                        default:
+                            errorMessage += 'An unknown error occurred.';
+                            break;
+                    }
+                    resultDiv.innerHTML = `<div class="error">❌ ${errorMessage}</div>`;
+                }
+            );
+        }
+
+        async function testNearMe() {
+            const resultDiv = document.getElementById('location-result');
+            resultDiv.innerHTML = '<div class="info">Testing Near Me feature...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">✅ Near Me feature is working! Location sharing is properly configured.</div>';
+                } else if (response.status === 403) {
+                    if (data.error === 'Location sharing not enabled') {
+                        resultDiv.innerHTML = '<div class="error">❌ Location sharing is still not enabled. Please check your profile settings.</div>';
+                    } else if (data.error === 'Location not set') {
+                        resultDiv.innerHTML = '<div class="error">❌ Location coordinates are still not set. Please add them to your profile.</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="error">❌ ${data.error}</div>`;
+                    }
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

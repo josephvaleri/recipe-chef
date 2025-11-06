@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Comprehensive Auth Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Comprehensive Authentication Debug</h1>
+    
+    <div class="section">
+        <h3>Quick Actions</h3>
+        <button onclick="runFullDebug()">🔍 Run Full Debug</button>
+        <button onclick="testSignIn()">🔑 Test Sign In</button>
+        <button onclick="testDiscovery()">👥 Test Discovery</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+    </div>
+    
+    <div class="grid">
+        <div class="section">
+            <h3>Authentication Status</h3>
+            <div id="auth-status">Click "Run Full Debug" to check</div>
+        </div>
+        
+        <div class="section">
+            <h3>Discovery API Test</h3>
+            <div id="discovery-status">Click "Test Discovery" to check</div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>Detailed Debug Information</h3>
+        <div id="debug-info">No debug information yet</div>
+    </div>
+    
+    <div class="section">
+        <h3>Browser Storage</h3>
+        <div id="storage-info">Click "Run Full Debug" to check</div>
+    </div>
+
+    <script>
+        async function runFullDebug() {
+            const authStatus = document.getElementById('auth-status');
+            const debugInfo = document.getElementById('debug-info');
+            const storageInfo = document.getElementById('storage-info');
+            
+            authStatus.innerHTML = '<div class="info">🔍 Running authentication debug...</div>';
+            debugInfo.innerHTML = '<div class="info">🔍 Gathering debug information...</div>';
+            storageInfo.innerHTML = '<div class="info">🔍 Checking browser storage...</div>';
+            
+            try {
+                // Test the debug auth endpoint
+                const response = await fetch('/api/debug-auth', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authStatus.innerHTML = `
+                        <div class="${data.authenticated ? 'success' : 'error'}">
+                            ${data.authenticated ? '✅ Authenticated' : '❌ Not Authenticated'}
+                        </div>
+                    `;
+                    
+                    debugInfo.innerHTML = `
+                        <h4>Server Debug Info:</h4>
+                        <pre>${JSON.stringify(data.debug, null, 2)}</pre>
+                    `;
+                } else {
+                    authStatus.innerHTML = `
+                        <div class="error">
+                            ❌ Debug endpoint failed: ${response.status}
+                        </div>
+                    `;
+                    debugInfo.innerHTML = `
+                        <h4>Error Response:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+                
+                // Check browser storage
+                const storage = {
+                    localStorage: Object.keys(localStorage).reduce((acc, key) => {
+                        acc[key] = localStorage.getItem(key);
+                        return acc;
+                    }, {}),
+                    sessionStorage: Object.keys(sessionStorage).reduce((acc, key) => {
+                        acc[key] = sessionStorage.getItem(key);
+                        return acc;
+                    }, {}),
+                    cookies: document.cookie
+                };
+                
+                storageInfo.innerHTML = `
+                    <h4>Browser Storage:</h4>
+                    <pre>${JSON.stringify(storage, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                authStatus.innerHTML = `
+                    <div class="error">
+                        ❌ Debug failed: ${error.message}
+                    </div>
+                `;
+                debugInfo.innerHTML = `
+                    <h4>Error:</h4>
+                    <pre>${error.stack}</pre>
+                `;
+            }
+        }
+        
+        async function testSignIn() {
+            const authStatus = document.getElementById('auth-status');
+            authStatus.innerHTML = '<div class="info">🔑 Testing sign in...</div>';
+            
+            // Redirect to sign in page
+            window.location.href = '/auth/signin';
+        }
+        
+        async function testDiscovery() {
+            const discoveryStatus = document.getElementById('discovery-status');
+            discoveryStatus.innerHTML = '<div class="info">👥 Testing Discovery API...</div>';
+            
+            try {
+                const [peopleLikeYouRes, nearMeRes] = await Promise.all([
+                    fetch('/api/discovery/people-like-you?limit=5', { credentials: 'include' }),
+                    fetch('/api/discovery/near-me?radiusKm=50', { credentials: 'include' })
+                ]);
+                
+                const [peopleLikeYouData, nearMeData] = await Promise.all([
+                    peopleLikeYouRes.json(),
+                    nearMeRes.json()
+                ]);
+                
+                discoveryStatus.innerHTML = `
+                    <div class="${peopleLikeYouRes.ok ? 'success' : 'error'}">
+                        <strong>People Like You:</strong> ${peopleLikeYouRes.ok ? '✅' : '❌'} 
+                        (${peopleLikeYouRes.status}) - Found ${peopleLikeYouData.people?.length || 0} people
+                    </div>
+                    <div class="${nearMeRes.ok ? 'success' : 'error'}">
+                        <strong>Near Me:</strong> ${nearMeRes.ok ? '✅' : '❌'} 
+                        (${nearMeRes.status}) - Found ${nearMeData.people?.length || 0} people
+                    </div>
+                    <details>
+                        <summary>Raw Responses</summary>
+                        <h5>People Like You:</h5>
+                        <pre>${JSON.stringify(peopleLikeYouData, null, 2)}</pre>
+                        <h5>Near Me:</h5>
+                        <pre>${JSON.stringify(nearMeData, null, 2)}</pre>
+                    </details>
+                `;
+            } catch (error) {
+                discoveryStatus.innerHTML = `
+                    <div class="error">
+                        ❌ Discovery test failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('auth-status').innerHTML = 'Click "Run Full Debug" to check';
+            document.getElementById('discovery-status').innerHTML = 'Click "Test Discovery" to check';
+            document.getElementById('debug-info').innerHTML = 'No debug information yet';
+            document.getElementById('storage-info').innerHTML = 'Click "Run Full Debug" to check';
+        }
+        
+        // Auto-run debug on page load
+        window.onload = function() {
+            runFullDebug();
+        };
+    </script>
+</body>
+</html>

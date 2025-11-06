@@ -75,3 +75,8 @@ GRANT USAGE, SELECT ON SEQUENCE public.global_candidates_candidate_id_seq TO aut
 
 
 
+
+
+
+
+

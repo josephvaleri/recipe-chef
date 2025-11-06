@@ -63,65 +63,67 @@ export function Header() {
 
   return (
     <header className="bg-white/90 backdrop-blur-sm border-b border-orange-200 sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
             {/* Hamburger Menu Button */}
             {user && (
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-2 rounded-md hover:bg-orange-50 transition-colors"
+                className="p-1.5 sm:p-2 rounded-md hover:bg-orange-50 transition-colors"
                 aria-label="Toggle menu"
               >
                 {isMenuOpen ? (
-                  <X className="w-5 h-5 text-orange-700" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 text-orange-700" />
                 ) : (
-                  <Menu className="w-5 h-5 text-orange-700" />
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-orange-700" />
                 )}
               </button>
             )}
             
-            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-                <ChefHat className="w-5 h-5 text-white" />
+            <Link href="/" className="flex items-center space-x-1 sm:space-x-2 hover:opacity-80 transition-opacity">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+                <ChefHat className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
               </div>
-              <span className="text-orange-900 font-semibold">Recipe Chef</span>
+              <span className="text-orange-900 font-semibold text-xs sm:text-sm md:text-base hidden sm:inline">Recipe Chef</span>
+              <span className="text-orange-900 font-semibold text-xs sm:text-sm md:text-base sm:hidden">RC</span>
             </Link>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-4">
             {user ? (
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 text-orange-700">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm">{user.email}</span>
+              <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
+                {/* Mobile: Show only user icon, Desktop: Show email */}
+                <div className="flex items-center space-x-1 sm:space-x-2 text-orange-700">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden md:inline text-sm">{user.email}</span>
                 </div>
                 <Button
                   onClick={handleLogout}
                   variant="outline"
                   size="sm"
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50 px-1.5 sm:px-2 md:px-3 h-7 sm:h-8"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
+                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4 md:mr-2" />
+                  <span className="hidden md:inline text-xs sm:text-sm">Logout</span>
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1">
                 <Button
                   onClick={() => router.push('/auth/signin')}
                   variant="outline"
                   size="sm"
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50 px-1.5 sm:px-2 md:px-3 h-7 sm:h-8"
                 >
-                  Sign In
+                  <span className="text-xs sm:text-sm">Sign In</span>
                 </Button>
                 <Button
                   onClick={() => router.push('/auth/signup')}
                   size="sm"
-                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-1.5 sm:px-2 md:px-3 h-7 sm:h-8"
                 >
-                  Start Trial
+                  <span className="text-xs sm:text-sm">Trial</span>
                 </Button>
               </div>
             )}

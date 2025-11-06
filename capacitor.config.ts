@@ -5,19 +5,25 @@ const config: CapacitorConfig = {
   appName: 'RecipeChef',
   webDir: 'out',
   
-  // Server config for development (live reload)
-  // Uncomment and set your local IP for dev testing on physical devices:
-  // server: {
-  //   url: 'http://192.168.1.50:3000',
-  //   cleartext: true
-  // },
+  // Load the app from your local development server
+  server: {
+    url: 'http://192.168.1.68:3000',
+    cleartext: true,
+    allowNavigation: [
+      'https://*.supabase.co',
+      'https://*.supabase.com'
+    ]
+  },
   
   ios: {
     contentInset: 'never'
   },
   
   android: {
-    allowMixedContent: true
+    allowMixedContent: true,
+    webContentsDebuggingEnabled: true,
+    captureInput: true,
+    useLegacyBridge: false
   }
 };
 

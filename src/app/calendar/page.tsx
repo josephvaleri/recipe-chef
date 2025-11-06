@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 import { ChefOuiOui } from '@/components/chef-ouioui'
+import BackgroundWrapper from '@/components/layout/background-wrapper'
 import { 
   ChefHat, 
   Calendar, 
@@ -278,7 +279,8 @@ export default function CalendarPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <BackgroundWrapper backgroundImage="/background_14.png">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -784,5 +786,6 @@ export default function CalendarPage() {
         </div>
       )}
     </div>
+    </BackgroundWrapper>
   )
 }

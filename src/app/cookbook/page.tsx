@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/lib/auth'
 import RecipeCard from '@/components/recipe-card'
 // import { offlineStorage, networkManager, syncManager } from '@/lib/offline'
 import { Search, Plus, Star, Clock, Users, ChefHat, Wifi, WifiOff, X, Loader2, Grid3X3, List, Edit } from 'lucide-react'
+import BackgroundWrapper from '@/components/layout/background-wrapper'
 
 interface UserRecipe {
   user_recipe_id: number
@@ -58,10 +59,13 @@ export default function MyCookbookPage() {
   const loadRecipes = async () => {
     try {
       const user = await getCurrentUser()
+      console.log('Cookbook loadRecipes - user:', user ? 'found' : 'not found')
       if (!user) {
+        console.log('Cookbook loadRecipes - redirecting to signin')
         router.push('/auth/signin')
         return
       }
+      console.log('Cookbook loadRecipes - user found, proceeding with data load')
 
       // Try online first
       if (isOnline && !isOfflineMode) {
@@ -352,17 +356,20 @@ export default function MyCookbookPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
-        <div className="text-center">
-          <ChefHat className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your cookbook...</p>
+      <BackgroundWrapper backgroundImage="/background_cookbooks.png">
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <ChefHat className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading your cookbook...</p>
+          </div>
         </div>
-      </div>
+      </BackgroundWrapper>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <BackgroundWrapper backgroundImage="/background_cookbooks.png">
+      <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -435,8 +442,9 @@ export default function MyCookbookPage() {
                       </div>
                       
                       <Button onClick={() => router.push('/add')}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Recipe
+                        <Plus className="w-4 h-4 mr-2 sm:mr-2" />
+                        <span className="hidden sm:inline">Add Recipe</span>
+                        <span className="sm:hidden">Add</span>
                       </Button>
                     </div>
           </div>
@@ -718,7 +726,8 @@ export default function MyCookbookPage() {
           </Card>
         )}
       </main>
-    </div>
+      </div>
+    </BackgroundWrapper>
   )
 }
 

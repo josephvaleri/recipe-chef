@@ -710,24 +710,27 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" onClick={() => router.back()}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-                <ChefHat className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 truncate">{recipe.title}</h1>
+          {/* Top Row - Back button and Recipe Title */}
+          <div className="flex items-center py-4">
+            <Button variant="ghost" size="sm" onClick={() => router.back()} className="mr-3">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center mr-3">
+              <ChefHat className="w-5 h-5 text-white" />
             </div>
-            
+            <h1 className="text-xl font-bold text-gray-900 truncate">{recipe.title}</h1>
+          </div>
+          
+          {/* Bottom Row - All Action Buttons */}
+          <div className="flex items-center justify-between py-2 border-t border-gray-100">
             <div className="flex items-center space-x-2">
               <RecipeVoting 
                 recipeId={recipe.user_recipe_id} 
                 size="sm"
-                className="mr-2"
               />
+            </div>
+            <div className="flex items-center space-x-2">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -758,8 +761,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
                 <Trash2 className="w-4 h-4" />
               </Button>
               <Button size="sm" onClick={generatePDF}>
-                <Printer className="w-4 h-4 mr-2" />
-                Print
+                <Printer className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -1167,11 +1169,11 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Chef Tony */}
-            <ChefOuiOui />
-
             {/* Recipe Timer */}
             <RecipeTimer />
+
+            {/* Chef Tony */}
+            <ChefOuiOui />
 
             {/* AI Q&A */}
             {profile?.has_ai_subscription && (

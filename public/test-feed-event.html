@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Feed Event Creation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Feed Event Creation</h1>
+    
+    <div class="result info">
+        <h3>📋 Purpose</h3>
+        <p>This page will help us test if we can create feed events and see them in the My Feed section.</p>
+    </div>
+
+    <button onclick="testMyFeed()">Test My Feed API</button>
+    <button onclick="createTestBadgeEvent()">Create Test Badge Event</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testMyFeed() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info">Testing My Feed API...</div>';
+            
+            try {
+                const response = await fetch('/api/my-feed?limit=20', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                console.log('🔍 My Feed response:', data);
+                
+                let html = '<div class="result">';
+                html += '<h3>📊 My Feed API Test</h3>';
+                html += `<div>• Status: ${response.status}</div>`;
+                html += `<div>• Success: ${response.ok ? 'Yes' : 'No'}</div>`;
+                html += `<div>• Events: ${data.events ? data.events.length : 0}</div>`;
+                html += `<div>• Total: ${data.total || 0}</div>`;
+                
+                if (data.events && data.events.length > 0) {
+                    html += '<div class="success">✅ Feed events found!</div>';
+                    html += '<div>• Events:</div>';
+                    html += '<pre>' + JSON.stringify(data.events, null, 2) + '</pre>';
+                } else {
+                    html += '<div class="info">ℹ️ No feed events found</div>';
+                }
+                
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ My Feed test error:', error);
+                resultsDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        async function createTestBadgeEvent() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info">Creating test badge event...</div>';
+            
+            try {
+                // First, let's try to create a test feed event via a direct API call
+                // We'll need to create an API endpoint for this or use the existing badge system
+                
+                const response = await fetch('/api/badges/events', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        badge_code: 'TEST_BADGE',
+                        badge_name: 'Test Badge',
+                        description: 'This is a test badge event'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('🔍 Create badge event response:', data);
+                
+                let html = '<div class="result">';
+                html += '<h3>🎯 Create Badge Event Test</h3>';
+                html += `<div>• Status: ${response.status}</div>`;
+                html += `<div>• Success: ${response.ok ? 'Yes' : 'No'}</div>`;
+                
+                if (response.ok) {
+                    html += '<div class="success">✅ Badge event created!</div>';
+                    html += '<div>• Response:</div>';
+                    html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                    html += '<p>Now try the "Test My Feed API" button to see if the event appears.</p>';
+                } else {
+                    html += '<div class="error">❌ Failed to create badge event</div>';
+                    html += `<div>• Error: ${data.error || 'Unknown error'}</div>`;
+                }
+                
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Create badge event error:', error);
+                resultsDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Auto-run test on page load
+        window.addEventListener('load', () => {
+            console.log('🔍 Page loaded, ready to test feed events');
+            testMyFeed();
+        });
+    </script>
+</body>
+</html>

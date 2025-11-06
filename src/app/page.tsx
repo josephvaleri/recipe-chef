@@ -14,6 +14,7 @@ import { TrialBanner } from '@/components/trial-banner'
 import TopBanner from '@/components/home/TopBanner'
 import UserFeedPreviewWrapper from '@/components/home/UserFeedPreviewWrapper'
 import MyFeed from '@/components/community/MyFeed'
+import BackgroundWrapper from '@/components/layout/background-wrapper'
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -169,9 +170,10 @@ export default function Home() {
   // Non-authenticated users see Chef Tony on left, login on right
   if (!user) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
-        <TrialBanner variant="compact" />
-        <div className="container mx-auto px-4 py-8">
+      <BackgroundWrapper backgroundImage="/background_home.png">
+        <div>
+          <TrialBanner variant="compact" />
+          <div className="container mx-auto px-4 py-8">
           <div className="max-w-6xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
@@ -186,7 +188,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12 bg-transparent">
               {/* Left Column: Chef Tony */}
               <div className="flex flex-col space-y-6">
                 <Card className="p-6 bg-white/80 backdrop-blur-sm border-orange-200 relative">
@@ -451,13 +453,14 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </BackgroundWrapper>
     )
   }
 
   // Authenticated users see the full interface
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#C6DBEF' }}>
+    <BackgroundWrapper backgroundImage="/background_home.png">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Top Banner */}
@@ -621,6 +624,6 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </div>
+    </BackgroundWrapper>
   )
-}
+  }

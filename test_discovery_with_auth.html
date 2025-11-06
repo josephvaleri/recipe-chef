@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discovery API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Discovery API Test</h1>
+    <p>This page will test the Discovery API endpoints with proper authentication.</p>
+    
+    <div class="test-section">
+        <h3>Authentication Status</h3>
+        <button onclick="checkAuth()">Check Auth Status</button>
+        <div id="auth-status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>People Like You Test</h3>
+        <button onclick="testPeopleLikeYou()">Test People Like You</button>
+        <div id="people-like-you-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Near Me Test</h3>
+        <button onclick="testNearMe()">Test Near Me</button>
+        <div id="near-me-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Search Test</h3>
+        <button onclick="testSearch()">Test Search</button>
+        <div id="search-result"></div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin;
+        
+        async function checkAuth() {
+            const statusDiv = document.getElementById('auth-status');
+            statusDiv.innerHTML = '<div class="info">Checking authentication...</div>';
+            
+            try {
+                // Try to get current user info
+                const response = await fetch('/api/test-auth', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = `<div class="success">✅ Authenticated as: ${data.user?.email || 'Unknown'}</div>`;
+                } else {
+                    statusDiv.innerHTML = `<div class="error">❌ Not authenticated (${response.status})</div>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Auth check failed: ${error.message}</div>`;
+            }
+        }
+        
+        async function testPeopleLikeYou() {
+            const resultDiv = document.getElementById('people-like-you-result');
+            resultDiv.innerHTML = '<div class="info">Testing People Like You...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/people-like-you?limit=5', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Success! Found ${data.people?.length || 0} people</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Failed (${response.status})</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testNearMe() {
+            const resultDiv = document.getElementById('near-me-result');
+            resultDiv.innerHTML = '<div class="info">Testing Near Me...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Success! Found ${data.people?.length || 0} people</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Failed (${response.status})</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testSearch() {
+            const resultDiv = document.getElementById('search-result');
+            resultDiv.innerHTML = '<div class="info">Testing Search...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/search?q=test&limit=5', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">✅ Success! Found ${data.people?.length || 0} people</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Failed (${response.status})</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-check auth on page load
+        window.onload = function() {
+            checkAuth();
+        };
+    </script>
+</body>
+</html>

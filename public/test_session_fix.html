@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Session Fix Test</h1>
+    <p>This page will help diagnose and fix the authentication session issue.</p>
+    
+    <div class="section">
+        <h3>Step 1: Check Current Status</h3>
+        <button onclick="checkStatus()">Check Authentication Status</button>
+        <div id="status-result"></div>
+    </div>
+    
+    <div class="section">
+        <h3>Step 2: Test Sign In</h3>
+        <p>If you're not authenticated, sign in using the button below:</p>
+        <button onclick="goToSignIn()">Go to Sign In Page</button>
+    </div>
+    
+    <div class="section">
+        <h3>Step 3: Test Discovery After Sign In</h3>
+        <p>After signing in, come back to this page and test the Discovery API:</p>
+        <button onclick="testDiscovery()">Test Discovery API</button>
+        <div id="discovery-result"></div>
+    </div>
+    
+    <div class="section">
+        <h3>Step 4: Manual Cookie Check</h3>
+        <p>Check if Supabase cookies are present:</p>
+        <button onclick="checkCookies()">Check Cookies</button>
+        <div id="cookie-result"></div>
+    </div>
+
+    <script>
+        async function checkStatus() {
+            const resultDiv = document.getElementById('status-result');
+            resultDiv.innerHTML = '<div class="info">Checking authentication status...</div>';
+            
+            try {
+                const response = await fetch('/api/debug-auth', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ <strong>You are authenticated!</strong><br>
+                            User ID: ${data.debug.user.id}<br>
+                            Email: ${data.debug.user.email}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>You are NOT authenticated</strong><br>
+                            Error: ${data.debug.user.error || 'Unknown error'}<br>
+                            <br>
+                            <strong>Solution:</strong> Click "Go to Sign In Page" and sign in with your credentials.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>Failed to check status</strong><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function goToSignIn() {
+            window.location.href = '/auth/signin';
+        }
+        
+        async function testDiscovery() {
+            const resultDiv = document.getElementById('discovery-result');
+            resultDiv.innerHTML = '<div class="info">Testing Discovery API...</div>';
+            
+            try {
+                const [peopleLikeYouRes, nearMeRes] = await Promise.all([
+                    fetch('/api/discovery/people-like-you?limit=5', { credentials: 'include' }),
+                    fetch('/api/discovery/near-me?radiusKm=50', { credentials: 'include' })
+                ]);
+                
+                const [peopleLikeYouData, nearMeData] = await Promise.all([
+                    peopleLikeYouRes.json(),
+                    nearMeRes.json()
+                ]);
+                
+                if (peopleLikeYouRes.ok && nearMeRes.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ <strong>Discovery API is working!</strong><br>
+                            People Like You: Found ${peopleLikeYouData.people?.length || 0} people<br>
+                            Near Me: Found ${nearMeData.people?.length || 0} people
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            ❌ <strong>Discovery API failed</strong><br>
+                            People Like You: ${peopleLikeYouRes.status} - ${peopleLikeYouData.error || 'Unknown error'}<br>
+                            Near Me: ${nearMeRes.status} - ${nearMeData.error || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>Discovery test failed</strong><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function checkCookies() {
+            const resultDiv = document.getElementById('cookie-result');
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [name, value] = cookie.trim().split('=');
+                acc[name] = value;
+                return acc;
+            }, {});
+            
+            const supabaseCookies = Object.keys(cookies).filter(key => 
+                key.includes('supabase') || key.includes('sb-')
+            );
+            
+            if (supabaseCookies.length > 0) {
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ <strong>Supabase cookies found:</strong><br>
+                        ${supabaseCookies.map(key => `${key}: ${cookies[key]?.substring(0, 20)}...`).join('<br>')}
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        ❌ <strong>No Supabase cookies found</strong><br>
+                        This explains why authentication is failing. You need to sign in.
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-check status on page load
+        window.onload = function() {
+            checkStatus();
+            checkCookies();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Near Me Feature</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Test Near Me Feature</h1>
+    
+    <div class="result info">
+        <h3>📋 Instructions</h3>
+        <p>1. Make sure you're logged in to the Recipe Chef app</p>
+        <p>2. Click the "Test Near Me API" button below</p>
+        <p>3. Check the results and console logs</p>
+    </div>
+
+    <button onclick="testNearMeAPI()">Test Near Me API</button>
+    <button onclick="testDebugAuth()">Test Debug Auth</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testNearMeAPI() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info">Testing Near Me API...</div>';
+            
+            try {
+                console.log('🔍 Testing Near Me API...');
+                
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('🔍 Response status:', response.status);
+                console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+                
+                const data = await response.json();
+                console.log('🔍 Response data:', data);
+                
+                let html = '<div class="result">';
+                html += '<h3>📊 Near Me API Test Results</h3>';
+                html += `<div>• Status: ${response.status}</div>`;
+                html += `<div>• Success: ${response.ok ? 'Yes' : 'No'}</div>`;
+                
+                if (response.ok) {
+                    html += '<div class="success">✅ API call successful!</div>';
+                    html += `<div>• People found: ${data.people ? data.people.length : 0}</div>`;
+                    
+                    if (data.people && data.people.length > 0) {
+                        html += '<div>• Results:</div>';
+                        html += '<pre>' + JSON.stringify(data.people, null, 2) + '</pre>';
+                    } else {
+                        html += '<div class="warning">⚠️ No nearby people found</div>';
+                        html += '<p>This is normal if no other users have location sharing enabled.</p>';
+                    }
+                } else {
+                    html += '<div class="error">❌ API call failed</div>';
+                    html += `<div>• Error: ${data.error || 'Unknown error'}</div>`;
+                    html += `<div>• Details: ${data.details || 'No details'}</div>`;
+                    
+                    if (response.status === 401) {
+                        html += '<div class="warning">⚠️ Authentication issue detected</div>';
+                        html += '<p>Try logging out and logging back in.</p>';
+                    }
+                }
+                
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Test error:', error);
+                resultsDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testDebugAuth() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="info">Testing Debug Auth...</div>';
+            
+            try {
+                console.log('🔍 Testing Debug Auth...');
+                
+                const response = await fetch('/api/debug-auth', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                console.log('🔍 Debug auth response:', data);
+                
+                let html = '<div class="result">';
+                html += '<h3>🔐 Debug Auth Results</h3>';
+                
+                if (data.success) {
+                    html += '<div class="success">✅ Authentication working!</div>';
+                    html += `<div>• User ID: ${data.debug.user.id}</div>`;
+                    html += `<div>• Email: ${data.debug.user.email}</div>`;
+                    html += `<div>• Profile exists: ${data.debug.profile.exists ? 'Yes' : 'No'}</div>`;
+                    html += `<div>• Location sharing: ${data.debug.profile.geo_opt_in ? 'Enabled' : 'Disabled'}</div>`;
+                    html += `<div>• Has coordinates: ${data.debug.profile.hasLocation ? 'Yes' : 'No'}</div>`;
+                    html += `<div>• Database function: ${data.debug.databaseFunction.success ? 'Working' : 'Failed'}</div>`;
+                    html += `<div>• Other users with location: ${data.debug.otherUsers.count}</div>`;
+                    
+                    if (data.debug.recommendations.length > 0) {
+                        html += '<div class="warning">💡 Recommendations:</div>';
+                        html += '<ul>';
+                        data.debug.recommendations.forEach(rec => {
+                            html += `<li>${rec}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                } else {
+                    html += '<div class="error">❌ Authentication failed</div>';
+                    html += `<div>• Error: ${data.error}</div>`;
+                    html += `<div>• Details: ${data.details}</div>`;
+                }
+                
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('❌ Debug auth error:', error);
+                resultsDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Auto-run test on page load
+        window.addEventListener('load', () => {
+            console.log('🔍 Page loaded, ready to test Near Me feature');
+        });
+    </script>
+</body>
+</html>

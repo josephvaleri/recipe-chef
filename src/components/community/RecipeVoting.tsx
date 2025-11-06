@@ -117,21 +117,6 @@ export default function RecipeVoting({
         )}
       </Button>
 
-      {/* Total Score */}
-      {showCounts && votes.total_votes !== 0 && (
-        <Badge 
-          variant="secondary" 
-          className={`${currentSize.text} ${
-            votes.total_votes > 0 
-              ? 'bg-green-100 text-green-800' 
-              : votes.total_votes < 0 
-                ? 'bg-red-100 text-red-800'
-                : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {votes.total_votes > 0 ? '+' : ''}{votes.total_votes}
-        </Badge>
-      )}
     </div>
   )
 }

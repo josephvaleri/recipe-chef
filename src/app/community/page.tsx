@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from "react";
 import CommunityLayoutsPreview from "@/components/community/CommunityLayoutsPreview";
 import { supabase } from "@/lib/supabase";
+import BackgroundWrapper from "@/components/layout/background-wrapper";
 
 type GlobalRecipeItem = {
   user_recipe_id: number;
@@ -96,32 +97,38 @@ export default function CommunityPage() {
 
   if (loading) {
     return (
+      <BackgroundWrapper backgroundImage="/background_community.png">
+        <div className="p-4 md:p-6 max-w-7xl mx-auto">
+          <div className="mb-6 bg-white/20 backdrop-blur-sm rounded-lg p-6">
+            <h1 className="text-3xl font-bold text-orange-900 mb-2">My Community</h1>
+            <p className="text-orange-700">
+              Global wins + your groups — all in one place.
+            </p>
+          </div>
+          <div className="text-center py-8 bg-white/20 backdrop-blur-sm rounded-lg">
+            <div className="text-orange-600">Loading community data...</div>
+          </div>
+        </div>
+      </BackgroundWrapper>
+    );
+  }
+
+  return (
+    <BackgroundWrapper backgroundImage="/background_community.png">
       <div className="p-4 md:p-6 max-w-7xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-6 bg-white/20 backdrop-blur-sm rounded-lg p-6">
           <h1 className="text-3xl font-bold text-orange-900 mb-2">My Community</h1>
           <p className="text-orange-700">
             Global wins + your groups — all in one place.
           </p>
         </div>
-        <div className="text-center py-8">
-          <div className="text-orange-600">Loading community data...</div>
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-6">
+          <CommunityLayoutsPreview
+            globalRecipes={globalRecipes}
+            myGroups={myGroups}
+          />
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-orange-900 mb-2">My Community</h1>
-        <p className="text-orange-700">
-          Global wins + your groups — all in one place.
-        </p>
-      </div>
-      <CommunityLayoutsPreview
-        globalRecipes={globalRecipes}
-        myGroups={myGroups}
-      />
-    </div>
+    </BackgroundWrapper>
   );
 }

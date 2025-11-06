@@ -1483,7 +1483,7 @@ export default function RecipeFinderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <div className="min-h-screen">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1577,7 +1577,7 @@ export default function RecipeFinderPage() {
           {/* Ingredient Selection */}
           <div className="lg:col-span-2">
             <div className="sticky top-8">
-              <Card>
+              <Card className="bg-white/20">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>Select Ingredients</span>
@@ -1853,7 +1853,7 @@ export default function RecipeFinderPage() {
 
           {/* Results */}
           <div className="lg:col-span-2">
-            <div className="mb-6">
+            <div className="mb-6 bg-white/20 rounded-lg p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 {loading ? 'Searching...' : 
                  aiLoading ? 'Chef Tony is working...' : 

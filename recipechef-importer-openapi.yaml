@@ -1,0 +1,442 @@
+openapi: 3.0.0
+info:
+  title: RecipeChef Importer API
+  description: API for importing recipes into RecipeChef from URLs or text formats
+  version: 1.0.0
+  contact:
+    name: RecipeChef Team
+    url: https://recipechef.app
+servers:
+  - url: https://recipechef.app
+    description: Production server
+  - url: http://localhost:3000
+    description: Development server
+
+paths:
+  /api/public/import-recipe:
+    post:
+      summary: Import recipe from URL
+      description: Scrape and import a recipe from a website URL using JSON-LD parsing
+      operationId: importRecipeFromUrl
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token for authentication (optional for GPT usage)
+          required: false
+          schema:
+            type: string
+            format: bearer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: The URL of the recipe page to import from
+                  example: "https://www.allrecipes.com/recipe/213742/cheesy-chicken-broccoli-casserole/"
+              required:
+                - url
+      responses:
+        '200':
+          description: Recipe successfully imported and parsed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recipe:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: Recipe title
+                        example: "Cheesy Chicken Broccoli Casserole"
+                      description:
+                        type: string
+                        description: Recipe description
+                        example: "A delicious and easy casserole recipe"
+                      recipeIngredient:
+                        type: array
+                        items:
+                          type: string
+                        description: List of ingredients
+                        example: ["2 cups cooked chicken", "1 cup broccoli florets", "1 cup cheddar cheese"]
+                      recipeInstructions:
+                        type: array
+                        items:
+                          type: string
+                        description: Step-by-step cooking instructions
+                        example: ["Preheat oven to 350°F", "Mix all ingredients in a bowl", "Bake for 30 minutes"]
+                      prepTime:
+                        type: string
+                        description: Preparation time
+                        example: "15 minutes"
+                      cookTime:
+                        type: string
+                        description: Cooking time
+                        example: "30 minutes"
+                      totalTime:
+                        type: string
+                        description: Total time
+                        example: "45 minutes"
+                      recipeYield:
+                        type: string
+                        description: Number of servings
+                        example: "6 servings"
+                      source:
+                        type: string
+                        description: Recipe source name
+                        example: "AllRecipes"
+                      sourceUrl:
+                        type: string
+                        description: Original recipe URL
+                        example: "https://www.allrecipes.com/recipe/213742/cheesy-chicken-broccoli-casserole/"
+                  paprikaText:
+                    type: string
+                    description: Recipe formatted in Paprika text format
+                    example: "# Cheesy Chicken Broccoli Casserole\n\nA delicious and easy casserole recipe\n\n## Timing\nPrep: 15 minutes\nCook: 30 minutes\nTotal: 45 minutes\n\nServings: 6 servings\n\n## Ingredients\n- 2 cups cooked chicken\n- 1 cup broccoli florets\n- 1 cup cheddar cheese\n\n## Instructions\n1. Preheat oven to 350°F\n2. Mix all ingredients in a bowl\n3. Bake for 30 minutes\n\n---\nSource: https://www.allrecipes.com/recipe/213742/cheesy-chicken-broccoli-casserole/"
+                  confidence:
+                    type: string
+                    enum: [high, medium, low]
+                    description: Confidence level of the parsing
+                    example: "high"
+                  source:
+                    type: string
+                    description: Parsing method used
+                    example: "jsonld"
+                  title:
+                    type: string
+                    description: Page title
+                    example: "Cheesy Chicken Broccoli Casserole Recipe | AllRecipes"
+        '400':
+          description: Bad request - invalid URL or missing parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "URL is required"
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Authentication required"
+        '404':
+          description: No recipe found on the page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No recipe found on this page"
+                  confidence:
+                    type: string
+                    example: "low"
+                  source:
+                    type: string
+                    example: "fallback"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to import recipe"
+
+  /api/public/import-recipe-with-auth:
+    post:
+      summary: Import recipe from URL with authentication
+      description: Scrape and import a recipe from a website URL, optionally saving to user's RecipeChef account
+      operationId: importRecipeFromUrlWithAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: The URL of the recipe page to import from
+                  example: "https://www.allrecipes.com/recipe/213742/cheesy-chicken-broccoli-casserole/"
+                user_id:
+                  type: string
+                  format: uuid
+                  description: RecipeChef user ID (optional, for saving to account)
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                auth_token:
+                  type: string
+                  description: RecipeChef authentication token (optional, for saving to account)
+                  example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              required:
+                - url
+      responses:
+        '200':
+          description: Recipe successfully imported and parsed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recipe:
+                    $ref: '#/components/schemas/Recipe'
+                  paprikaText:
+                    type: string
+                    description: Recipe formatted in Paprika text format
+                  confidence:
+                    type: string
+                    enum: [high, medium, low]
+                    description: Confidence level of the parsing
+                    example: "high"
+                  source:
+                    type: string
+                    description: Parsing method used
+                    example: "jsonld"
+                  title:
+                    type: string
+                    description: Page title
+                    example: "Cheesy Chicken Broccoli Casserole Recipe | AllRecipes"
+                  saved:
+                    type: boolean
+                    description: Whether the recipe was saved to user's account
+                    example: true
+                  recipeId:
+                    type: string
+                    description: ID of the saved recipe (if saved to account)
+                    example: "recipe_123"
+                  message:
+                    type: string
+                    description: Status message
+                    example: "Recipe successfully imported and saved to your RecipeChef account!"
+        '400':
+          description: Bad request - invalid URL or missing parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "URL is required"
+        '401':
+          description: Authentication required or invalid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid authentication. Please sign in to RecipeChef and try again."
+                  hint:
+                    type: string
+                    example: "You need to be signed in to save recipes to your account."
+        '404':
+          description: No recipe found on the page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No recipe found on this page"
+                  confidence:
+                    type: string
+                    example: "low"
+                  source:
+                    type: string
+                    example: "fallback"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to import recipe"
+
+  /api/public/import-text:
+    post:
+      summary: Import recipe from Paprika/Meal-Master text
+      description: Parse and import a recipe from text in Paprika or Meal-Master format
+      operationId: importRecipeFromText
+      parameters:
+        - name: Authorization
+          in: header
+          description: Bearer token for authentication (optional for GPT usage)
+          required: false
+          schema:
+            type: string
+            format: bearer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipe_text:
+                  type: string
+                  description: Recipe text in Paprika or Meal-Master format
+                  example: "# Chocolate Chip Cookies\n\n## Ingredients\n- 2 cups flour\n- 1 cup sugar\n\n## Instructions\n1. Mix ingredients\n2. Bake at 350°F"
+                format:
+                  type: string
+                  enum: [paprika, meal-master, auto-detect]
+                  description: The format of the recipe text
+                  default: auto-detect
+              required:
+                - recipe_text
+      responses:
+        '200':
+          description: Recipe successfully imported and parsed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recipe:
+                    $ref: '#/components/schemas/Recipe'
+                  paprikaText:
+                    type: string
+                    description: Recipe formatted in Paprika text format
+                  success:
+                    type: boolean
+                    description: Whether the import was successful
+                    example: true
+                  format:
+                    type: string
+                    description: The format that was detected/used
+                    example: "paprika"
+                  confidence:
+                    type: string
+                    enum: [high, medium, low]
+                    description: Confidence level of the parsing
+                    example: "high"
+        '400':
+          description: Bad request - invalid file or missing parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Recipe text is required"
+                  hint:
+                    type: string
+                    example: "Supported formats: Paprika, Meal-Master, or generic recipe text with ingredients and instructions"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to parse recipe text"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication (optional for GPT usage)
+
+  schemas:
+    Recipe:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Recipe title
+        description:
+          type: string
+          description: Recipe description
+        recipeIngredient:
+          type: array
+          items:
+            type: string
+          description: List of ingredients
+        recipeInstructions:
+          type: array
+          items:
+            type: string
+          description: Step-by-step cooking instructions
+        prepTime:
+          type: string
+          description: Preparation time
+        cookTime:
+          type: string
+          description: Cooking time
+        totalTime:
+          type: string
+          description: Total time
+        recipeYield:
+          type: string
+          description: Number of servings
+        source:
+          type: string
+          description: Recipe source name
+        sourceUrl:
+          type: string
+          description: Original recipe URL
+        image:
+          type: string
+          description: Recipe image URL
+
+    ImportResult:
+      type: object
+      properties:
+        recipe:
+          $ref: '#/components/schemas/Recipe'
+        paprikaText:
+          type: string
+          description: Recipe formatted in Paprika text format
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: Confidence level of the parsing
+        source:
+          type: string
+          description: Parsing method used
+        title:
+          type: string
+          description: Page title
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        details:
+          type: string
+          description: Additional error details
+        hint:
+          type: string
+          description: Helpful hint for resolving the error
+
+security:
+  - BearerAuth: []

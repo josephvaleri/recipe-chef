@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Near Us Feature</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .loading { color: #007bff; }
+        .error-text { color: #dc3545; }
+        .success-text { color: #28a745; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Near Us Feature</h1>
+    
+    <div class="section info">
+        <h3>📋 Debugging Steps</h3>
+        <p>This tool will help identify why the "Near Us" feature isn't working. Click the buttons below to run diagnostics.</p>
+    </div>
+
+    <div class="section">
+        <h3>1. Authentication Status</h3>
+        <button onclick="checkAuth()">Check Authentication</button>
+        <div id="auth-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>2. User Profile & Location Settings</h3>
+        <button onclick="checkProfile()">Check Profile Data</button>
+        <div id="profile-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>3. Database Function Test</h3>
+        <button onclick="testDatabaseFunction()">Test discover_near_me_v2</button>
+        <div id="db-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>4. API Endpoint Test</h3>
+        <button onclick="testAPIEndpoint()">Test /api/discovery/near-me</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>5. Location Data Check</h3>
+        <button onclick="checkLocationData()">Check All Location Data</button>
+        <div id="location-result"></div>
+    </div>
+
+    <div class="section">
+        <h3>6. Complete Diagnostic</h3>
+        <button onclick="runCompleteDiagnostic()">Run All Tests</button>
+        <div id="complete-result"></div>
+    </div>
+
+    <script>
+        let currentUser = null;
+
+        async function checkAuth() {
+            const resultDiv = document.getElementById('auth-result');
+            resultDiv.innerHTML = '<div class="loading">Checking authentication...</div>';
+            
+            try {
+                // Check if user is logged in by making a simple API call
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                if (response.status === 401) {
+                    resultDiv.innerHTML = '<div class="error">❌ Not authenticated - Please log in first</div>';
+                    return false;
+                } else if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">✅ Authentication successful</div>';
+                    return true;
+                } else {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<div class="error">❌ Auth error: ${errorData.error || 'Unknown error'}</div>`;
+                    return false;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network error: ${error.message}</div>`;
+                return false;
+            }
+        }
+
+        async function checkProfile() {
+            const resultDiv = document.getElementById('profile-result');
+            resultDiv.innerHTML = '<div class="loading">Checking profile data...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    resultDiv.innerHTML = `<div class="error">❌ API Error: ${errorData.error || 'Unknown error'}</div>`;
+                    return;
+                }
+                
+                // The API logs profile data, but we can't access it directly
+                // Let's make a separate call to get profile info
+                const profileResponse = await fetch('/api/profile', {
+                    credentials: 'include'
+                });
+                
+                if (profileResponse.ok) {
+                    const profileData = await profileResponse.json();
+                    const hasLocation = profileData.lat && profileData.lng;
+                    const hasGeoOptIn = profileData.geo_opt_in;
+                    
+                    let html = '<div class="info">';
+                    html += `<strong>Profile Data:</strong><br>`;
+                    html += `• Display Name: ${profileData.display_name || 'Not set'}<br>`;
+                    html += `• Geo Opt In: ${hasGeoOptIn ? '✅ Enabled' : '❌ Disabled'}<br>`;
+                    html += `• Latitude: ${profileData.lat || 'Not set'}<br>`;
+                    html += `• Longitude: ${profileData.lng || 'Not set'}<br>`;
+                    html += `• Location Sharing: ${hasLocation ? '✅ Valid coordinates' : '❌ Missing coordinates'}<br>`;
+                    html += '</div>';
+                    
+                    if (!hasGeoOptIn) {
+                        html += '<div class="warning">⚠️ Location sharing is disabled. Enable it in your profile settings.</div>';
+                    } else if (!hasLocation) {
+                        html += '<div class="warning">⚠️ No coordinates set. Add your location in profile settings.</div>';
+                    } else {
+                        html += '<div class="success">✅ Profile location data looks good!</div>';
+                    }
+                    
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ Could not fetch profile data</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testDatabaseFunction() {
+            const resultDiv = document.getElementById('db-result');
+            resultDiv.innerHTML = '<div class="loading">Testing database function...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const peopleCount = data.people ? data.people.length : 0;
+                    let html = '<div class="info">';
+                    html += `<strong>Database Function Result:</strong><br>`;
+                    html += `• Status: ${response.status}<br>`;
+                    html += `• People Found: ${peopleCount}<br>`;
+                    
+                    if (peopleCount === 0) {
+                        html += '<div class="warning">⚠️ No nearby people found. This could mean:<br>';
+                        html += '• No other users have location sharing enabled<br>';
+                        html += '• No users within 50km radius<br>';
+                        html += '• Your location coordinates are not set<br>';
+                        html += '• Location sharing is disabled in your profile</div>';
+                    } else {
+                        html += '<div class="success">✅ Database function working correctly!</div>';
+                        html += '<pre>' + JSON.stringify(data.people, null, 2) + '</pre>';
+                    }
+                    
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Database Error: ${data.error || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testAPIEndpoint() {
+            const resultDiv = document.getElementById('api-result');
+            resultDiv.innerHTML = '<div class="loading">Testing API endpoint...</div>';
+            
+            try {
+                const response = await fetch('/api/discovery/near-me?radiusKm=50', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                let html = '<div class="info">';
+                html += `<strong>API Endpoint Test:</strong><br>`;
+                html += `• Status: ${response.status}<br>`;
+                html += `• Response Time: ${new Date().toISOString()}<br>`;
+                
+                if (response.ok) {
+                    html += '<div class="success">✅ API endpoint working correctly!</div>';
+                    html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    html += '<div class="error">❌ API Error</div>';
+                    html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkLocationData() {
+            const resultDiv = document.getElementById('location-result');
+            resultDiv.innerHTML = '<div class="loading">Checking location data...</div>';
+            
+            try {
+                // Test different radius values
+                const radii = [10, 25, 50, 100];
+                let html = '<div class="info">';
+                html += '<strong>Location Data Test (Different Radii):</strong><br>';
+                
+                for (const radius of radii) {
+                    try {
+                        const response = await fetch(`/api/discovery/near-me?radiusKm=${radius}`, {
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        const count = data.people ? data.people.length : 0;
+                        
+                        html += `• ${radius}km radius: ${count} people found<br>`;
+                    } catch (error) {
+                        html += `• ${radius}km radius: Error - ${error.message}<br>`;
+                    }
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function runCompleteDiagnostic() {
+            const resultDiv = document.getElementById('complete-result');
+            resultDiv.innerHTML = '<div class="loading">Running complete diagnostic...</div>';
+            
+            const results = [];
+            
+            // Run all tests
+            const authOk = await checkAuth();
+            results.push({ test: 'Authentication', status: authOk });
+            
+            if (authOk) {
+                await checkProfile();
+                await testDatabaseFunction();
+                await testAPIEndpoint();
+                await checkLocationData();
+            }
+            
+            // Summary
+            let summary = '<div class="section info">';
+            summary += '<h3>📊 Diagnostic Summary</h3>';
+            summary += '<p>Check the individual test results above for detailed information.</p>';
+            summary += '<p><strong>Common Issues & Solutions:</strong></p>';
+            summary += '<ul>';
+            summary += '<li><strong>No nearby people found:</strong> This is normal if no other users have location sharing enabled or are within your radius</li>';
+            summary += '<li><strong>Location sharing disabled:</strong> Go to your profile and enable "Near Me" discovery</li>';
+            summary += '<li><strong>No coordinates set:</strong> Add your location in profile settings</li>';
+            summary += '<li><strong>Authentication errors:</strong> Make sure you are logged in</li>';
+            summary += '</ul>';
+            summary += '</div>';
+            
+            resultDiv.innerHTML = summary;
+        }
+
+        // Auto-run basic check on page load
+        window.addEventListener('load', () => {
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Debug Test</h1>
+    
+    <button onclick="testAuthDebug()">Run Authentication Debug</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAuthDebug() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Running authentication debug...</div>';
+            
+            try {
+                const response = await fetch('/api/debug-auth', {
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                let html = '';
+                
+                if (data.success) {
+                    html += '<div class="success">✅ Authentication Debug Successful</div>';
+                    html += '<h3>Debug Results:</h3>';
+                    
+                    // User info
+                    html += '<div class="info">';
+                    html += '<h4>👤 User Information:</h4>';
+                    html += `<div>• ID: ${data.debug.user.id}</div>`;
+                    html += `<div>• Email: ${data.debug.user.email}</div>`;
+                    html += `<div>• Authenticated: ${data.debug.user.authenticated ? 'Yes' : 'No'}</div>`;
+                    html += '</div>';
+                    
+                    // Profile info
+                    html += '<div class="info">';
+                    html += '<h4>👤 Profile Information:</h4>';
+                    html += `<div>• Profile Exists: ${data.debug.profile.exists ? 'Yes' : 'No'}</div>`;
+                    html += `<div>• Location Sharing: ${data.debug.profile.geo_opt_in ? 'Enabled' : 'Disabled'}</div>`;
+                    html += `<div>• Has Coordinates: ${data.debug.profile.hasLocation ? 'Yes' : 'No'}</div>`;
+                    if (data.debug.profile.hasLocation) {
+                        html += `<div>• Latitude: ${data.debug.profile.lat}</div>`;
+                        html += `<div>• Longitude: ${data.debug.profile.lng}</div>`;
+                    }
+                    html += `<div>• Display Name: ${data.debug.profile.display_name || 'Not set'}</div>`;
+                    html += '</div>';
+                    
+                    // Database function
+                    html += '<div class="info">';
+                    html += '<h4>🗄️ Database Function Test:</h4>';
+                    html += `<div>• Success: ${data.debug.databaseFunction.success ? 'Yes' : 'No'}</div>`;
+                    if (!data.debug.databaseFunction.success) {
+                        html += `<div class="error">• Error: ${data.debug.databaseFunction.error}</div>`;
+                    }
+                    html += `<div>• Results Found: ${data.debug.databaseFunction.resultCount}</div>`;
+                    if (data.debug.databaseFunction.results.length > 0) {
+                        html += '<div>• Results: <pre>' + JSON.stringify(data.debug.databaseFunction.results, null, 2) + '</pre></div>';
+                    }
+                    html += '</div>';
+                    
+                    // Other users
+                    html += '<div class="info">';
+                    html += '<h4>👥 Other Users with Location Sharing:</h4>';
+                    html += `<div>• Count: ${data.debug.otherUsers.count}</div>`;
+                    if (data.debug.otherUsers.error) {
+                        html += `<div class="error">• Error: ${data.debug.otherUsers.error}</div>`;
+                    }
+                    if (data.debug.otherUsers.users.length > 0) {
+                        html += '<div>• Users: <pre>' + JSON.stringify(data.debug.otherUsers.users, null, 2) + '</pre></div>';
+                    }
+                    html += '</div>';
+                    
+                    // Recommendations
+                    html += '<div class="warning">';
+                    html += '<h4>💡 Recommendations:</h4>';
+                    html += '<ul>';
+                    data.debug.recommendations.forEach(rec => {
+                        html += `<li>${rec}</li>`;
+                    });
+                    html += '</ul>';
+                    html += '</div>';
+                    
+                } else {
+                    html += '<div class="error">❌ Authentication Debug Failed</div>';
+                    html += `<div>• Error: ${data.error}</div>`;
+                    html += `<div>• Details: ${data.details}</div>`;
+                    html += `<div>• Step: ${data.step}</div>`;
+                }
+                
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Auto-run on page load
+        window.addEventListener('load', testAuthDebug);
+    </script>
+</body>
+</html>
