@@ -50,13 +50,13 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key
 
-# Paddle Configuration (optional for payments)
-PADDLE_ENV=sandbox
-PADDLE_VENDOR_ID=your_paddle_vendor_id
-PADDLE_PUBLIC_KEY=your_paddle_public_key
+# Paddle Hosted Checkout Configuration (optional for payments)
+NEXT_PUBLIC_PADDLE_MONTHLY_CHECKOUT_URL=https://sandbox-pay.paddle.io/hsc_xxxxx
+NEXT_PUBLIC_PADDLE_ANNUAL_CHECKOUT_URL=https://sandbox-pay.paddle.io/hsc_xxxxx
+
+# Paddle Webhook Configuration (for payment processing)
 PADDLE_API_KEY=your_paddle_api_key
-PADDLE_PRICE_ONE_TIME_USD=9.99
-PADDLE_PRICE_MONTHLY_AI_USD=0.99
+PADDLE_WEBHOOK_SECRET=your_paddle_webhook_secret
 
 # App Configuration
 APP_BASE_URL=http://localhost:3002

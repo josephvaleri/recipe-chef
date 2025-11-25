@@ -152,6 +152,7 @@ Rules:
 - Use PT format for times (PT15M = 15 minutes)
 - recipeIngredient: array of strings
 - recipeInstructions: array of objects with "text" property
+- Include estimated calories in the nutrition field for each recipe
 - Return ONLY the JSON array, no other text`
 
     const recipeGeneration = await openai.chat.completions.create({

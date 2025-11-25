@@ -186,6 +186,7 @@ Rules:
 - Use PT format for times (PT15M = 15 minutes)
 - recipeIngredient: array of strings
 - recipeInstructions: array of objects with "text" property
+- Include estimated calories in the nutrition field for each recipe
 - For the image field, use a relevant Unsplash image URL that matches the recipe:
   * Format: https://images.unsplash.com/photo-[photo-id]?w=400&auto=format&fit=crop&q=80
   * Choose appropriate photo IDs for the dish type (e.g., pasta, pizza, salad, etc.)

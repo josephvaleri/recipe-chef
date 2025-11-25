@@ -34,7 +34,6 @@
     "@capacitor/status-bar": "^7.0.3",
     "@extractus/article-extractor": "^8.0.20",
     "@hookform/resolvers": "^5.2.2",
-    "@paddle/paddle-js": "^1.4.2",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.2",

@@ -12,6 +12,7 @@ import { scaleAmount } from '@/lib/utils'
 import { sanitizeText, sanitizeHTML } from '@/lib/sanitize'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { RecipeTimer } from '@/components/recipe-timer'
+import { TextWithTooltips } from '@/components/recipe/TextWithTooltips'
 import { ShareRecipeModal } from '@/components/community/ShareRecipeModal'
 import RecipeVoting from '@/components/community/RecipeVoting'
 import { 
@@ -32,7 +33,8 @@ import {
   AlertCircle,
   Globe,
   Plus,
-  Share2
+  Share2,
+  Flame
 } from 'lucide-react'
 
 interface RecipeData {
@@ -45,6 +47,7 @@ interface RecipeData {
   total_time?: string
   servings?: string
   difficulty?: string
+  calories?: number
   source_name?: string
   source_url?: string
   is_favorite: boolean
@@ -835,6 +838,13 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
                         <span className="ml-1">{recipe.difficulty}</span>
                       </div>
                     )}
+                    {recipe.calories && (
+                      <div className="flex items-center">
+                        <Flame className="w-4 h-4 mr-2 text-gray-400" />
+                        <span className="font-medium">Calories:</span>
+                        <span className="ml-1">{recipe.calories}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Rating */}
@@ -994,7 +1004,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
                             </div>
                             <div className="flex-1">
                               <p className="text-gray-900 leading-relaxed">
-                                {paragraph.trim()}
+                                <TextWithTooltips text={paragraph.trim()} />
                               </p>
                             </div>
                           </div>
@@ -1181,7 +1191,7 @@ export default function RecipePage({ params }: { params: Promise<{ id: string }>
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
                     <MessageCircle className="w-5 h-5 text-orange-500" />
-                    <span>Ask Chef AI</span>
+                    <span>Ask Chef Tony</span>
                   </CardTitle>
                   <CardDescription>
                     Get cooking tips and answers about this recipe

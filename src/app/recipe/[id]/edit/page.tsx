@@ -21,6 +21,7 @@ interface RecipeData {
   total_time?: string
   servings?: string
   difficulty?: string
+  calories?: number
   cuisine_id?: number
   meal_type_id?: number
   source_name?: string
@@ -328,6 +329,7 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
           cook_time: editedRecipe.cook_time || null,
           servings: editedRecipe.servings || null,
           difficulty: editedRecipe.difficulty || 'Easy',
+          calories: editedRecipe.calories || null,
           cuisine_id: editedRecipe.cuisine_id || null,
           meal_type_id: editedRecipe.meal_type_id || null,
           source_name: editedRecipe.source_name || null,
@@ -628,6 +630,19 @@ export default function EditRecipePage({ params }: { params: Promise<{ id: strin
                         <option value="Medium">Medium</option>
                         <option value="Hard">Hard</option>
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-orange-900 mb-2">
+                        Calories
+                      </label>
+                      <Input
+                        type="number"
+                        value={editedRecipe.calories || ''}
+                        onChange={(e) => setEditedRecipe({ ...editedRecipe, calories: e.target.value ? parseInt(e.target.value) : null })}
+                        placeholder="e.g., 350"
+                        className="border-orange-300 focus:border-orange-500"
+                      />
                     </div>
                   </div>
 

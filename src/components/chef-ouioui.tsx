@@ -121,17 +121,7 @@ export function ChefOuiOui({ className, questionBox }: ChefOuiOuiProps) {
   return (
     <div className={`flex flex-col items-center space-y-4 ${className}`}>
       {/* Chef Avatar */}
-      <motion.div
-        className="relative"
-        animate={{
-          rotate: [0, 1, 0, -1, 0],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      >
+      <div className="relative">
         {/* Chef Tony Avatar */}
         <div className="relative w-48 h-48 rounded-full overflow-hidden shadow-lg bg-gray-100">
           <Image
@@ -144,23 +134,9 @@ export function ChefOuiOui({ className, questionBox }: ChefOuiOuiProps) {
             placeholder="blur"
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
           />
-          {/* Blink Animation - Eyelid Mask */}
-          <motion.div
-            className="absolute inset-0 bg-black"
-            animate={{
-              opacity: [0, 0, 1, 1, 0, 0],
-            }}
-            transition={{
-              duration: 0.4,
-              delay: Math.random() * 3 + 7, // Random delay between 7-10 seconds
-              repeat: Infinity,
-              repeatDelay: Math.random() * 3 + 8, // Random repeat delay between 8-11 seconds
-              ease: "easeInOut"
-            }}
-          />
         </div>
         
-      </motion.div>
+      </div>
 
       {/* Speech Bubble - Reserve space to prevent CLS */}
       <motion.div

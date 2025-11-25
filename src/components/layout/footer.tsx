@@ -131,7 +131,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-orange-200 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
           <div className="text-sm text-orange-600">
-            © {currentYear} Recipe Chef. All rights reserved.
+            © {currentYear} Passion Works Studio, LLC. All rights reserved.
             <span className="ml-2 text-xs text-orange-500">v1.2.0</span>
           </div>
           <div className="flex items-center space-x-4">
@@ -141,10 +141,13 @@ export function Footer() {
             <Link href="/terms" className="text-sm text-orange-700 hover:text-orange-900 transition-colors">
               Terms of Service
             </Link>
-            <div className="flex items-center space-x-2">
+            <a
+              href="mailto:support@passionworksstudio.com"
+              className="flex items-center space-x-2 text-sm text-orange-700 hover:text-orange-900 transition-colors"
+            >
               <Mail className="w-4 h-4 text-orange-600" />
-              <span className="text-sm text-orange-600">support@recipechef.com</span>
-            </div>
+              <span className="text-sm">support@passionworksstudio.com</span>
+            </a>
           </div>
         </div>
       </div>

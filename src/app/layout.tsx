@@ -69,14 +69,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <script
-          src="https://cdn.paddle.com/paddle/paddle.js"
-          data-vendor={process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID}
-          data-environment={process.env.NEXT_PUBLIC_PADDLE_ENV === 'live' ? 'production' : 'sandbox'}
-          async
-        />
-      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans min-h-screen flex flex-col antialiased`}>
         <BadgeToastProvider>
           <Header />

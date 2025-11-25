@@ -193,6 +193,7 @@ export default function AddRecipePage() {
           cook_time: recipe.cookTime,
           total_time: recipe.totalTime,
           servings: recipe.recipeYield,
+          calories: recipe.nutrition?.calories ? parseInt(recipe.nutrition.calories) : null,
           meal_type_id: mealTypeId,
           source_name: recipe.author?.name || recipe.source,
           source_url: recipe.url,

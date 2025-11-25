@@ -1,67 +1,57 @@
-'use client'
-
-import { PaddleCheckout } from '@/components/payments/paddle-checkout'
+import { createSupabaseServer } from '@/lib/supabase/server'
+import { PricingSection } from '@/components/payments/pricing-section'
 import { ChefOuiOui } from '@/components/chef-ouioui'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { getCurrentProfile } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
-import { ChefHat, ArrowLeft, Star, Check, Zap } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ChefHat, Star, Check, Zap } from 'lucide-react'
+import { PricingPageClient } from './pricing-client'
 
-export default function PricingPage() {
-  const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+const features = [
+  'Unlimited recipe storage',
+  'Advanced search & filtering',
+  'Recipe scaling & unit conversion',
+  'PDF export & printing',
+  'Menu planning calendar',
+  'Smart shopping lists',
+  'Offline access',
+  'Recipe import from web',
+  'Voice search',
+  'Priority support'
+]
 
-  useEffect(() => {
-    loadProfile()
-  }, [])
+const aiFeatures = [
+  'Natural language recipe search',
+  'Recipe recommendations',
+  'Cooking tips & advice',
+  'Ingredient substitutions',
+  'Recipe Q&A',
+  'Nutritional insights',
+  'Personalized suggestions',
+  'Cooking troubleshooting'
+]
 
-  const loadProfile = async () => {
-    try {
-      const profileData = await getCurrentProfile()
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const features = [
-    'Unlimited recipe storage',
-    'Advanced search & filtering',
-    'Recipe scaling & unit conversion',
-    'PDF export & printing',
-    'Menu planning calendar',
-    'Smart shopping lists',
-    'Offline access',
-    'Recipe import from web',
-    'Voice search',
-    'Priority support'
-  ]
-
-  const aiFeatures = [
-    'Natural language recipe search',
-    'Recipe recommendations',
-    'Cooking tips & advice',
-    'Ingredient substitutions',
-    'Recipe Q&A',
-    'Nutritional insights',
-    'Personalized suggestions',
-    'Cooking troubleshooting'
-  ]
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
-        <div className="text-center">
-          <ChefHat className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
+export default async function PricingPage() {
+  const supabase = await createSupabaseServer()
+  
+  // Get current session
+  const { data: { session } } = await supabase.auth.getSession()
+  const isAuthenticated = !!session
+  
+  // Get user profile if authenticated
+  let profile = null
+  let hasActiveSubscription = false
+  
+  if (isAuthenticated && session?.user) {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('status, paddle_subscription_id, trial_ends_at')
+      .eq('user_id', session.user.id)
+      .single()
+    
+    profile = profileData
+    
+    // User has active subscription if:
+    // - status is 'active' (trial users should still be able to subscribe)
+    hasActiveSubscription = profile?.status === 'active'
   }
 
   return (
@@ -71,10 +61,7 @@ export default function PricingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" onClick={() => router.back()}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
+              <PricingPageClient />
               <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
                 <ChefHat className="w-6 h-6 text-white" />
               </div>
@@ -93,12 +80,15 @@ export default function PricingPage() {
               <ChefOuiOui />
               
               {/* Trial Info */}
-              {profile?.status === 'trial' && (
+              {profile?.status === 'trial' && profile?.trial_ends_at && (
                 <Card className="mt-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                   <CardContent className="p-6">
                     <h3 className="font-bold text-lg mb-2">🎉 Free Trial Active</h3>
                     <p className="text-orange-100 text-sm mb-4">
-                      You have {Math.ceil((new Date(profile.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
+                      {(() => {
+                        const daysLeft = Math.ceil((new Date(profile.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                        return daysLeft > 0 ? `You have ${daysLeft} days left` : 'Trial ending soon'
+                      })()}
                     </p>
                     <p className="text-orange-100 text-xs">
                       Upgrade anytime to keep all your recipes and unlock premium features
@@ -164,11 +154,11 @@ export default function PricingPage() {
               <h3 className="text-2xl font-bold text-center text-gray-900">
                 Ready to Upgrade?
               </h3>
-              <PaddleCheckout 
-                onSuccess={() => {
-                  alert('Payment successful! Welcome to Recipe Chef Pro!')
-                  router.push('/cookbook')
-                }}
+              <PricingSection 
+                isAuthenticated={isAuthenticated}
+                hasActiveSubscription={hasActiveSubscription}
+                userEmail={session?.user?.email}
+                userId={session?.user?.id}
               />
             </div>
 
@@ -187,7 +177,7 @@ export default function PricingPage() {
                 <div>
                   <h4 className="font-semibold mb-2">Can I cancel my subscription anytime?</h4>
                   <p className="text-gray-600 text-sm">
-                    Yes! You can cancel your AI subscription at any time. Your one-time Pro purchase gives you lifetime access to all core features.
+                    Yes! You can cancel your subscription at any time. Your access will continue until the end of your current billing period, and you won't be charged again.
                   </p>
                 </div>
                 <div>

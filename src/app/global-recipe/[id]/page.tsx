@@ -12,6 +12,7 @@ import { scaleAmount } from '@/lib/utils'
 import { sanitizeText, sanitizeHTML } from '@/lib/sanitize'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { RecipeTimer } from '@/components/recipe-timer'
+import { TextWithTooltips } from '@/components/recipe/TextWithTooltips'
 import { 
   ChefHat, 
   Clock, 
@@ -29,7 +30,8 @@ import {
   CheckCircle,
   AlertCircle,
   Globe,
-  Plus
+  Plus,
+  Flame
 } from 'lucide-react'
 
 interface RecipeData {
@@ -42,6 +44,7 @@ interface RecipeData {
   total_time?: string
   servings?: string
   difficulty?: string
+  calories?: number
   source_name?: string
   source_url?: string
   is_published: boolean
@@ -447,6 +450,7 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
           meal_type_id: (recipe as any).meal_type_id,
           servings: recipe.servings,
           difficulty: recipe.difficulty,
+          calories: recipe.calories || null,
           prep_time: recipe.prep_time,
           cook_time: recipe.cook_time,
           total_time: recipe.total_time,
@@ -774,6 +778,12 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                       <span className="text-sm">{recipe.difficulty}</span>
                     </div>
                   )}
+                  {recipe.calories && (
+                    <div className="flex items-center text-orange-700">
+                      <Flame className="w-4 h-4 mr-2" />
+                      <span className="text-sm">{recipe.calories} cal</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -918,7 +928,9 @@ export default function GlobalRecipePage({ params }: { params: Promise<{ id: str
                               <div className="flex-shrink-0 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
                                 {currentGlobalIndex}
                               </div>
-                              <p className="text-orange-800 leading-relaxed">{paragraph}</p>
+                              <p className="text-orange-800 leading-relaxed">
+                                <TextWithTooltips text={paragraph} />
+                              </p>
                             </div>
                           )
                         })}

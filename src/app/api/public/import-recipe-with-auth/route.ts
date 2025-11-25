@@ -134,6 +134,7 @@ async function saveRecipeToUserAccount(recipe: any, userId: string, supabase: an
         prep_time: recipe.prepTime,
         cook_time: recipe.cookTime,
         servings: recipe.recipeYield,
+        calories: recipe.nutrition?.calories ? parseInt(recipe.nutrition.calories) : null,
         source_name: recipe.source,
         source_url: recipe.sourceUrl
       })

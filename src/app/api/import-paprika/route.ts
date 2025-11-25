@@ -123,6 +123,7 @@ async function saveRecipeToDatabase(recipe: NormalizedRecipe, userId: string): P
         cook_time: recipe.cookTime,
         servings: recipe.servings,
         difficulty: recipe.difficulty,     // Now includes difficulty!
+        calories: recipe.calories || null,
         source_name: recipe.sourceName,
         source_url: recipe.sourceUrl,
         diet: recipe.diet

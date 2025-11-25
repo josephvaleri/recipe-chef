@@ -1230,6 +1230,7 @@ export default function RecipeFinderPage() {
           meal_type_id: (recipe as any).meal_type_id,
           servings: recipe.servings,
           difficulty: recipe.difficulty,
+          calories: (recipe as any).nutrition?.calories ? parseInt((recipe as any).nutrition.calories) : null,
           prep_time: isAiGenerated ? convertPTTime(recipe.prep_time) : recipe.prep_time,
           cook_time: isAiGenerated ? convertPTTime(recipe.cook_time) : recipe.cook_time,
           total_time: isAiGenerated ? convertPTTime(recipe.total_time) : recipe.total_time,

@@ -345,6 +345,7 @@ export class SyncManager {
         cook_time: recipeData.cook_time,
         servings: recipeData.servings,
         difficulty: recipeData.difficulty,
+        calories: recipeData.calories || null,
         source_name: recipeData.source_name,
         source_url: recipeData.source_url
       })
@@ -401,6 +402,7 @@ export class SyncManager {
         cook_time: recipeData.cook_time,
         servings: recipeData.servings,
         difficulty: recipeData.difficulty,
+        calories: recipeData.calories || null,
         source_name: recipeData.source_name,
         source_url: recipeData.source_url
       })
