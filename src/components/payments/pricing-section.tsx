@@ -31,17 +31,7 @@ const plans: PricingPlan[] = [
     price: 9.99,
     period: '/year',
     description: 'Best value - Save with annual billing',
-    features: [
-      'Unlimited recipe storage',
-      'Advanced search & filters',
-      'Recipe scaling & conversion',
-      'PDF export',
-      'Menu planning calendar',
-      'Shopping list generation',
-      'Offline access',
-      'Priority support',
-      'All premium features'
-    ],
+    features: [], // Features shown in separate section below
     popular: true
   },
   {
@@ -50,17 +40,7 @@ const plans: PricingPlan[] = [
     price: 0.99,
     period: '/month',
     description: 'Flexible monthly subscription',
-    features: [
-      'Unlimited recipe storage',
-      'Advanced search & filters',
-      'Recipe scaling & conversion',
-      'PDF export',
-      'Menu planning calendar',
-      'Shopping list generation',
-      'Offline access',
-      'Priority support',
-      'All premium features'
-    ]
+    features: [] // Features shown in separate section below
   }
 ]
 
@@ -175,14 +155,16 @@ export function PricingSection({ isAuthenticated, hasActiveSubscription, userEma
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <ul className="space-y-2">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-2 text-sm">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
+              {plan.features.length > 0 && (
+                <ul className="space-y-2">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Button
                 onClick={() => handleSubscribe(plan.id)}
                 disabled={loading !== null}
@@ -225,14 +207,16 @@ export function PricingSection({ isAuthenticated, hasActiveSubscription, userEma
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <ul className="space-y-2">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-2 text-sm">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
+              {plan.features.length > 0 && (
+                <ul className="space-y-2">
+                  {plan.features.map((feature, index) => (
+                    <li key={index} className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <Button
                 onClick={() => handleSubscribe(plan.id)}
                 disabled={isPlanLoading || !checkoutConfigured}

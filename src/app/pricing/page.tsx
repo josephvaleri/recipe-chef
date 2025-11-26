@@ -1,33 +1,9 @@
 import { createSupabaseServer } from '@/lib/supabase/server'
 import { PricingSection } from '@/components/payments/pricing-section'
 import { ChefOuiOui } from '@/components/chef-ouioui'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChefHat, Star, Check, Zap } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChefHat, Check } from 'lucide-react'
 import { PricingPageClient } from './pricing-client'
-
-const features = [
-  'Unlimited recipe storage',
-  'Advanced search & filtering',
-  'Recipe scaling & unit conversion',
-  'PDF export & printing',
-  'Menu planning calendar',
-  'Smart shopping lists',
-  'Offline access',
-  'Recipe import from web',
-  'Voice search',
-  'Priority support'
-]
-
-const aiFeatures = [
-  'Natural language recipe search',
-  'Recipe recommendations',
-  'Cooking tips & advice',
-  'Ingredient substitutions',
-  'Recipe Q&A',
-  'Nutritional insights',
-  'Personalized suggestions',
-  'Cooking troubleshooting'
-]
 
 export default async function PricingPage() {
   const supabase = await createSupabaseServer()
@@ -110,50 +86,8 @@ export default async function PricingPage() {
               </p>
             </div>
 
-            {/* Features Comparison */}
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="text-center">What's Included</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4 flex items-center">
-                      <Star className="w-5 h-5 mr-2 text-orange-500" />
-                      Recipe Chef Pro
-                    </h3>
-                    <ul className="space-y-2">
-                      {features.map((feature, index) => (
-                        <li key={index} className="flex items-center space-x-2 text-sm">
-                          <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4 flex items-center">
-                      <Zap className="w-5 h-5 mr-2 text-orange-500" />
-                      AI Assistant (Add-on)
-                    </h3>
-                    <ul className="space-y-2">
-                      {aiFeatures.map((feature, index) => (
-                        <li key={index} className="flex items-center space-x-2 text-sm">
-                          <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Pricing Options */}
-            <div className="space-y-6">
-              <h3 className="text-2xl font-bold text-center text-gray-900">
-                Ready to Upgrade?
-              </h3>
+            <div className="space-y-6 mb-12">
               <PricingSection 
                 isAuthenticated={isAuthenticated}
                 hasActiveSubscription={hasActiveSubscription}
@@ -161,6 +95,77 @@ export default async function PricingPage() {
                 userId={session?.user?.id}
               />
             </div>
+
+            {/* What's Included */}
+            <Card className="mb-12">
+              <CardHeader>
+                <CardTitle className="text-center">What's Included</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ul className="space-y-3">
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Unlimited recipe storage</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>AI recipe creation</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Easy migration from Paprika</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Save recipes from web in one click</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Use Offline</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Unlimited community groups and sharing</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Friends and Follows</span>
+                    </li>
+                  </ul>
+                  <ul className="space-y-3">
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Become a verified chef</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Unlimited iOS and Android apps</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Recipe scaling & conversion</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Menu planning calendar</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>AI shopping lists</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>All premium features</span>
+                    </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Renews automatically</span>
+                    </li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* FAQ */}
             <Card className="mt-12">
@@ -171,7 +176,7 @@ export default async function PricingPage() {
                 <div>
                   <h4 className="font-semibold mb-2">What happens to my recipes after the trial?</h4>
                   <p className="text-gray-600 text-sm">
-                    Your recipes are always safe with us. After your trial ends, you'll still have access to view and export your recipes, but you'll need to upgrade to continue adding new ones or using premium features.
+                    Your recipes are always safe with us. After your trial ends, your recipes will stay in our system for up to 6 months, in case you want to rejoin. After 6 months, or at any time upon your request, we will delete your account and recipes.
                   </p>
                 </div>
                 <div>
@@ -184,12 +189,6 @@ export default async function PricingPage() {
                   <h4 className="font-semibold mb-2">Is there a refund policy?</h4>
                   <p className="text-gray-600 text-sm">
                     We offer a 30-day money-back guarantee for all purchases. If you're not satisfied, contact our support team for a full refund.
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2">Do you offer student discounts?</h4>
-                  <p className="text-gray-600 text-sm">
-                    Yes! Students and educators can get 50% off the Pro plan. Contact us with your student ID or educational email for verification.
                   </p>
                 </div>
               </CardContent>
