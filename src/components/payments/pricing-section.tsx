@@ -81,45 +81,69 @@ export function PricingSection({ isAuthenticated, hasActiveSubscription, userEma
       return
     }
 
-    // Get checkout URL
-    let checkoutUrl = paddleHostedCheckout[planType]
-    
-    if (!checkoutUrl) {
-      console.error(`Checkout URL not configured for ${planType} plan`)
-      alert('Checkout is not configured. Please contact support.')
-      return
-    }
-
-    // Append customer information and success URL as query parameters
-    const urlParams = new URLSearchParams()
-    
-    // Required: Success URL for redirect after payment
-    const successUrl = `${window.location.origin}/pricing?success=true`
-    urlParams.append('success_url', successUrl)
-    
-    // Optional: Customer email if available
-    if (userEmail) {
-      urlParams.append('customer_email', userEmail)
-    }
-    
-    // Add passthrough data (custom data) if user ID is available
-    // Paddle will include this in webhook events as custom_data
-    if (userId) {
-      const passthrough = JSON.stringify({
-        supabase_user_id: userId,
-        app: 'RecipeChef'
-      })
-      urlParams.append('passthrough', passthrough)
-    }
-
-    // Append query parameters
-    checkoutUrl = `${checkoutUrl}${checkoutUrl.includes('?') ? '&' : '?'}${urlParams.toString()}`
-
     // Set loading state
     setLoading(planType)
 
-    // Redirect to Paddle hosted checkout
     try {
+      // Try using API to create checkout session first (more reliable)
+      try {
+        const response = await fetch('/api/paddle/create-checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ planType }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.checkoutUrl) {
+            window.location.href = data.checkoutUrl
+            return
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          console.warn('API checkout creation failed, falling back to hosted URL:', errorData)
+        }
+      } catch (apiError) {
+        console.warn('API checkout creation error, falling back to hosted URL:', apiError)
+      }
+
+      // Fallback to hosted checkout URL if API fails
+      let checkoutUrl = paddleHostedCheckout[planType]
+      
+      if (!checkoutUrl) {
+        console.error(`Checkout URL not configured for ${planType} plan`)
+        alert('Checkout is not configured. Please contact support.')
+        setLoading(null)
+        return
+      }
+
+      // Append customer information and success URL as query parameters
+      const urlParams = new URLSearchParams()
+      
+      // Required: Success URL for redirect after payment
+      const successUrl = `${window.location.origin}/pricing?success=true`
+      urlParams.append('success_url', successUrl)
+      
+      // Optional: Customer email if available
+      if (userEmail) {
+        urlParams.append('customer_email', userEmail)
+      }
+      
+      // Add passthrough data (custom data) if user ID is available
+      if (userId) {
+        const passthrough = JSON.stringify({
+          supabase_user_id: userId,
+          app: 'RecipeChef'
+        })
+        urlParams.append('passthrough', passthrough)
+      }
+
+      // Append query parameters
+      checkoutUrl = `${checkoutUrl}${checkoutUrl.includes('?') ? '&' : '?'}${urlParams.toString()}`
+
+      // Redirect to Paddle hosted checkout
       window.location.href = checkoutUrl
     } catch (error) {
       console.error('Error redirecting to checkout:', error)
