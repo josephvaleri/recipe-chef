@@ -40,12 +40,12 @@ export function ChefOuiOui({ className, questionBox }: ChefOuiOuiProps) {
       
       // Load static content immediately for fast display
       const greetings = [
-        "Bonjour! Welcome to Recipe Chef!",
-        "Salut! Ready to cook something amazing?",
-        "Bonsoir! Time to discover new flavors!",
-        "Coucou! Let's make magic in the kitchen!",
-        "Hello there, mon ami! What shall we cook today?",
-        "Bon appétit awaits! Welcome to your culinary journey!"
+        "Buon Giorno! Welcome to Recipe Chef!",
+        "Salute! Ready to cook something amazing?",
+        "Buona Sera! Time to discover new flavors!",
+        "Benvenuto! Let's make magic in the kitchen!",
+        "Ciao amici! What shall we cook today?",
+        "Buon appetito! Welcome to your culinary journey!"
       ]
       
       const jokes = [

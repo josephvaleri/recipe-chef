@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus, Trophy, ShoppingCart, Globe, Award, List, Link, Upload } from 'lucide-react'
+import { Search, Mic, MicOff, Send, UserPlus, LogIn, ChefHat, BookOpen, Calendar, Plus, Trophy, ShoppingCart, Globe, Award, List, Link, Upload, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { TrialBanner } from '@/components/trial-banner'
@@ -332,7 +332,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Recipe Finder</h3>
                       <p className="text-gray-700">
-                        Select ingredients from your pantry and instantly discover delicious recipes you can make right now. No more "what's for dinner?" stress!
+                        Select ingredients from your pantry and instantly discover delicious recipes from our global cookbook that you can make right now. No more "what's for dinner?" stress!
                       </p>
                     </CardContent>
                   </Card>
@@ -359,6 +359,25 @@ export default function Home() {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.25 }}
+                >
+                  <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-pink-500 rounded-full flex items-center justify-center mb-4">
+                        <Sparkles className="w-6 h-6 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">AI Recipe Writer</h3>
+                      <p className="text-gray-700">
+                        Ask Chef Tony what you can make with a list of ingredients and he will generate complete recipes for you to choose from and add to your cookbook or to share with a friend or group.
+                      
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
                   <Card className="h-full bg-white/90 backdrop-blur-sm border-orange-200 hover:shadow-lg transition-shadow">
@@ -366,9 +385,9 @@ export default function Home() {
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center mb-4">
                         <Calendar className="w-6 h-6 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Meal Planning Made Easy</h3>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Culinary Groups</h3>
                       <p className="text-gray-700">
-                        Drag and drop recipes into your weekly calendar. Automatically generate shopping lists for your planned meals. Cooking has never been this organized!
+                        Join culinary groups to share recipes, discuss cooking techniques, create group cookbooks, share ideas and submit the best recipes to the Chef Tony's Global Cookbook.
                       </p>
                     </CardContent>
                   </Card>
@@ -386,7 +405,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Smart Shopping Lists</h3>
                       <p className="text-gray-700">
-                        Generate comprehensive shopping lists from your meal plans. Ingredients are automatically organized by category for efficient grocery shopping.
+                        Easily create daily meal plans and generate comprehensive shopping lists from your meal plans. Ingredients are automatically organized by category for efficient grocery shopping.
                       </p>
                     </CardContent>
                   </Card>

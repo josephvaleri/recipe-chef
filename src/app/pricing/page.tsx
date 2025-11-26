@@ -132,8 +132,16 @@ export default async function PricingPage() {
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
                       <span>Friends and Follows</span>
                     </li>
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Awards & Badges - Track your culinary journey</span>
+                    </li>
                   </ul>
                   <ul className="space-y-3">
+                    <li className="flex items-center space-x-2 text-sm">
+                      <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span>Global Cookbook curated by a CIA graduate chef</span>
+                    </li>
                     <li className="flex items-center space-x-2 text-sm">
                       <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
                       <span>Become a verified chef</span>
