@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -11,14 +11,23 @@ import { supabase } from '@/lib/supabase'
 import { ChefHat, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 function SignInForm() {
-  const [email, setEmail] = useState('')
+  const searchParams = useSearchParams()
+  const emailFromQuery = searchParams.get('email') || ''
+  const [email, setEmail] = useState(emailFromQuery)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/'
+
+  // Update email when searchParams change (e.g., when redirected from signup)
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    if (emailParam) {
+      setEmail(emailParam)
+    }
+  }, [searchParams])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -97,8 +97,8 @@ interface UserProfile {
   diet?: string
   favorite_cuisine?: string
   
-  // Subscription
-  subscription_status?: string
+  // Subscription (using 'status' field from database)
+  status?: 'active' | 'inactive' | 'trial'
 }
 
 const COMMON_ALLERGENS = [
@@ -1179,17 +1179,21 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between mb-2">
                       <Label>Subscription Status</Label>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        profile.subscription_status === 'active' 
+                        profile.status === 'active' 
                           ? 'bg-green-100 text-green-800'
-                          : profile.subscription_status === 'trial'
+                          : profile.status === 'trial'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {(profile.subscription_status || 'free').toUpperCase()}
+                        {(profile.status || 'inactive').toUpperCase()}
                       </span>
                     </div>
-                    {profile.subscription_status !== 'active' && (
-                      <Button variant="outline" className="w-full">
+                    {profile.status !== 'active' && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => router.push('/pricing')}
+                      >
                         <CreditCard className="w-4 h-4 mr-2" />
                         Upgrade to Premium
                       </Button>

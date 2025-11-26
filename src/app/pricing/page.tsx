@@ -1,9 +1,11 @@
+import { Suspense } from 'react'
 import { createSupabaseServer } from '@/lib/supabase/server'
 import { PricingSection } from '@/components/payments/pricing-section'
 import { ChefOuiOui } from '@/components/chef-ouioui'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChefHat, Check } from 'lucide-react'
 import { PricingPageClient } from './pricing-client'
+import { PricingSuccessHandler } from './pricing-success-handler'
 
 export default async function PricingPage() {
   const supabase = await createSupabaseServer()
@@ -32,6 +34,11 @@ export default async function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+      {/* Success Handler - Detects payment success and shows confirmation */}
+      <Suspense fallback={null}>
+        <PricingSuccessHandler />
+      </Suspense>
+      
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-orange-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

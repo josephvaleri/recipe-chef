@@ -51,14 +51,9 @@ export default function SignUpPage() {
       if (error) {
         setError(error.message)
       } else {
-        // For beta: if email confirmation is disabled, user is immediately logged in
-        if (data.session) {
-          // User is logged in, redirect to home
-          router.push('/')
-        } else {
-          // Email confirmation required, redirect to check-email
-          router.push('/auth/check-email')
-        }
+        // Always redirect to signin page with email pre-populated
+        // This ensures users log in after signup, even if email confirmation is disabled
+        router.push(`/auth/signin?email=${encodeURIComponent(email)}&fromSignup=true`)
       }
     } catch (err) {
       setError('An unexpected error occurred')
