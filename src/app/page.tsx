@@ -387,7 +387,7 @@ export default function Home() {
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Culinary Groups</h3>
                       <p className="text-gray-700">
-                        Join culinary groups to share recipes, discuss cooking techniques, create group cookbooks, share ideas and submit the best recipes to the Chef Tony's Global Cookbook.
+                        Join culinary groups to share recipes, learn cooking techniques, create group cookbooks, share ideas and submit the best recipes to the Chef Tony's Global Cookbook.
                       </p>
                     </CardContent>
                   </Card>
